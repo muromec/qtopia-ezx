@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: datffact.cpp,v 1.13 2009/03/02 17:22:32 qluo Exp $
+ * Source last modified: $Id: datffact.cpp,v 1.10 2006/02/07 19:21:11 ping Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -64,12 +64,7 @@
 #ifdef _OPENWAVE
 #include "opwavehxdataf.h"
 #endif
-#ifdef _BREW
-#include "brewihxdataf.h"
-#endif	// BREW
-#ifdef ANDROID
-#include "fdbufdataf.h"
-#endif	// ANDROID
+
 
 #include "debug.h"
 #include "hxperf.h"
@@ -147,13 +142,9 @@ HXDataFileFactory::CreateFile(REF(IHXDataFile*) pDataFile, IUnknown*
     pDataFile = new CSymbIHXDataFile(pContext, &pPersistantObject);
 #elif defined(_OPENWAVE)
 		pDataFile = new OpenwaveHXDataFile(pContext, &pPersistantObject);
-#elif defined(_BREW)
-    pDataFile = new CBrewIHXDataFile(pContext, &pPersistantObject);
 #elif defined(HELIX_FEATURE_MEMMAP_IO)
     pDataFile = new MemoryMapDataFile(pContext, pPersistantObject,
 	bDisableMemoryMappedIO, ulChunkSize, bEnableFileLocking);
-#elif defined(ANDROID)
-    pDataFile = new FDBufferedDataFile(pContext);
 #else	// default
     pDataFile = new BufferedDataFile(pContext);
 #endif	// HELIX_FEATURE_MEMMAP_IO

@@ -1,7 +1,7 @@
 # 
 #  ***** BEGIN LICENSE BLOCK *****  
 #   
-#  Source last modified: $Id: helix-client-playerx.pf,v 1.22 2007/08/22 20:33:10 milko Exp $ 
+#  Source last modified: $Id: helix-client-playerx.pf,v 1.16 2007/05/01 21:34:12 milko Exp $ 
 #   
 #  Copyright Notices: 
 #   
@@ -67,8 +67,6 @@
 ### Core
 project.AddDefines('HELIX_FEATURE_CLIENT')
 project.AddDefines('HELIX_CONFIG_MINIMIZE_SIZE')
-project.AddDefines('HELIX_CONFIG_RTTI')
-project.AddDefines('HELIX_CONFIG_CPP_EXCEPTIONS')
 project.AddDefines('HELIX_FEATURE_EXTENDED_MEDIAPLATFORM')
 project.AddDefines('HELIX_FEATURE_PREFERENCES')
 project.AddDefines('HELIX_FEATURE_SINKCONTROL')
@@ -83,9 +81,6 @@ project.AddDefines('HELIX_FEATURE_HYPER_NAVIGATE')
 project.AddDefines('HELIX_FEATURE_BASICGROUPMGR')
 if "mac-unix" in sysinfo.family_list:
     project.AddDefines('HELIX_FEATURE_NETSERVICES_SHIM')
-
-## WPAD/PAC
-project.AddDefines('HELIX_FEATURE_PAC')
 
 ## Audio
 project.AddDefines('HELIX_FEATURE_AUDIO')
@@ -104,15 +99,10 @@ project.AddDefines('HELIX_FEATURE_OPTIMIZED_VIDEO')
 project.AddDefines('HELIX_FEATURE_OVERLAYMGR')
 project.AddDefines('HELIX_FEATURE_CC_YUY2out')
 
-## HTTP Download
-project.AddDefines('HELIX_FEATURE_HTTP_SERVICE')
-
 ## HTTP Playback
 project.AddDefines('HELIX_FEATURE_PLAYBACK_LOCAL')
 project.AddDefines('HELIX_FEATURE_HTTP_GZIP')
 project.AddDefines('HELIX_FEATURE_CHUNKRES')
-project.AddDefines('HELIX_FEATURE_HTTP_MEMCACHE')
-project.AddDefines('HELIX_FEATURE_ALT_URL')
 
 ## RTSP Playback
 project.AddDefines('HELIX_FEATURE_PLAYBACK_NET')

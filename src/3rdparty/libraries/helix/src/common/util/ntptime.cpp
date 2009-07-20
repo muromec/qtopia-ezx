@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: ntptime.cpp,v 1.7 2007/10/25 15:25:41 praveenkumar Exp $
+ * Source last modified: $Id: ntptime.cpp,v 1.5 2004/07/09 18:23:51 hubbe Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -54,7 +54,6 @@
 #include "hxtime.h"
 #include "timeval.h"
 #include "ntptime.h"
-#include "smoothtime.h"
 
 #ifdef _DEBUG
 #undef HX_THIS_FILE		
@@ -122,11 +121,6 @@ NTPTime::toMSec()
     double ms = (m_ulSecond * 1000.0);
     ms += ((double) m_ulFraction / (double) MAX_UINT32) * 1000.0;
 
-    while (ms > MAX_UINT32_AS_DOUBLE)
-    {
-        ms -= MAX_UINT32_AS_DOUBLE;
-    }
-    
     return (UINT32) ms;
 }
 

@@ -1,5 +1,5 @@
 # ***** BEGIN LICENSE BLOCK *****  
-# Source last modified: $Id: Umakefil,v 1.21 2009/02/02 00:52:18 ckarusala Exp $ 
+# Source last modified: $Id: Umakefil,v 1.18 2006/12/21 05:06:06 tknox Exp $ 
 #   
 # Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
 #       
@@ -48,6 +48,7 @@ project.AddModuleIncludes(
 	, "common/util/pub"
 	, "common/runtime/pub"
 	, "datatype/rm/include"
+	, "protocol-restricted/common/util"
 	, "protocol/common/pub"
 	, "protocol/common/util/pub"
 	, "protocol/http/pub"
@@ -88,7 +89,8 @@ project.AddSources (
 	, "fsys_wrap.cpp"
 	, "http.cpp"
         , "basicpcktflow.cpp"
-        , "pushpacketflow.cpp"
+        , "pushpcktflow.cpp"
+	, "static_pushpktflow.cpp"
         , "pullpcktflow.cpp"
         , "pcktflowmgr.cpp"
         , "pcktflowwrap.cpp"
@@ -97,7 +99,6 @@ project.AddSources (
 	, "rvdrop.cpp"
         , "rsdpacketq.cpp"
         #, "transprt.cpp"
-        , "strmgroupdata.cpp"
 	)
 
 LibraryTarget('servdataflowlib')

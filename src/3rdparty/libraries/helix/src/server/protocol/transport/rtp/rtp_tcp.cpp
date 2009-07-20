@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: rtp_tcp.cpp,v 1.16 2009/02/01 00:28:32 jgordon Exp $
+ * Source last modified: $Id: rtp_tcp.cpp,v 1.14 2007/03/22 19:16:57 tknox Exp $
  *
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.
  *
@@ -60,8 +60,8 @@
 static const char HX_THIS_FILE[] = __FILE__;
 #endif
 
-ServerRTPTCPTransport::ServerRTPTCPTransport(BOOL bIsSource, HXBOOL bOldTS)
-    : ServerRTPBaseTransport(bIsSource, bOldTS)
+ServerRTPTCPTransport::ServerRTPTCPTransport(BOOL bIsSource)
+    : ServerRTPBaseTransport(bIsSource)
     , m_pTCPSocket(NULL)
     , m_tcpInterleave((INT8)0xFF)
     , m_pSource (NULL)
@@ -404,7 +404,7 @@ ServerRTPTCPTransport::sendPacket(BasePacket* pPacket)
 
         /* send SR if necessary */
         if (HXR_OK == theErr && m_pRTCPTran->m_bSendReport &&
-            m_pRTCPTran->m_bSendRTCP && m_bFirstTSSet)
+            m_pRTCPTran->m_bSendRTCP)
         {
             m_pRTCPTran->sendSenderReport();
             m_pRTCPTran->m_bSendReport = FALSE;

@@ -1,6 +1,6 @@
 # 
 # ***** BEGIN LICENSE BLOCK *****
-# Source last modified: $Id: Umakefil,v 1.48 2008/11/06 15:40:08 ehyche Exp $
+# Source last modified: $Id: Umakefil,v 1.43 2006/03/22 17:53:59 stanb Exp $
 # 
 # Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
 # 
@@ -19,7 +19,7 @@
 # contents of the file.
 # 
 # Alternatively, the contents of this file may be used under the
-# terms of the GNU General Public License Version 2 (the
+# terms of the GNU General Public License Version 2 or later (the
 # "GPL") in which case the provisions of the GPL are applicable
 # instead of those above. If you wish to allow use of your version of
 # this file only under the terms of the GPL, and not to allow others
@@ -53,11 +53,9 @@ UmakefileVersion(2,1)
 
 project.AddIncludes("../include", "../container/pub", "../dbgtool/pub",
                     "../system/pub", "../fileio/pub", "../runtime/pub",
-                    "../import/sqlite/version_3_4_0/pub",
 		    "../log/logutil/pub")
 
-project.AddSources("chxinifreader.cpp",
-                   "hxstrutl.cpp",
+project.AddSources("hxstrutl.cpp",
                    "hxdefpackethookhlp.cpp",
                    "dbcs.cpp",
                    "hxrand.cpp",
@@ -142,14 +140,11 @@ project.AddSources("chxinifreader.cpp",
                    "hxmovavg.cpp",
                    "hxmovmed.cpp",
 		   "bufnum.cpp",
-		   "HXErrorCodeStrings.c",
-		   "print_ihxvalues.cpp")
+		   "HXErrorCodeStrings.c")
 		   
 project.AddSources("tconverter/fxpoint/tconverter_fxp.cpp")
 
 project.AddSources('hxthreadtask.cpp','hxthreadtaskdriver.cpp', 'hxthreadmessagesink.cpp', 'hxtaskmanager.cpp')
-
-project.AddSources("iso639.cpp", "uniconv.cpp", "encstr.cpp", "proptools.cpp")
 
 LibraryTarget("utillib")
 

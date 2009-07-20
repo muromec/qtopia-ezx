@@ -2,7 +2,7 @@
 #
 #  ***** BEGIN LICENSE BLOCK *****  
 #   
-#  Source last modified: $Id: symbian-armv5.cf,v 1.18 2007/05/08 15:20:10 praveenkumar Exp $ 
+#  Source last modified: $Id: symbian-armv5.cf,v 1.16 2007/04/06 04:03:09 schaturvedi Exp $ 
 #   
 #  Copyright Notices: 
 #   
@@ -155,12 +155,6 @@ def GetArmv5SystemIncludes():
              'EPOC32\INCLUDE\mmf\server',
              'EPOC32\INCLUDE\VARIANT',
              'EPOC32\INCLUDE\RVCT2_2' ]
-
-    if project.IsDefined('HELIX_CONFIG_INC_HIERARCHY_CHANGE'):
-        incs.append('epoc32\include\middleware')
-    	incs.append('epoc32\include\domain\middleware')
-    	incs.append('epoc32\include\domain\osextensions')
-	incs.append('epoc32\include\osextensions')
 
     return incs
 

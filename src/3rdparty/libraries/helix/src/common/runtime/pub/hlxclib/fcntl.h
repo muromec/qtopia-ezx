@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: fcntl.h,v 1.12 2008/01/18 09:17:27 vkathuria Exp $
+ * Source last modified: $Id: fcntl.h,v 1.9 2004/07/09 18:21:09 hubbe Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -50,7 +50,7 @@
 #ifndef HLXSYS_FCNTL_H
 #define HLXSYS_FCNTL_H
 
-#if !defined(WIN32_PLATFORM_PSPC) && !defined(_OPENWAVE) && !defined(_BREW)
+#if !defined(WIN32_PLATFORM_PSPC) && !defined(_OPENWAVE)
 #include <fcntl.h>
 
 #else
@@ -79,19 +79,6 @@
 #define _O_CREAT        0x0100
 #define _O_TRUNC        0x0200
 #define _O_EXCL         0x0400
-
-#ifndef O_RDONLY
-#define O_RDONLY _O_RDONLY
-#endif
-
-#ifndef O_RDWR
-#define O_RDWR _O_RDWR
-#endif
-
-#ifndef O_WRONLY
-#define O_WRONLY _O_WRONLY
-#endif
-
 #endif
 
 

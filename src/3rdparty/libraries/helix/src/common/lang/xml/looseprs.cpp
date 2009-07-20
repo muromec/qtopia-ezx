@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: looseprs.cpp,v 1.13 2007/07/06 20:43:45 jfinnecy Exp $
+ * Source last modified: $Id: looseprs.cpp,v 1.11 2005/04/04 17:48:46 ehyche Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -583,9 +583,6 @@ XMLParser::FindCommentClose(const char*& buf, const char* start,
 			    m_comment_get_arg = 1;
 			    m_comment_pos = 0;
 			    strcpy(m_comment_command, "include");
-                            while ((pos = (const char*)xmlStr.GetNextChar(uLen)) && *pos != 'e')
-                                ;       // Skip include
-                            pos = (const char*)xmlStr.GetNextChar(uLen); // Skip the 'e'
 			}
 		    }
 		}
@@ -644,18 +641,10 @@ XMLParser::FindCommentClose(const char*& buf, const char* start,
 		    break;
 		case 2:
 		    if(*pos != '"')
-                    {
-			if (m_comment_pos < 1023)
-                        {
-                            m_comment_arg[m_comment_pos++] = *pos;
-                        }
-                    }
+			if (m_comment_pos < 1023) m_comment_arg[m_comment_pos++] = *pos;
 		    else
 		    {
-			if (m_comment_pos < 1024)
-                        {
-                            m_comment_arg[m_comment_pos] = 0;
-                        }
+			if (m_comment_pos < 1024) m_comment_arg[m_comment_pos] = 0;
 			m_comment_get_arg = 3;
 		    }
 		    break;

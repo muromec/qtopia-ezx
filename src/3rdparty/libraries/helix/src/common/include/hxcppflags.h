@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxcppflags.h,v 1.9 2008/01/17 14:17:48 vkathuria Exp $
+ * Source last modified: $Id: hxcppflags.h,v 1.7 2005/06/28 18:45:20 gwright Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -51,7 +51,7 @@
 #define HX_CPP_FLAGS_H_
 
 #if defined (__cplusplus) && !defined(HELIX_CONFIG_MINIMIZE_SIZE)
-# if (defined(_MSC_VER) && !(_MSC_VER < 1100) && !defined(WIN32_PLATFORM_PSPC) && !defined(_SYMBIAN) && !defined(_OPENWAVE)) && !defined (_BREW)
+# if (defined(_MSC_VER) && !(_MSC_VER < 1100) && !defined(WIN32_PLATFORM_PSPC) && !defined(_SYMBIAN) && !defined(_OPENWAVE))
 #   define HX_CPP_BASIC_TEMPLATES
 # endif
 #endif

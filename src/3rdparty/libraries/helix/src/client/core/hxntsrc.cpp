@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxntsrc.cpp,v 1.165 2009/02/12 04:23:44 sgarg Exp $
+ * Source last modified: $Id: hxntsrc.cpp,v 1.152 2007/04/27 20:16:14 ping Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -961,13 +961,6 @@ HXNetSource::DoSeek(ULONG32 seekTime)
     {
         m_ulSeekPendingTime = seekTime;
         m_bSeekPending = TRUE;
-
-	if(m_bPlayFromRecordControl && !m_bProtocolPaused && m_pProto)
-	{
-	    m_pProto->pause();
-	    m_bProtocolPaused = TRUE;
-	}
-
         if(m_pProto)
             m_pProto->seek(seekTime, seekTime, FALSE);
 
@@ -1353,10 +1346,7 @@ HXNetSource::GetStatus
         goto cleanup;
     }
 
-    if (m_bSourceEnd && 
-        (!IsPlayingFromRecordControl() ||
-	 !m_pRecordControl ||
-	 m_pRecordControl->IsFinishedReading()))
+    if (m_bSourceEnd)
     {
         if (!IsRebufferDone())
         {
@@ -1382,21 +1372,13 @@ HXNetSource::GetStatus
 
     if (m_bInitialized)
     {
-        if (m_pBufferManager)
-        {
-            m_pBufferManager->GetStatus(uStatusCode, pStatusDesc, ulPercentDone);
-        }
+        m_pBufferManager->GetStatus(uStatusCode, pStatusDesc, ulPercentDone);
     }
     else
     {
         uStatusCode         = HX_STATUS_INITIALIZING;
         pStatusDesc         = NULL;
         ulPercentDone       = 0;
-
-        if (m_pProto)
-        {
-            m_pProto->GetStatus(uStatusCode, pStatusDesc, ulPercentDone);
-        }
     }
 
     HXLOGL4(HXLOG_BUFF, "GetStatus: BfrMgr-PercentDone= %u", ulPercentDone);
@@ -1589,12 +1571,7 @@ HXNetSource::GetEvent(UINT16 usStreamNumber,
         }
         else
         {
-            nResult = GetEventFromRecordControl(usStreamNumber, 
-						pStreamInfo, 
-						pEvent,
-						FALSE,	// do not force
-						ulLoopEntryTime, 
-						ulProcessingTimeAllowance);
+            nResult = GetEventFromRecordControl(usStreamNumber, pStreamInfo, pEvent);
         }
     }
 
@@ -1608,12 +1585,7 @@ HXNetSource::GetEvent(UINT16 usStreamNumber,
 }
 
 HX_RESULT
-HXNetSource::GetEventFromRecordControl(UINT16 usStreamNumber, 
-				       STREAM_INFO* pStreamInfo, 
-				       CHXEvent*& pEvent,
-				       HXBOOL bForce,
-				       UINT32 ulLoopEntryTime,
-				       UINT32 ulProcessingTimeAllowance)
+HXNetSource::GetEventFromRecordControl(UINT16 usStreamNumber, STREAM_INFO* pStreamInfo, CHXEvent*& pEvent)
 {
 #if defined(HELIX_FEATURE_RECORDCONTROL)
     if(!m_bPlayFromRecordControl)
@@ -1626,131 +1598,55 @@ HXNetSource::GetEventFromRecordControl(UINT16 usStreamNumber,
     }
 
     HX_ASSERT(m_pRecordControl);
-    HX_ASSERT(m_pPlayer);
-
-    if (!bForce)
-    {                                                             
-	UINT32 ulMaxRendererDispatchTime = m_pPlayer->ComputeFillEndTime(
-		    m_pPlayer->GetInternalCurrentPlayTime(),
-		    m_pPlayer->GetGranularity(),
-		    m_ulMaxPreRoll + MAX_INTERSTREAM_TIMESTAMP_JITTER);
-
-        // take into consideration of startime offset(?start=xxx)
-        ulMaxRendererDispatchTime += m_ulStartTime;
-
-        // take into consideration of m_ulFirstPacketTime for live source
-        ulMaxRendererDispatchTime += m_ulFirstPacketTime;
-
-	// We supply packets from the record control only when needed
-	// since sparse streams may result in excessive buffering of packets due to
-	// interleaving with non-sparse packets. 
-	if (m_pRecordControl->IsRead() &&
-	    (((LONG32) (ulMaxRendererDispatchTime - m_pRecordControl->GetLatestTimestampRead())) < 0))
-	{
-	    return HXR_WOULD_BLOCK;
-	}
-    }
-        
-    if ((ulLoopEntryTime != 0) && (ulProcessingTimeAllowance == 0) && m_pPlayer)
-    {
-	// Use the most generous - non-interrupt type allowance.
-	ulProcessingTimeAllowance = m_pPlayer->GetPlayerProcessingInterval(FALSE);
-    }
 
     pEvent = NULL;
     IHXPacket* pPacket = NULL;
 
-    HX_RESULT nResult;
+    HX_RESULT nResult = m_pRecordControl->GetPacket(usStreamNumber, pPacket);
 
-    do
+    if(nResult == HXR_OK)
     {
-	nResult = m_pRecordControl->GetPacket(usStreamNumber, pPacket);
-	
-	if (nResult == HXR_OK)
-	{
-	    UINT32 ulEventTime = 0;
-	    
-	    HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::::HXNetSource[%p]::GetEvent(Strm=%hu) Got Packet from Rec.Ctrl Time=%lu",
-		    m_pPlayer,
-		    this,
-		    usStreamNumber,
-		    pPacket->GetTime());
-	    
-	    if (pStreamInfo)
-	    {
-		if (!CanSendToDataCallback(pPacket))
-		{
-		    UINT32 ulLastPkt = 
+        UINT32      ulEventTime = 0;
+
+        if (pStreamInfo)
+        {
+            if (!CanSendToDataCallback(pPacket))
+            {
+		UINT32 ulLastPkt = 
 		    pStreamInfo->BufferingState().LastPacketTimestamp();
-		    
-		    // Use timestamp from the last packet
-		    ulEventTime = CalcEventTime(pStreamInfo, ulLastPkt, TRUE);
-		}
-		else
-		{
-		    ulEventTime = CalcEventTime(pStreamInfo, pPacket->GetTime(), 
-						TRUE);
-		    
-		    /* Update buffering info and stats */
-		    DataCallback(pPacket);
-		}
-	    }
-	    
-	    pEvent = new CHXEvent(pPacket, 0);
-	    HX_RELEASE(pPacket);
-	    
-	    if(!pEvent)
-		return HXR_FAILED;
-	    
-	    pEvent->SetTimeStartPos(ulEventTime);
-	    pEvent->SetTimeOffset(m_ulStartTime - m_ulDelay);
-	}
-	else
-	{
-	    HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::::HXNetSource[%p]::GetEvent(Strm=%hu) No Packet from Rec.Ctrl Err=%lu SourceEnd=%c StreamDone=%c",
-		    m_pPlayer,
-		    this,
-		    usStreamNumber,
-		    nResult,
-		    m_bSourceEnd ? 'T' :'F',
-		    pStreamInfo->m_bSrcStreamDone ? 'T' : 'F');
-			
-	    if (nResult == HXR_RETRY)
-	    {
-		if ((ulLoopEntryTime != 0) &&
-		    ((HX_GET_BETTERTICKCOUNT() - ulLoopEntryTime) > ulProcessingTimeAllowance))
-		{
-		    HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::HXNetSource[%p]::GetEvent(Strm=%hu) GetPacket from Rec.Ctrl CPU use timeout: Time=%lu Allowed=%lu", 
-			    m_pPlayer, 
-			    this,
-			    usStreamNumber,
-			    HX_GET_BETTERTICKCOUNT() - ulLoopEntryTime,
-			    ulProcessingTimeAllowance);
-		    break;
-		}
-	    }
-	    else if (nResult == HXR_NO_DATA)
-	    {
-		if (m_bSourceEnd || pStreamInfo->m_bSrcStreamDone)
-		{
-		    if (m_pRecordControl->IsFinishedReading())
-		    {
-			if (m_pBufferManager)
-			{
-			    m_pBufferManager->Stop();
-			}
-		    }
-		    
-		    nResult = HXR_AT_END;
-		}
-		
-		if (nResult == HXR_NO_DATA)
-		{
-		    nResult = HandleOutOfPackets(pStreamInfo);
-		}
-	    }
-	}
-    } while (nResult == HXR_RETRY);
+
+                // Use timestamp from the last packet
+                ulEventTime = CalcEventTime(pStreamInfo, ulLastPkt, TRUE);
+            }
+            else
+            {
+                ulEventTime = CalcEventTime(pStreamInfo, pPacket->GetTime(), 
+                                            TRUE);
+
+                /* Update buffering info and stats */
+                DataCallback(pPacket);
+            }
+        }
+
+        pEvent = new CHXEvent(pPacket, 0);
+        HX_RELEASE(pPacket);
+
+        if(!pEvent)
+            return HXR_FAILED;
+
+        pEvent->SetTimeStartPos(ulEventTime);
+        pEvent->SetTimeOffset(m_ulStartTime - m_ulDelay);
+    }
+    else
+    {
+        if(nResult == HXR_NO_DATA && (m_bSourceEnd || pStreamInfo->m_bSrcStreamDone))
+            nResult = HXR_AT_END;
+
+        if(nResult == HXR_NO_DATA)
+        {
+            nResult = HandleOutOfPackets(pStreamInfo);
+        }
+    }
 
     return nResult;
 #else
@@ -2862,6 +2758,15 @@ HXNetSource::_ProcessIdle(HXBOOL atInterrupt,
             theErr = AttemptReconnect();
             mLastError = theErr;
         }
+        else if (theErr == HXR_SOCK_CONNRESET)
+        {
+            theErr = switch_to_next_transport(theErr, FALSE);
+            if (SUCCEEDED(theErr))
+            {
+                theErr = AttemptReconnect();
+                mLastError = theErr;
+            }
+        }
 
         // handle HXR_REDIRECTION explicitly
         if (theErr == HXR_REDIRECTION)
@@ -2875,7 +2780,6 @@ HXNetSource::_ProcessIdle(HXBOOL atInterrupt,
             {
             case HXR_NET_CONNECT:
             case HXR_SERVER_DISCONNECTED:
-            case HXR_SOCK_CONNRESET:
                 if (HTTPCloakMode == m_CurrentTransport)
                 {
                     HX_RESULT   tempErr = handleProxySwitch(theErr);
@@ -2986,8 +2890,7 @@ HXNetSource::_ProcessIdle(HXBOOL atInterrupt,
         // issue reconnect on the following network errors
         else
         {
-            if (HXR_SOCK_CONNRESET == mLastError        ||
-                HXR_SERVER_DISCONNECTED == mLastError   ||
+            if (HXR_SERVER_DISCONNECTED == mLastError   ||
                 HXR_NET_SOCKET_INVALID == mLastError    ||
                 HXR_GENERAL_NONET == mLastError         ||
                 IS_SERVER_ALERT(mLastError))
@@ -3274,16 +3177,15 @@ HXNetSource::ReadPreferences()
 
     HX_RESULT       theErr = HXR_OK;
     UINT32          un16Temp = 0;
-    IHXValues*      pRequestHeaders = NULL;
-    IHXBuffer*      pValue = NULL;
-
     theErr = HXSource::ReadPreferences();
+
     if (theErr)
     {
             return theErr;
     }
 
     // Read Client ID
+    IHXBuffer* pBuffer = NULL;
     IHXBuffer* pProxyHost = NULL;
     IHXBuffer* pProxyPort = NULL;
 
@@ -3299,44 +3201,54 @@ HXNetSource::ReadPreferences()
         ReadPrefBOOL(m_pPreferences, "PerfectPlay", m_bPerfectPlay);         
     }
 
-    if (m_pRequest &&
-        SUCCEEDED(m_pRequest->GetRequestHeaders(pRequestHeaders)))
-    {
-        pRequestHeaders->GetPropertyCString("ClientID", pValue);
-    }
+    const char* pcszClientID = NULL;
 
-    if (pValue)
+    IHXRegistry* pRegistry = NULL;
+    if (m_pEngine->QueryInterface(IID_IHXRegistry, (void**)&pRegistry) == HXR_OK)
     {
-        const char* pcszClientID = (const char*)pValue->GetBuffer();
-
-        if (pcszClientID)
+        // Form clientID registry string
+        CHXString strTemp;
+        strTemp = HXREGISTRY_PREFPROPNAME;
+        strTemp += '.';
+        strTemp += CLIENT_ID_REGNAME;
+        if (pRegistry->GetStrByName(strTemp, pBuffer) == HXR_OK)
         {
-            UINT32 ulSizeof_mClientID = sizeof(mClientID);
-            UINT32 ulSafeStrlenClientId = HX_SAFESIZE_T(strlen(pcszClientID));
-
-            HX_ASSERT(ulSafeStrlenClientId < ulSizeof_mClientID);
-
-            if (ulSafeStrlenClientId >= ulSizeof_mClientID)
-            {
-                // /Limiting too-large string fixes PR 86928 (but whatever
-                // writes to props|prefs needs to be sure not to overflow
-                // the max size):
-                ulSafeStrlenClientId = ulSizeof_mClientID - 1;
-            }
-            
-            memcpy(mClientID, pcszClientID, ulSafeStrlenClientId); /* Flawfinder: ignore */
-            mClientID[ulSafeStrlenClientId] = '\0';
+            pcszClientID = (const char*)pBuffer->GetBuffer();
         }
+        pRegistry->Release();
     }
     else
     {
-        // ClientID is expected to be set by ::SetRequest() if it's not
-        // overwritten by the application
-        HX_ASSERT(FALSE);
+        // Encode the client ID with the pieces of interest.
+        HXVERSIONINFO verInfo;
+        HXGetWinVer(&verInfo);
+        pcszClientID = HXGetVerEncodedName(&verInfo,
+                                           PRODUCT_ID,
+                                           TARVER_STRING_VERSION,
+                                           LANGUAGE_CODE,
+                                           "RN01");
     }
 
-    HX_RELEASE(pValue);
-    HX_RELEASE(pRequestHeaders);
+    if (pcszClientID)
+    {
+        UINT32 ulSizeof_mClientID = sizeof(mClientID);
+        UINT32 ulSafeStrlenClientId = HX_SAFESIZE_T(strlen(pcszClientID));
+
+        HX_ASSERT(ulSafeStrlenClientId < ulSizeof_mClientID);
+
+        if (ulSafeStrlenClientId >= ulSizeof_mClientID)
+        {
+            // /Limiting too-large string fixes PR 86928 (but whatever
+            // writes to props|prefs needs to be sure not to overflow
+            // the max size):
+            ulSafeStrlenClientId = ulSizeof_mClientID - 1;
+        }
+        
+        memcpy(mClientID, pcszClientID, ulSafeStrlenClientId); /* Flawfinder: ignore */
+        mClientID[ulSafeStrlenClientId] = '\0';
+    }
+
+    HX_RELEASE(pBuffer);
 
     ReadPrefUINT32(m_pPreferences, "ServerTimeOut", m_ulServerTimeOut);
     if (m_ulServerTimeOut < MINIMUM_TIMEOUT)
@@ -3408,16 +3320,8 @@ HXNetSource::ReadPreferences()
             theErr = HXR_WOULD_BLOCK;
         }
 #else
-
-#if defined(HELIX_FEATURE_TCP_OVER_UDP)
-        // default to TCP
-        m_PreferredTransport = TCPMode;
-#else
-        // default to UDP
-        m_PreferredTransport = UDPMode;
-#endif /* HELIX_FEATURE_TCP_OVER_UDP */
-
-
+    // default to TCP
+    m_PreferredTransport = TCPMode;
 #endif /* HELIX_FEATURE_SMARTERNETWORK */
     }
 
@@ -3825,16 +3729,6 @@ HX_RESULT
 HXNetSource::FileHeaderReady(IHXValues* pHeader)
 {
     HX_RESULT retVal;
-    HXBOOL bSkipProcessingHeader = FALSE;
-
-#if defined(HELIX_FEATURE_STATS) && defined(HELIX_FEATURE_REGISTRY)
-    if (!pHeader || !m_pStats || m_bInRetryMode)
-#else
-    if (!pHeader || m_bInRetryMode)
-#endif /* HELIX_FEATURE_STATS && HELIX_FEATURE_REGISTRY */
-    {
-	bSkipProcessingHeader = TRUE;
-    }
 
     HX_RELEASE(m_pFileHeader);
     m_pFileHeader = pHeader;
@@ -3843,29 +3737,27 @@ HXNetSource::FileHeaderReady(IHXValues* pHeader)
     m_latencyModeHlpr.OnFileHeader(pHeader);
 
 #if defined(HELIX_FEATURE_DRM)
-    if (!bSkipProcessingHeader)
+    m_bIsProtected = IsHelixDRMProtected(pHeader);
+    if (IsHelixDRMProtected())
     {
-	m_bIsProtected = IsHelixDRMProtected(pHeader);
-	if (IsHelixDRMProtected())
-	{
-	    retVal = InitHelixDRM(pHeader);
+        retVal = InitHelixDRM(pHeader);
 
-	    if (SUCCEEDED(retVal) && m_pDRM)
-	    {
-		m_pDRM->FileHeaderHook(pHeader);
-	    }
-	}
+        if (SUCCEEDED(retVal) && m_pDRM)
+        {
+            m_pDRM->FileHeaderHook(pHeader);
+        }
     }
 #endif /*HELIX_FEATURE_DRM*/
 
 #if defined(HELIX_FEATURE_RECORDCONTROL)
-    if (!bSkipProcessingHeader)
-    {
-	SendHeaderToRecordControl(TRUE, pHeader);
-    }
+    SendHeaderToRecordControl(TRUE, pHeader);
 #endif /* HELIX_FEATURE_RECORDCONTROL */
 
-    if (bSkipProcessingHeader)
+#if defined(HELIX_FEATURE_STATS) && defined(HELIX_FEATURE_REGISTRY)
+    if (!pHeader || !m_pStats || m_bInRetryMode)
+#else
+    if (!pHeader || m_bInRetryMode)
+#endif /* HELIX_FEATURE_STATS && HELIX_FEATURE_REGISTRY */
     {
         return HXR_OK;
     }
@@ -4503,15 +4395,7 @@ HXNetSource::handleEndOfSource(void)
         }
 
         m_bSourceEnd = TRUE;
-	
-        // If we are playing from the record control,
-	// all buffering cvontrol is tied to record control output
-	// and not the actual source output since record control is
-	// time-shifting the source.
-	if (!IsPlayingFromRecordControl())
-	{
-	    m_pBufferManager->Stop();
-	}
+        m_pBufferManager->Stop();
 	
 	if (m_pWMBufferCtl)
 	{
@@ -4927,31 +4811,21 @@ HXNetSource::StartReconnect()
 
             bFirstEvent = TRUE;
 
-            if (m_bPlayFromRecordControl)
+            if(m_bPlayFromRecordControl)
             {
-		HX_RESULT nRes;
-		
                 // Now we can get all available events out of RecordControl
                 // in order to use them for reconnection.
                 while (TRUE)
                 {
-                    nRes = GetEventFromRecordControl(uStreamNumber, 
-						     pStreamInfo, 
-						     pEvent, 
-						     TRUE); // Force events out
+                    HX_RESULT nRes = GetEventFromRecordControl(uStreamNumber, pStreamInfo, pEvent);
 
                     if(nRes == HXR_OK)
                     {
                         pEventList->InsertEvent(pEvent);
                     }
 
-		    // We better not block if we are forcing the events out
-		    HX_ASSERT(nRes != HXR_WOULD_BLOCK);
-		    
-                    if ((nRes != HXR_OK) && (nRes != HXR_RETRY))
-		    {
+                    if(nRes != HXR_OK && nRes != HXR_WOULD_BLOCK)
                         break;
-		    }
                 }
 
                 HX_ASSERT(pEventList->GetCount());
@@ -5278,8 +5152,6 @@ HXNetSource::Reset()
         HX_RELEASE (m_pProto);
     }
 
-    cleanup_proxy();
-
     // cleanup the log list
     if (m_pLogInfoList)
     {
@@ -5330,7 +5202,6 @@ HXNetSource::ReSetup()
     m_bSeekPending = FALSE;
     m_ulStatsInterval = 0;
     m_ulSendStatsMask = 0;
-    m_ulMaxPreRoll = 0;
 
 #if defined(HELIX_FEATURE_SMIL_REPEAT)
     if (m_pSourceInfo)
@@ -5369,7 +5240,7 @@ HXNetSource::ReSetup()
 }
 
 HX_RESULT
-HXNetSource::switch_to_next_transport(HX_RESULT incomingError)
+HXNetSource::switch_to_next_transport(HX_RESULT incomingError, HXBOOL bAttemptReconnect/*TRUE*/)
 {
     HXLOGL3(HXLOG_NSRC, "HXNetSource::switch_to_next_transport(): error = %08x", incomingError);
     HX_RESULT theErr = HXR_OK;
@@ -5409,20 +5280,23 @@ HXNetSource::switch_to_next_transport(HX_RESULT incomingError)
         goto exit;
     }
 
-    // reset transport state to PTS_CREATE so the PreferredTransport object
-    // will be notified on the success/failure of this transport switch
-    m_prefTransportState = PTS_CREATE;
+    if (bAttemptReconnect)
+    {
+        // reset transport state to PTS_CREATE so the PreferredTransport object
+        // will be notified on the success/failure of this transport switch
+        m_prefTransportState = PTS_CREATE;
 
-    // Actually switch here!
-    if (m_pProto && m_pProto->can_switch_transport())
-    {
-        theErr = m_pProto->switch_transport(m_PreferredTransport);
-    }
-    else
-    {
-        // Switch transport via brute force, non-optimal manner.
-        theErr = handleTransportSwitch();
-        mLastError = theErr;
+        // Actually switch here!
+        if (m_pProto && m_pProto->can_switch_transport())
+        {
+            theErr = m_pProto->switch_transport(m_PreferredTransport);
+        }
+        else
+        {
+            // Switch transport via brute force, non-optimal manner.
+            theErr = handleTransportSwitch();
+            mLastError = theErr;
+        }
     }
 
 exit:
@@ -5732,7 +5606,6 @@ HXNetSource::ActualReportError(HX_RESULT theErr)
 #if defined(HELIX_FEATURE_SMARTERNETWORK)
     if (m_pPreferredTransport)
     {
-        m_prefTransportState = PTS_UNKNOWN;
         m_pPreferredTransport->RemoveTransport();
         m_pPreferredTransport->RemoveTransportSink(this);
         HX_RELEASE(m_pPreferredTransport);
@@ -6228,19 +6101,11 @@ HXNetSource::FillRecordControl(UINT32 ulLoopEntryTime)
         STREAM_INFO*    pStreamInfo = NULL;
         mStreamInfoTable->Lookup((LONG32) nStream, (void *&) pStreamInfo);
 
-        if (pStreamInfo)
-	{
-	    if (pStreamInfo->BufferingState().LastPacketTimestamp() < nHighestTime)
-	    {
-		nHighestTime = pStreamInfo->BufferingState().LastPacketTimestamp();
-		nInitialStream = nStream;
-	    }
-	    
-	    if (pStreamInfo->BufferingState().GetMinBufferingInMs() > m_ulMaxPreRoll)
-	    {
-		m_ulMaxPreRoll = pStreamInfo->BufferingState().GetMinBufferingInMs();
-	    }
-	}
+        if(pStreamInfo && pStreamInfo->BufferingState().LastPacketTimestamp() < nHighestTime)
+        {
+            nHighestTime = pStreamInfo->BufferingState().LastPacketTimestamp();
+            nInitialStream = nStream;
+        }
     }
 
     while(bHasPackets)

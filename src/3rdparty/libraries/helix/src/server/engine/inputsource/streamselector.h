@@ -60,39 +60,36 @@ class CStreamSelector:
 public:
 
     // CStreamSelector methods
-    CStreamSelector(); 
+    CStreamSelector() {/* dont use this*/}
+ 
+    CStreamSelector(BOOL bDumpSelectionParam);
     virtual ~CStreamSelector();
 
     UINT32 GetMaxPreDecBufSize() {return m_selectionParam.m_ulMaxPreDecBufSize;}
     UINT32 GetPostDecBufPeriod() {return m_selectionParam.m_ulPostDecBufPeriod;}
 
+    // this is only for debuggin use - does something out of spec!
+    HX_RESULT SetInitTargetRate(UINT32 ulRate, BOOL bForce);
+    
     HX_RESULT Init(IHXUberStreamManager* pUberMgr, 
-                   IUnknown* pContext, 
+                   Process* pProc, 
                    IHXSessionStats* pStats, 
                    IHXQoSProfileConfigurator* pConfig);
 
-    HX_RESULT ExcludeUnusableStreams(THIS_ const StreamAdaptationParams* pStreamAdaptationParams = NULL);
+    HX_RESULT VerifyStreams();
+    HX_RESULT SelectInitialRateDesc();
 
-    HX_RESULT SelectInitialRateDesc(IHXRateSelectionInfo* pRateSelInfo);
+    HX_RESULT SelectBetterInitialRateDesc(IHXRateSelectionInfo* pRateSelInfo);
     HX_RESULT HandleRuleSubscriptions(IHXRateSelectionInfo* pRateSelInfo, 
-                                      const UINT16 uiNumStreams,
-                                      const UINT16*& pStreams);
-    HX_RESULT HandleStreamLinkChar(IHXRateSelectionInfo* pRateSelInfo, 
-                                   const UINT16 uiNumStreams,
-                                   const UINT16*& pStreams);
+                                      UINT16 ulLogicalStreamId);
     HX_RESULT HandleStreamRegistration(IHXRateSelectionInfo* pRateSelInfo, 
-                                       const UINT16 uiNumStreams,
-                                       const UINT16*& pStreams);
+                                       UINT16 ulLogicalStreamId);
     HX_RESULT SetInitialRateDesc(UINT32 ulRate);
-    HX_RESULT VerifyBandwidthGrouping(IHXRateDescription* pBandwidthGrouping);
-    
-private:
-    HX_RESULT ExcludeBandwidthGroupings(UINT16 unStreamNum, UINT32 ulRate);
-    HX_RESULT VerifyMaxTargetRate(void);
 
 protected:
 
     // CStreamSelector methods
+    HX_RESULT VerifyBandwidthGrouping(IHXRateDescription* pBandwidthGrouping);
     HX_RESULT GetSelectionParams();
     HX_RESULT LogClientError();
 
@@ -114,8 +111,8 @@ protected:
     IHXSessionStats* m_pStats;
     IHXQoSProfileConfigurator* m_pQoSConfig;
     IHXErrorMessages* m_pErrorMsg;
-    BOOL m_bDoRel6RateSelection;
-    INT32 m_lDebugOutput;
+    BOOL m_bDumpSelectionParam;
+    BOOL m_bDumpSelection;
 };
 
 #endif /* _STREAMSELECTOR_H_ */

@@ -47,12 +47,7 @@
 #define TIME_FUDGE 5
 
 #define BASE_AUDIO_RENDERER_NAME    "Basic Audio"
-
-#ifdef HELIX_CONFIG_SYMBIAN_PCM_PUSHDOWN_BYTES
-#define MINIMAL_AUDIO_PUSHDOWN 1000
-#else
 #define MINIMAL_AUDIO_PUSHDOWN 120
-#endif
 
 #ifdef _AUDREND_FLOW_LOG
 #define AUDREND_FLOW_FILE	    "C:\\audrend.txt"
@@ -72,7 +67,6 @@
 #include "hxtypes.h"
 #include "hxcom.h"
 #include "hxcomm.h"
-#include "hxplayvelocity.h"
 #include "ihxpckts.h"
 #include "pckunpck.h"
 #include "hxcore.h"
@@ -167,8 +161,6 @@ CAudioRenderer::CAudioRenderer()
 	, m_pAudioFormat(NULL)
         , m_pAudioStats(NULL)
 	, m_lRefCount(0)
-	, m_lPlaybackVelocity(HX_PLAYBACK_VELOCITY_NORMAL)
-	, m_bKeyFrameMode(FALSE)
 { 
     // Allocate space for an initial number of pointers
     m_ppAudioStream = new IHXAudioStream* [AUDREND_INITIAL_NUMSTREAMPTRS];
@@ -192,12 +184,6 @@ CAudioRenderer::~CAudioRenderer()
     HX_RELEASE(m_pCommonClassFactory);
     HX_RELEASE(m_pPreferences);
     HX_RELEASE(m_pRegistry);
-
-    for (UINT32 i = 0; i < m_ulNumAudioStreams; i++)
-    {
-        HX_RELEASE(m_ppAudioStream[i]);
-    }
-    HX_VECTOR_DELETE(m_ppAudioStream);
 }
 
 
@@ -342,13 +328,10 @@ STDMETHODIMP CAudioRenderer::QueryInterface(REFIID riid, void** ppvObj)
 	{ GET_IIDHANDLE(IID_IHXDryNotification), (IHXDryNotification*)this},
 	{ GET_IIDHANDLE(IID_IUnknown), (IUnknown*)(IHXPlugin*) this},
 	{ GET_IIDHANDLE(IID_IHXPlugin), (IHXPlugin*)this},
-	{ GET_IIDHANDLE(IID_IHXRenderer), (IHXRenderer*)this}
+	{ GET_IIDHANDLE(IID_IHXRenderer), (IHXRenderer*)this},
 #if defined(HELIX_FEATURE_STATS)
-	,{ GET_IIDHANDLE(IID_IHXStatistics), (IHXStatistics*)this}
+	{ GET_IIDHANDLE(IID_IHXStatistics), (IHXStatistics*)this},
 #endif	// HELIX_FEATURE_STATS
-#if defined(HELIX_FEATURE_PLAYBACK_VELOCITY)
-        ,{ GET_IIDHANDLE(IID_IHXPlaybackVelocity), (IHXPlaybackVelocity*)this}
-#endif /* #if defined(HELIX_FEATURE_PLAYBACK_VELOCITY) */
     };
 
     HX_RESULT res = ::QIFind(qiList, QILISTSIZE(qiList), riid, ppvObj);
@@ -688,14 +671,6 @@ CAudioRenderer::OnPacket(IHXPacket* pPacket, LONG32 lTimeOffset)
 	return HXR_OK;
     }
 
-    if (pPacket)
-    {
-        if (m_lPlaybackVelocity != HX_PLAYBACK_VELOCITY_NORMAL)
-        {
-            return HXR_OK;
-        }
-    }
-	
     m_lTimeOffset = lTimeOffset;
 
     m_bProcessingPacket = TRUE;
@@ -947,14 +922,6 @@ STDMETHODIMP CAudioRenderer::OnDryNotification(UINT32 /*IN*/ ulCurrentStreamTime
     HX_RESULT hr = HXR_OK;
 
     HXLOGL2(HXLOG_BAUD, "OnDryNotification(%lu,%lu)", ulCurrentStreamTime, ulMinimumDurationRequired);
-
-     // If we are playing at non-1x playback, then don't
-    // take any action on a OnDryNotification
-    if (m_lPlaybackVelocity != HX_PLAYBACK_VELOCITY_NORMAL)
-    {
-        return HXR_OK;
-    }	
-	
     /* If the renderer is delayed, do not report rebuffer status until the
      * packets are really due i.e. until Current time + Preroll is greater
      * than the Delay time.
@@ -1253,56 +1220,6 @@ HX_RESULT CAudioRenderer::InitAudioStream(IHXValues* pHeader,
     }
 
     return retVal;
-}
-
-STDMETHODIMP CAudioRenderer::InitVelocityControl(IHXPlaybackVelocityResponse* pResponse)
-{
-    // No need to save response interface
-    return HXR_OK;
-}
-
-STDMETHODIMP CAudioRenderer::QueryVelocityCaps(REF(IHXPlaybackVelocityCaps*) rpCaps)
-{
-    // No need to implement this
-    return HXR_NOTIMPL;
-}
-
-STDMETHODIMP CAudioRenderer::SetVelocity(INT32 lVelocity, HXBOOL bKeyFrameMode, HXBOOL bAutoSwitch)
-{
-    HX_RESULT retVal = HXR_OK;
-
-#if defined(HELIX_FEATURE_PLAYBACK_VELOCITY)
-    if (m_lPlaybackVelocity != lVelocity ||
-        m_bKeyFrameMode     != bKeyFrameMode)
-    {
-        // Save the playback velocity
-        m_lPlaybackVelocity = lVelocity;
-        m_bKeyFrameMode     = bKeyFrameMode;
-    }
-#endif /* #if defined(HELIX_FEATURE_PLAYBACK_VELOCITY) */
-
-    return retVal;
-}
-
-STDMETHODIMP_(INT32) CAudioRenderer::GetVelocity()
-{
-    return m_lPlaybackVelocity;
-}
-
-STDMETHODIMP CAudioRenderer::SetKeyFrameMode(HXBOOL bKeyFrameMode)
-{
-    m_bKeyFrameMode = bKeyFrameMode;
-    return HXR_OK;
-}
-
-STDMETHODIMP_(HXBOOL) CAudioRenderer::GetKeyFrameMode()
-{
-    return m_bKeyFrameMode;
-}
-
-STDMETHODIMP CAudioRenderer::CloseVelocityControl()
-{
-    return HXR_OK;
 }
 
 /////////////////////////////////////////////////////////////////////////////

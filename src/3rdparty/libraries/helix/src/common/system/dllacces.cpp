@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: dllacces.cpp,v 1.13 2009/03/04 00:45:25 girish2080 Exp $
+ * Source last modified: $Id: dllacces.cpp,v 1.11 2005/03/14 19:35:25 bobclark Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -57,10 +57,6 @@
 #include "system.ver"
 
 #include "hxheap.h"
-#ifdef HELIX_DEFINE_DLL_NAMESPACE
-#include "hxstrutl.h"  //for STRINGIFY
-#include "hxdir.h"     //for OS PATH SEPERATOR
-#endif //HELIX_DEFINE_DLL_NAMESPACE
 #ifdef _DEBUG
 #undef HX_THIS_FILE		
 static const char HX_THIS_FILE[] = __FILE__;
@@ -157,33 +153,7 @@ int DLLAccess::open(const char* dllName, UINT16 nLibType)
 	    if(pDLLAccessPath->GetPath(nLibType))
 		strDllPath = pDLLAccessPath->GetPath(nLibType);
 	}
-
-#ifdef HELIX_DEFINE_DLL_NAMESPACE
-	CHXString temp_dllName(dllName);
-	const char* const dll_prefix = STRINGIFY(HELIX_DEFINE_DLL_NAMESPACE);
-
-	//Prefix HELIX_DEFINE_DLL_NAMESPACE to the DLLs
-	CHXString new_dllName;
-	//Locate DLL name by searching for OS_SEPARATOR_CHAR
-	INT32 index = temp_dllName.ReverseFind(OS_SEPARATOR_CHAR);
-	if (index != -1)
-	{
-		index += 1;
-		//fetch path and dll-name
-		CHXString path = temp_dllName.Left(index);
-		CHXString dll = temp_dllName.Right(temp_dllName.GetLength() - index);
-		new_dllName = path + dll_prefix;
-		new_dllName += dll;
-	}
-	else
-	{
-		new_dllName = dll_prefix;
-		new_dllName += dllName; 
-	}
-	strDllPath += new_dllName;
-#else
 	strDllPath += dllName;
-#endif //HELIX_DEFINE_DLL_NAMESPACE
 
 	m_curError = m_dllImp->Open((const char*)strDllPath);
 

@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: bcngclient.h,v 1.9 2009/01/08 00:36:46 jzeng Exp $
+ * Source last modified: $Id: bcngclient.h,v 1.7 2006/12/21 19:05:16 tknox Exp $
  *
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.
  *
@@ -56,7 +56,7 @@ DECLARE_INTERFACE_(IHXBCNGRTSPClientResponse, IUnknown)
     STDMETHOD(ConnectDone)          (THIS_ HX_RESULT status) PURE;
     STDMETHOD(OptionsDone)          (THIS_ HX_RESULT status) PURE;
     STDMETHOD(DescribeDone)         (THIS_ HX_RESULT status,
-                                           IHXBuffer* psdp) PURE;
+                                           IHXSDP* psdp) PURE;
     STDMETHOD(SetupDone)            (THIS_ HX_RESULT status,
                                            IHXMIMEHeader* pTranHdr) PURE;
     STDMETHOD(OnPacket)             (THIS_ IHXBuffer* pPkt) PURE;
@@ -148,7 +148,7 @@ public:
     STDMETHOD(SendPacket)               (THIS_ IHXBuffer* pPkt);
 
     /* Transport methods (for TCP interleaved data)*/
-    STDMETHOD(HandlePacket) (THIS_ IHXBuffer* pBuffer);
+    HX_RESULT handlePacket(IHXBuffer* pBuffer);
 
     HX_RESULT sendPacket(BasePacket* pPacket)    { /*NO-OP*/ return HXR_OK;}
     HX_RESULT sendPackets(BasePacket** pPacket)  { /*NO-OP*/ return HXR_OK;}

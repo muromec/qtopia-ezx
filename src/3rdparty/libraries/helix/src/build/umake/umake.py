@@ -1,7 +1,7 @@
 # 
 #  ***** BEGIN LICENSE BLOCK *****  
 #   
-#  Source last modified: $Id: umake.py,v 1.60 2007/06/13 01:12:50 jfinnecy Exp $ 
+#  Source last modified: $Id: umake.py,v 1.59 2006/08/22 00:23:57 ping Exp $ 
 #   
 #  Copyright Notices: 
 #   
@@ -91,7 +91,7 @@ import imp
 import chaingang
 import version
 import log
-log.debug( 'Imported: $Id: umake.py,v 1.60 2007/06/13 01:12:50 jfinnecy Exp $' )
+log.debug( 'Imported: $Id: umake.py,v 1.59 2006/08/22 00:23:57 ping Exp $' )
 
 fatal = umake_lib.fatal
 
@@ -1198,13 +1198,6 @@ class Project:
         else:
             return 'all: %s %s' % ( self.object_dir , targets)
 
-    def isSignable( self ):
-        """isSignable() --> boolean
-        
-        Returns true if target is a signable type.
-        """
-        return self.buildTarget.isSignable()
-            
     def getTargetType( self ):
         """getTargetType() --> string
         
@@ -2949,7 +2942,7 @@ def RunUmake(um_opts):
 
         if project.BuildOption("__print_version_and_exit__"):
             ## Call callbacks
-            print "$Id: umake.py,v 1.60 2007/06/13 01:12:50 jfinnecy Exp $"
+            print "$Id: umake.py,v 1.59 2006/08/22 00:23:57 ping Exp $"
             global umake_identify_callbacks
             for (func, args) in umake_identify_callbacks:
                 apply(func, args)

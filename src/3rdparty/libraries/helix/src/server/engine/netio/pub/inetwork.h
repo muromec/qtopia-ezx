@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: inetwork.h,v 1.11 2007/09/04 18:20:38 seansmith Exp $
+ * Source last modified: $Id: inetwork.h,v 1.8 2004/06/18 19:31:49 tmarshall Exp $
  *
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.
  *
@@ -55,11 +55,12 @@ class SIO;
 class VIO;
 class CByteQueue;
 class ServerAccessControl;
+class LBound_Info;
 class IHXNetworkServicesContext;
 class SharedUDPPortReader;
 
 
-class IHXNetworkServicesContext : public IHXNetworkServices
+class IHXNetworkServicesContext : public IHXNetworkServices2
 {
 public:
     IHXNetworkServicesContext();
@@ -75,6 +76,9 @@ public:
     STDMETHOD(CreateUDPSocket)  (THIS_ IHXUDPSocket** ppUDPSocket);
     STDMETHOD(CreateListenSocket) (THIS_ IHXListenSocket** ppListenSocket);
     STDMETHOD(CreateResolver)   (THIS_ IHXResolver** ppResolver) PURE;
+
+       //IHXNetworkServices2
+    STDMETHOD(CreateLBoundTCPSocket)    (THIS_ IHXTCPSocket** ppTCPSocket);
 
 protected:
     LONG32                      m_lRefCount;
@@ -323,6 +327,7 @@ private:
     BOOL                        m_bSocketShouldBeConnected;
     SharedUDPPortReader*        m_pSharedUDPReader;
     UINT16                      m_sPortEnum;
+    BOOL                        m_bUseThreadSafeReadDone;
     IHXRegistry*             m_pReg;
 };
 
@@ -417,6 +422,13 @@ public:
                                         UINT32);
 
     BOOL SupportsBufferedSocket() { return m_bSupportsBufferedSocket; }
+    class TCPSocketLBoundCallback: public BaseCallback
+    {
+    public:
+        STDMETHOD(Func) (THIS);
+        IHXTCPSocketContext* m_pContext;
+    };
+    friend class TCPSocketLBoundCallback;
     class TCPSocketReadCallback: public BaseCallback
     {
     public:
@@ -536,6 +548,7 @@ protected:
     UINT32                      m_ulPacketSize;
     UINT32                      m_ulFlushCount;
     BOOL                        m_bSupportsBufferedSocket;
+    BOOL                        m_bUseThreadSafeReadDone;
     IHXRegistry*                m_pReg;
 
     void DoWriteV(BOOL bOnCleared = FALSE);
@@ -634,5 +647,113 @@ protected:
     IHXErrorMessages*           m_pMessages;
     ServerAccessControl*        m_pAccessCtrl;
 };
+
+
+
+enum LBOUND_TYPE {
+     LBOUNDT_NONE,
+     LBOUNDT_CLIENT,
+     LBOUNDT_SERVER };
+
+class IHXLBoundTCPSocketContext;
+class LBound_Info;
+
+//#define LBOUND_TIMING
+
+#ifdef LBOUND_TIMING
+#include "timeval.h"
+#endif
+
+class IHXLBoundTCPSocketContext : public IHXWouldBlockResponse,
+                                   public INetworkTCPSocketContext
+{
+public:
+    IHXLBoundTCPSocketContext(Engine* pEngine, LBOUND_TYPE type = LBOUNDT_CLIENT);
+    virtual ~IHXLBoundTCPSocketContext();
+
+    /*
+     * IUnknown methods
+     */
+
+    STDMETHOD(QueryInterface)   (THIS_ REFIID riid, void** ppvObj);
+
+    STDMETHOD_(ULONG32,AddRef)  (THIS);
+    STDMETHOD_(ULONG32,Release) (THIS);
+
+    /*
+     *  IHXTCPSocket methods
+     */
+
+    STDMETHOD(Bind)             (THIS_
+                                UINT32                      ulLocalAddr,
+                                UINT16                      nPort);
+
+    STDMETHOD(Connect)          (THIS_
+                                const char*                 pDestination,
+                                UINT16                      nPort);
+    STDMETHOD(Read)             (THIS_
+                                UINT16                      Size);
+    STDMETHOD(Write)            (THIS_
+                                IHXBuffer*                  pBuffer);
+    STDMETHOD(WantWrite)        (THIS);
+
+    STDMETHOD(GetForeignAddress)(THIS_
+                                UINT32&                     lAddress);
+    STDMETHOD(GetForeignPort)   (THIS_
+                                UINT16&                     sPort);
+    STDMETHOD(GetLocalAddress)  (THIS_
+                                UINT32&                     lAddress);
+    STDMETHOD(GetLocalPort)     (THIS_
+                                UINT16&                     sPort);
+
+    /* IHXWouldBlockResponse methods */
+    STDMETHOD(WouldBlock)        (THIS_ UINT32 id);
+    STDMETHOD(WouldBlockCleared) (THIS_ UINT32 id);
+
+    /*
+     * IHXSetSocketOption methods
+     */
+    STDMETHOD(SetOption)                (THIS_
+                                        HX_SOCKET_OPTION option,
+                                        UINT32 ulValue);
+
+    class LBoundTCPSocketServerReadCallback: public BaseCallback
+    {
+    public:
+        STDMETHOD(Func) (THIS);
+        IHXLBoundTCPSocketContext* m_pContext;
+    };
+    friend class LBoundTCPSocketServerReadCallback;
+
+
+    virtual void                disableRead();
+    virtual void                enableRead();
+    virtual void                reconnect(Engine* pEngine);
+    void                        disconnect();
+
+#ifdef LBOUND_TIMING
+    Timeval now0;
+#endif
+
+protected:
+
+    HX_RESULT LBoundRequestClose();
+    HX_RESULT LBoundClose();
+    HX_RESULT LBoundProcessReadQueue();
+    void LBoundCheckRead();
+
+private:
+    UINT32                      m_lLBoundAddress;
+    BOOL                        m_bLBoundWriteEnabled;
+    BOOL                        m_bLBoundReadEnabled;
+    BOOL                        m_bLBoundRequestClose;
+    CHXSimpleList               m_LBoundToRead;
+    LBOUND_TYPE                 m_eLBoundType;
+    IHXLBoundTCPSocketContext* m_pLBRemoteSocket;
+    int                         m_nLBoundReadSize;
+    UINT32                      m_ulRecursionLevel;
+};
+
+
 
 #endif /*_HXNETAPI_H_*/

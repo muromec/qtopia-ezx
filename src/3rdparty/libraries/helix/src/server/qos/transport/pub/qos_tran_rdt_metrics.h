@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: qos_tran_rdt_metrics.h,v 1.9 2009/02/25 01:15:14 atin Exp $ 
+ * Source last modified: $Id: qos_tran_rdt_metrics.h,v 1.8 2005/07/05 20:32:54 jgordon Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -66,7 +66,6 @@ struct PktHistoryElem
     UINT32 m_ulSize;         /* bytes */
     BOOL   m_bACKd;
     BOOL   m_bNAKd;
-    BOOL   m_bIncomingLostPkt;
 };
 
 class QoSRDTMetrics
@@ -77,8 +76,7 @@ class QoSRDTMetrics
 
     void Enqueue (UINT16 unStream,
 		  UINT16 nSeqNo, 
-		  UINT32 /* bytes */ ulSize,
-		  BOOL bIncomingLostPkt=FALSE);
+		  UINT32 /* bytes */ ulSize);
 
     void Update (UINT32 /* msec */ ulNow, 
 		 UINT16 unStream,

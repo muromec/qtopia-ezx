@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxrendr.h,v 1.14 2008/08/20 21:05:49 ehyche Exp $
+ * Source last modified: $Id: hxrendr.h,v 1.11 2006/07/10 17:28:05 gwright Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -518,48 +518,5 @@ DECLARE_INTERFACE_(IHXFrameInfo, IUnknown)
 };
 
 
-/****************************************************************************
- * 
- *  Interface:
- * 
- *      IHXRendererDrivenPacketDelivery
- * 
- *  Purpose:
- * 
- *      Interface exposed by a renderer which wants to control the
- *      packet delivery to it.
- * 
- *  IID_IHXRendererDrivenPacketDelivery:
- * 
- *      {3F868F1E-8AF0-4294-B87F-A5BA09041776}
- * 
- */
-DEFINE_GUID(IID_IHXRendererDrivenPacketDelivery, 0x3f868f1e, 0x8af0, 0x4294,
-            0xb8, 0x7f, 0xa5, 0xba, 0x9, 0x4, 0x17, 0x76);
-
-
-#undef  INTERFACE
-#define INTERFACE IHXRendererDrivenPacketDelivery
-
-DECLARE_INTERFACE_(IHXRendererDrivenPacketDelivery, IUnknown)
-{
-    // IUnknown methods
-    STDMETHOD(QueryInterface)   (THIS_ REFIID riid, void** ppvObj) PURE;
-    STDMETHOD_(ULONG32,AddRef)  (THIS) PURE;
-    STDMETHOD_(ULONG32,Release) (THIS) PURE;
-
-    // IHXRendererDrivenPacketDelivery methods
-    STDMETHOD_(HXBOOL,IsBufferingEnabled)      (THIS) PURE;
-    STDMETHOD_(HXBOOL,IsPacketDeliveryEnabled) (THIS) PURE;
-    STDMETHOD_(HXBOOL,CanAcceptPackets)        (THIS) PURE;
-};
-
-#include "hxcomptr.h"
-DEFINE_SMART_PTR(IHXRenderer)
-DEFINE_SMART_PTR(IHXPersistentRenderer)
-DEFINE_SMART_PTR(IHXMediaPushdown)
-DEFINE_SMART_PTR(IHXUntimedRenderer)
-DEFINE_SMART_PTR(IHXFrameInfo)
-DEFINE_SMART_PTR(IHXRendererDrivenPacketDelivery)
 
 #endif /* _HXRENDR_H_ */

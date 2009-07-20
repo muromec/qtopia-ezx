@@ -97,7 +97,6 @@ project.AddModuleLibraries( "datatype/mp4/fileformat[mp4fformatlib]",
 			    "protocol/rtsp[rtsplib]",
 			    "common/system[syslib]",
 			    "common/container[contlib]",
-                "common/log/logutil[logutillib]", 
 			    "common/util[utillib]", 
 			    "common/dbgtool[debuglib]", 
                             "common/runtime[runtlib]")

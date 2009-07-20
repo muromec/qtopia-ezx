@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: winaudio.cpp,v 1.13 2007/11/02 09:28:07 lovish Exp $
+ * Source last modified: $Id: winaudio.cpp,v 1.9 2006/09/10 00:02:10 milko Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -55,22 +55,18 @@
 #include <stdio.h>
 
 #ifdef _TESTING
-#include "hlxclib/fcntl.h"
-#if !defined(_WINCE)
+#include <fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#endif
-
 
 #if defined (_WINDOWS) || defined (_WIN32)
-#if !defined(_WINCE)
+
 #include <io.h>
 
 #endif
 
 #endif
 
-#endif // _TESTING
 #include "hxresult.h"
 
 #include "hxcom.h"
@@ -103,13 +99,9 @@ extern HINSTANCE g_hInstance;
 #define	OFFSET_THIS		0
 
 #ifdef _TESTING
-#if defined (_WINCE)
-FILE* m_audfile = NULL;
-#else
 int m_audfile = -1;
 #endif
 
-#endif // _TESTING
 HXBOOL	CAudioOutWindows::zm_bVolSupport = FALSE;
 HXBOOL	CAudioOutWindows::zm_bLRVolSupport = FALSE;
 WORD	CAudioOutWindows::zm_uMaxVolume = 100;
@@ -152,15 +144,11 @@ CAudioOutWindows::CAudioOutWindows()
 #if defined(_WIN32)
     , m_ulOriginalThreadId(0)
 #endif /*_WIN32*/
-#ifdef DONT_WRITE_WHILE_PAUSE_AT_RESET
-    , m_bPausedForRestart(FALSE)
-    , m_bPausedAtReset(FALSE)
-#endif //DONT_WRITE_WHILE_PAUSE_AT_RESET
 {
     zm_bClosed = TRUE;    
     zm_pCurrentAudioDevice = this;
 
-#if defined(_WIN32)
+#if defined(_WIN32) && !defined(_WINCE)
     m_hMixer = NULL;  
     memset(&m_VolumeControlDetails, 0 , sizeof(MIXERCONTROLDETAILS));
 #endif // _WIN32
@@ -182,7 +170,7 @@ CAudioOutWindows::~CAudioOutWindows()
     // We might as well consider the device closed!
     zm_bClosed = TRUE;
 
-#if defined(_WIN32)
+#if defined(_WIN32) && !defined(_WINCE)
 
     /* This sleep is added to fix a hang bug that ONLY happens on
      * Darren's machine if you adjust audio volume. His machine
@@ -222,7 +210,7 @@ UINT16 CAudioOutWindows::_Imp_GetVolume()
     DWORD dwVol	    = 0;                          
     HXBOOL bSuccess   = FALSE;
 
-#if defined(_WIN32)
+#if defined(_WIN32) && !defined(_WINCE)
     if (!zm_bMixerVolSupportChecked)
     {
 	CheckForVolumeSupport();
@@ -288,7 +276,14 @@ HX_RESULT CAudioOutWindows::_Imp_SetVolume
         return HXR_OK;
     }
 
+#if defined(_WINCE) && (_WIN32_WCE >= 400) && defined(_X86_)
+	//Windows CE 4.2 Emulator (testing platform) does not seem to support waveOut
+	//set volume functionality (on speakers). In some sense it does but only the
+	//high volume value work, other values just mute the speakers
+	dwVol = (DWORD) 0xFFFF;
+#else
     dwVol = (DWORD)uVolume * 0xFFFF / zm_uMaxVolume;
+#endif
 
     // Here we are avoiding rounding error
     if(dwVol * zm_uMaxVolume / 0xFFFF < uVolume)
@@ -299,7 +294,7 @@ HX_RESULT CAudioOutWindows::_Imp_SetVolume
 	goto noMixer;
     }
 
-#if defined(_WIN32)
+#if defined(_WIN32) && !defined(_WINCE)
     if (!zm_bMixerVolSupportChecked)
     {
 	CheckForVolumeSupport();
@@ -358,12 +353,10 @@ noMixer:
 	 * always set the volume on NULL device. 
 	 * Needed to attach volume control on win98 SE, Creative SB Live! Value sound card.
 	 */
-#ifndef _WINCE
 	if (m_hWave != NULL)
 	{
 	     hResult2 = waveOutSetVolume(NULL, dwLRVol);
 	}
-#endif
 
 	if (hResult != MMSYSERR_NOERROR && hResult2 != MMSYSERR_NOERROR)
 	{
@@ -379,14 +372,14 @@ HXBOOL CAudioOutWindows::_Imp_SupportsVolume()
     MMRESULT wSuccess;
     WAVEOUTCAPS auxcap; 
 
-#if defined(_WIN32)
+#if defined(_WIN32) && !defined(_WINCE)
     if (!zm_bMixerVolSupportChecked)
     {
 	CheckForVolumeSupport();
     }
 #endif
 
-#if defined(_WIN32)
+#if defined(_WIN32) || defined(_WINCE)
 
 	// Gonna have to make VolSupport static  
     if ( zm_bVolSupport )
@@ -442,12 +435,8 @@ HX_RESULT CAudioOutWindows:: _Imp_Open
     }
 	
 #ifdef _TESTING
-#if defined (_WINCE)
-    m_audfile =  fopen("\\auddev.raw", "wt");
-#else
     m_audfile =  open("\\auddev.raw", O_WRONLY | O_CREAT);
 #endif
-#endif //_TESTING
 
     m_WaveFormat.SetFormat(pFormat->ulSamplesPerSec, pFormat->uChannels, pFormat->uBitsPerSample);
     // Get the Windows style wave format!
@@ -477,7 +466,7 @@ HX_RESULT CAudioOutWindows:: _Imp_Open
 	case WAVERR_SYNC:	    theErr = HXR_AUDIO_DRIVER;	break;
 	default:		    theErr = HXR_OUTOFMEMORY;	break;
     }
-#if defined(_WIN32)
+#if defined(_WIN32) && !defined(_WINCE)
 	if ( !theErr )
 	{
 	    if (!zm_bMixerVolSupportChecked)
@@ -494,19 +483,11 @@ HX_RESULT CAudioOutWindows:: _Imp_Open
 HX_RESULT CAudioOutWindows::_Imp_Close()
 {
 #ifdef _TESTING
-#if defined (_WINCE)
-	if ( m_audfile != NULL ) 
-	{
-            fclose(m_audfile);
-             m_audfile = NULL;
-	}	 
-     #else
 	if ( m_audfile > 0 ) 
 		close(m_audfile);
 	m_audfile = -1;
 #endif
 
-#endif //_TESTING
  zm_bClosed = TRUE;
     if (m_hWave) 
     {
@@ -581,35 +562,6 @@ HX_RESULT CAudioOutWindows::_Imp_Close()
 
     return HXR_OK;
 }
-#ifdef DONT_WRITE_WHILE_PAUSE_AT_RESET
-UINT16	CAudioOutWindows::_NumberOfBlocksPlaying(void)
-{
-	m_pMutex->Lock();
-
-	UINT16 unQueued = m_UsedBuffersList.GetCount(), unPlaying = 0;
-
-	/* There may be some buffers for which we have not receoved WOM_DONEs
-	* but they have already been played
-	*/
-	if (unQueued > 0)
-	{
-		LISTPOSITION ndxUsed = m_UsedBuffersList.GetHeadPosition();
-		while (ndxUsed != NULL)
-		{
-			CWaveHeader* pWaveHeader = 
-				(CWaveHeader*) m_UsedBuffersList.GetNext(ndxUsed);
-			if (pWaveHeader->m_WAVEHDR.dwFlags & WHDR_INQUEUE)
-			{
-				unPlaying++;
-			}
-		}
-	}
-
-    m_pMutex->Unlock();
-
-    return unPlaying;
-}
-#endif
 
 HX_RESULT CAudioOutWindows::_Imp_Write
 ( 
@@ -621,14 +573,6 @@ HX_RESULT CAudioOutWindows::_Imp_Write
     MMRESULT	    res;
     ULONG32	    ulBufLen = 0;
     UCHAR*	    pBuffer = 0;
-
-#ifdef DONT_WRITE_WHILE_PAUSE_AT_RESET
-    if (m_bPausedAtReset) 
-    {
-        return HXR_WOULD_BLOCK; // ignore the write until Restart is called. Do NOT return HXR_OK here!
-    }
-#endif //DONT_WRITE_WHILE_PAUSE_AT_RESET
-
     if (pAudioOutHdr->pData)
     {
 	pBuffer	 = pAudioOutHdr->pData->GetBuffer();
@@ -653,18 +597,9 @@ HX_RESULT CAudioOutWindows::_Imp_Write
     }
 
 #ifdef _TESTING
-
-#if defined (_WINCE)
-    if ( m_audfile )
-    {
-        fwrite(pBuffer, ulBufLen, 1, m_audfile); 
-    }		
-#else
     if ( m_audfile > 0 )
         write(m_audfile, pBuffer,ulBufLen); 
 #endif
-
-#endif //_TESTING
 
     UINT32 ulBytesToCopy = ulBufLen;
     HX_ASSERT(ulBytesToCopy <= pWaveHeader->m_WAVEHDR.dwBufferLength);
@@ -691,32 +626,6 @@ HX_RESULT CAudioOutWindows::_Imp_Write
     HX_UNLOCK(m_pMutex);
     //OutputDebugString("AFTER CALL TO:waveOutWrite\r\n");
 
-#ifdef DONT_WRITE_WHILE_PAUSE_AT_RESET
-	// BUG FIX: on some WM2005 devices audio driver gets hung for some reason if the queue is full
-
-    	// We need to return the unused buffers to the available queue
-	UINT16 unRemaining = _NumberOfBlocksRemainingToPlay();
-	UINT16 unPlaying = _NumberOfBlocksPlaying();
-
-	if (unRemaining == 0 && unPlaying  == 0)
-	{
-		::SetThreadPriority( ::GetCurrentThread(), ::GetThreadPriority( ::GetCurrentThread() ) + 1 );
-
-		// Lets reset the audio device. Will this help?
-		m_bPausedForRestart = TRUE;
-
-		_Imp_Pause();
-	}
-	else if (m_bPausedForRestart)
-	{
-		_Imp_Resume();
-
-		m_bPausedForRestart = FALSE;
-
-		::SetThreadPriority( ::GetCurrentThread(), ::GetThreadPriority( ::GetCurrentThread() ) - 1 );
-	}
-
-#endif //DONT_WRITE_WHILE_PAUSE_AT_RESET
     return HXR_OK;
 }
 
@@ -746,9 +655,6 @@ HX_RESULT CAudioOutWindows::_Imp_Resume()
         res = waveOutRestart(m_hWave);
 	//OutputDebugString("AFTER CALL TO:waveOutRestart\r\n");
     }
-#ifdef DONT_WRITE_WHILE_PAUSE_AT_RESET
-        m_bPausedAtReset = FALSE;
-#endif //DONT_WRITE_WHILE_PAUSE_AT_RESET
 
     OnTimeSync();
 
@@ -763,18 +669,10 @@ HX_RESULT CAudioOutWindows::_Imp_Reset()
     if (m_hWave) 
     {
 //	OutputDebugString("BEFORE CALL TO:waveOutReset\r\n");
-#ifdef DONT_WRITE_WHILE_PAUSE_AT_RESET
-        if (!m_bPausedAtReset)
-        {
-            m_bPausedAtReset = TRUE;
-        }
-#endif //DONT_WRITE_WHILE_PAUSE_AT_RESET
 	res = waveOutReset(m_hWave);
 	// Need to be turned on after RC2000 XXXRA
 	// commenting it out for safety reasons.
-#ifdef PAUSE_ON_RESET
-        _Imp_Pause();
-#endif //PAUSE_ON_RESET
+	//_Imp_Pause();
 	//OutputDebugString("AFTER CALL TO:waveOutReset\r\n");
 	m_bIsFirstPacket	= TRUE;
 
@@ -1302,7 +1200,7 @@ UINT16	CAudioOutWindows::_NumberOfBlocksRemainingToPlay(void)
     return unRemaining;
 }
 
-#if defined(_WIN32)
+#if defined(_WIN32) && !defined(_WINCE)
 void
 CAudioOutWindows::CheckForVolumeSupport()
 {
@@ -1411,7 +1309,7 @@ CAudioOutWindows::Register()
 	if (!m_hInst)
 	{
 #ifdef _DEBUG
-	HX_TRACE( "Don't have a valid handle\r\n" );
+	MessageBox(NULL, _T("Don't have a valid handle"), NULL, MB_OK);
 #endif
  	return HXR_OUTOFMEMORY;
 	}
@@ -1445,7 +1343,7 @@ CAudioOutWindows::Register()
 	#endif /* _WIN16 */    
 		{
 	#ifdef _DEBUG
-		HX_TRACE( "Could Not register class\r\n" );
+		MessageBox(NULL, _T("Could Not register class"), NULL, MB_OK);
 	#endif
 		return(HXR_OUTOFMEMORY);
 		}
@@ -1464,7 +1362,7 @@ CAudioOutWindows::Register()
     if (!m_hWnd)
     {
 #ifdef _DEBUG
-	HX_TRACE( "Could Not create messageWindow\r\n" );
+	MessageBox(NULL, _T("Could Not create messageWindow"), NULL, MB_OK);
 #endif
 	return HXR_OUTOFMEMORY;
     }

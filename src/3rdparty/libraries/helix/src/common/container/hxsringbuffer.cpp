@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: hxsringbuffer.cpp,v 1.5 2008/01/18 04:24:50 vkathuria Exp $
+ * Source last modified: $Id: hxsringbuffer.cpp,v 1.3 2006/11/21 18:29:13 ping Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -51,7 +51,7 @@
 #include "hxresult.h"
 #include "hxsringbuffer.h"
 #include "hxthread.h"
-#include "hlxclib/stdlib.h"
+#include "stdlib.h"
 
 HXSimpleRingBuffer::HXSimpleRingBuffer(INT32 lBufSize, INT32 lReservedBytes)
 	: m_lBufSize(lBufSize)

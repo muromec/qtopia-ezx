@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxsite2.h,v 1.10 2007/10/12 19:22:31 ping Exp $
+ * Source last modified: $Id: hxsite2.h,v 1.8 2007/01/26 01:44:19 ping Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -308,47 +308,6 @@ DECLARE_INTERFACE_(IHXPassiveSiteWatcher, IUnknown)
 
 };
 
-/****************************************************************************
- * 
- *  Interface:
- *
- *	IHXPassiveSiteWatcher2
- *
- *  Purpose:
- *
- *	Interface for IHXPassiveSiteWatcher2 objects.
- *
- *  IID_IHXPassiveSiteWatcher2:
- *
- *	{0x00000D0F-0901-11d1-8B06-00A024406D60}
- *
- */
-DEFINE_GUID(IID_IHXPassiveSiteWatcher2, 0x00000D0F, 0x901, 0x11d1, 0x8b, 0x6, 
-			0x0, 0xa0, 0x24, 0x40, 0x6d, 0x60);
-
-#undef  INTERFACE
-#define INTERFACE   IHXPassiveSiteWatcher2
-
-DECLARE_INTERFACE_(IHXPassiveSiteWatcher2, IHXPassiveSiteWatcher)
-{
-   /***************************************************************************
-    * Method:
-    *      IHXSiteWatcher2::EnteringFullScreen
-    *      IHXSiteWatcher2::ExitingFullScreen
-    *
-    * New watcher to receive status from IHXSiteFullScreenExt. If status is HXR_OK,
-    * then it means pending FullScreen operation has been successfully completed.
-    *
-    * IHXSiteWatcher2 is an enhancement of the IHXSiteWatcher. An object that
-    * supports IHXSiteWatcher2 must also support IHXSiteWatcher.
-    *
-    */
-    STDMETHOD(FullScreenEntered)    (THIS_
-                                    HX_RESULT   status) PURE;
-
-    STDMETHOD(FullScreenExited)     (THIS_
-                                    HX_RESULT   status) PURE;
-};
 
 /***********************************************************************/
 /********  PRIVATE INTERFACE UNTIL STABALIZED -- WILL CHANGE ***********/

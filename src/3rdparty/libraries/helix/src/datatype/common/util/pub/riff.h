@@ -48,7 +48,8 @@
 class CRIFFResponse;
 typedef _INTERFACE IHXFileObject IHXFileObject;
 
-class CRIFFReader : public IHXFileResponse
+class CRIFFReader : public IHXFileResponse,
+            public IHXThreadSafeMethods
 {
 public:
     CRIFFReader(IUnknown*, CRIFFResponse*, IHXFileObject*);
@@ -148,6 +149,8 @@ public:
     STDMETHOD(FileObjectReady)  (THIS_
                 HX_RESULT status,
                 IHXFileObject* pFileObject);
+
+    STDMETHOD_(UINT32,IsThreadSafe)(THIS);
 
     // Special getlong and getshort that can handle files in either byte
     // order (depending on what file type we think we're dealing with)

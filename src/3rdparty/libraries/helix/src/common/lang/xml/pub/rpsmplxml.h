@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: rpsmplxml.h,v 1.5 2008/02/08 07:44:54 vkathuria Exp $
+ * Source last modified: $Id: rpsmplxml.h,v 1.3 2005/03/14 19:36:33 bobclark Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -46,12 +46,12 @@
  * Contributor(s):
  * 
  * ***** END LICENSE BLOCK ***** */
-// $Id: rpsmplxml.h,v 1.5 2008/02/08 07:44:54 vkathuria Exp $
+// $Id: rpsmplxml.h,v 1.3 2005/03/14 19:36:33 bobclark Exp $
 
 #ifndef _RPSMPLXML_H_
 #define _RPSMPLXML_H_
 
-#include "hlxclib/ctype.h"
+#include <ctype.h>
 
 #include "hxtypes.h"
 #include "hxassert.h"

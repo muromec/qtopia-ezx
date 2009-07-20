@@ -42,8 +42,7 @@ HXBOOL CMP3DecInfo::IsMatch(const char* pMimeType, IMP4APayloadFormat* pRssm)
     if (pMimeType &&
         (!strcmp(pMimeType, "audio/X-MP3-draft-00") ||
          !strcmp(pMimeType, "audio/X-MP3-draft-00-RN") ||
-         !strcmp(pMimeType, "audio/MPEG-ELEMENTARY") ||
-         !strcmp(pMimeType, "audio/rn-mpeg")))
+         !strcmp(pMimeType, "audio/MPEG-ELEMENTARY")))
     {
         bRet = TRUE;
     }

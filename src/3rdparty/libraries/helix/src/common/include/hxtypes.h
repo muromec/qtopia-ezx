@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxtypes.h,v 1.44 2009/03/28 20:42:24 jgordon Exp $
+ * Source last modified: $Id: hxtypes.h,v 1.35 2006/12/06 10:28:15 gahluwalia Exp $
  *
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  *
@@ -18,7 +18,7 @@
  * contents of the file.
  *
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -53,10 +53,6 @@
 # include "platform/symbian/symbiantypes.h" /* For our TInt64 impl */
 #endif
 
-#if defined(_BREW)
-#include "platform/brew/brewtypes.h"
-#endif
-
 #ifdef _VXWORKS
 #include "types/vxTypesOld.h"
 #include "vxWorks.h"
@@ -78,7 +74,7 @@
 #define _HXTYPES_H_
 
 // this is essential to make sure that new is not #define'd before the C++ version is included.
-#if (defined(_MSC_VER) && defined(_DEBUG) && defined(__cplusplus) && !defined(WIN32_PLATFORM_PSPC) && !defined(_SYMBIAN) && !defined(_OPENWAVE) && !defined (_BREW))
+#if (defined(_MSC_VER) && defined(_DEBUG) && defined(__cplusplus) && !defined(WIN32_PLATFORM_PSPC) && !defined(_SYMBIAN) && !defined(_OPENWAVE))
 #include <memory>
 #endif
 
@@ -232,24 +228,16 @@ extern "C" {            /* Assume C declarations for C++ */
 #define PRODUCT_ID	"play16"
 #define PLUS_PRODUCT_ID	"plus16"
 #else
-#ifndef PRODUCT_ID
 #define PRODUCT_ID	"play32"
-#endif
-#ifndef PLUS_PRODUCT_ID
 #define PLUS_PRODUCT_ID	"plus32"
-#endif
 #endif
 
 // $Private:
 #define DEFAULT_CONN_TIMEOUT	20	    // in seconds
 #define MAX_TIMESTAMP_GAP	0x2fffffff
 
-#if !defined(MAX_UINT16)
-#define MAX_UINT16              0xffff
-#endif /* MAX_UINT16 */
-
 #if !defined(MAX_INT16)
-#define MAX_INT16       0x7fff
+#define MAX_INT16		32767
 #endif /* MAX_INT16 */
 
 #if !defined(MAX_UINT32)
@@ -261,11 +249,7 @@ extern "C" {            /* Assume C declarations for C++ */
 #endif /* MAX_INT32 */
 
 #if !defined(MAX_UINT64)
-#define MAX_UINT64		0xffffffffffffffffULL
-#endif /* MAX_UINT64 */
-
-#if !defined(MAX_INT64)
-#define MAX_INT64               0x7fffffffffffffffLL
+#define MAX_UINT64		0xffffffffffffffff
 #endif /* MAX_UINT64 */
 
 #if defined(_MACINTOSH)
@@ -312,14 +296,6 @@ typedef INT16   Int16;
 typedef UINT16  u_Int16;
 typedef INT32   Int32;
 typedef UINT32  u_Int32;
-
-#ifdef _LONG_IS_64
-#define HXLL(x) x##l
-#define HXULL(x) x##ul
-#else
-#define HXLL(x) x##ll
-#define HXULL(x) x##ull
-#endif
 
 /*
  * XXXGo

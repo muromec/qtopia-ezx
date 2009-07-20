@@ -62,7 +62,19 @@
 
 
 // 1 sec
-const char* CONFIG_MIN_PREROLL = "RateAdaptation.MinPreroll";
+const char* CONFIG_MIN_PREROLL = "InputSource.MinPreroll";
+
+/* Per User-Agent */
+const char* CONFIG_ACCEPT_INIT_EXTERNAL_SUB =
+    "InputSource.StaticPushSource.AllowInitialExternalSubscription";
+const char* CONFIG_ACCEPT_INIT_INTERNAL_SUB =
+    "InputSource.StaticPushSource.AllowInitialInternalSubscription";
+const char* DUMP_ASMHANDLING = "InputSource.StaticPushSource.DumpASMHandling";
+const char* DUMP_ALLRATE = "InputSource.StaticPushSource.DumpAllRates";
+const char* DUMP_PKT = "InputSource.StaticPushSource.DumpPkt";
+const char* DUMP_SELECTION = "InputSource.StaticPushSource.DumpSelection";
+const char* DUMP_SUBSCRIPTION = "InputSource.StaticPushSource.DumpSubscription";
+const char* DUMP_ADAPTATION = "InputSource.StaticPushSource.DumpAdaptation";
 
 /////////////////////////////////////////////////////////////////////////
 // Method:
@@ -86,11 +98,16 @@ CASMStreamFilter::CASMStreamFilter(Process* pProc, IHXSessionStats* pStats, IHXQ
     , m_pUberMgr(NULL)
     , m_pRateDescResp(NULL)
     , m_pStreamSelector(NULL)
+    , m_pMBitHandler(NULL)
     , m_bRateCommitted(FALSE)
     , m_ulPktCount(0)
+    , m_ulLastTS(0)
+    , m_bPacketTrace (FALSE)
+    , m_bDumpAdaptationInfo(FALSE)
+    , m_bAllowExternalStreamSelection(FALSE)
+    , m_bAllowInternalStreamSelection(FALSE)
     , m_initState(ASM_FILTER_IS_NONE)
     , m_pRateSelInfo(NULL)
-    , m_lDebugOutput(0)
 {
   //printf("%p: ASMStreamFilter::ASMStreamFilter()\n", this);fflush(0);
 
@@ -107,7 +124,66 @@ CASMStreamFilter::CASMStreamFilter(Process* pProc, IHXSessionStats* pStats, IHXQ
     {
         m_pQoSConfig->AddRef();
 
-        m_pQoSConfig->GetConfigInt(DEBUG_OUTPUT, m_lDebugOutput);
+            INT32 lTemp = 0;
+        if (m_pQoSConfig->GetConfigInt(CONFIG_ACCEPT_INIT_EXTERNAL_SUB, lTemp) == HXR_OK && lTemp)
+        {
+            m_bAllowExternalStreamSelection = TRUE;
+            m_bAllowInternalStreamSelection = FALSE;
+        }
+        else
+        {
+            m_bAllowExternalStreamSelection = FALSE;
+            m_bAllowInternalStreamSelection = TRUE;
+        }
+
+        lTemp = 0;
+        if (m_pQoSConfig->GetConfigInt(CONFIG_ACCEPT_INIT_INTERNAL_SUB, lTemp) == HXR_OK)
+        {
+            m_bAllowInternalStreamSelection = (BOOL)lTemp;
+        }
+
+        lTemp = 0;
+        if (pQoSConfig->GetConfigInt(QOS_CFG_MDP, lTemp) == HXR_OK && lTemp)
+        {
+            // MDP is enabled in a config file.  Take whatever the config says above
+        }
+        else
+        {
+            // Two possibilities:
+            // 1) MDP will be used by Helix or 3GPP Adaptation signaling later.
+            // 2) PPM will be use and MDP is OFF.
+            // No stream selection of any sort should be performed.
+            m_bAllowExternalStreamSelection = FALSE;
+            m_bAllowInternalStreamSelection = FALSE;
+        }
+
+        lTemp = 0;
+        if (m_pQoSConfig->GetConfigInt(DUMP_PKT, lTemp) == HXR_OK && lTemp)
+        {
+            m_bPacketTrace = TRUE;
+        }
+
+        lTemp = 0;
+        if (m_pQoSConfig->GetConfigInt(DUMP_SELECTION, lTemp) == HXR_OK && lTemp)
+        {
+            printf("InitialExternalSubscription: %s\n",
+            m_bAllowExternalStreamSelection ? "ON" : "OFF");
+            printf("InitialInternalSubscription: %s\n",
+            m_bAllowInternalStreamSelection ? "ON" : "OFF");
+            fflush(0);
+        }
+
+        lTemp = 0;
+        if (m_pQoSConfig->GetConfigInt(DUMP_ADAPTATION, lTemp) == HXR_OK && lTemp)
+        {
+            m_bDumpAdaptationInfo = TRUE;
+        }
+    }
+    else
+    {
+        // No stream selection
+        m_bAllowExternalStreamSelection = FALSE;
+        m_bAllowInternalStreamSelection = FALSE;
     }
 }
 
@@ -215,6 +291,9 @@ CASMStreamFilter::CommitSubscription()
 
     if (!m_bRateCommitted)
     {
+        // If the no initial rate has been selected yet by the client or server, perform
+        // internal stream selection.
+        // Otherwise, make sure we'll pick the correct initial rate.
         if (SUCCEEDED(res))
         {
             IHXRateDescription* pRateDesc = NULL;
@@ -222,7 +301,46 @@ CASMStreamFilter::CommitSubscription()
 
             if (FAILED(res))
             {
-                res = m_pStreamSelector->SelectInitialRateDesc(m_pRateSelInfo);
+                res = SelectStreams();
+            }
+            else
+            {
+                UINT32 ulRate = 0;
+                if (SUCCEEDED(pRateDesc->GetAvgRate(ulRate)))
+                {
+                    INT32 lTemp = 0;
+                    if (m_pQoSConfig->GetConfigInt(QOS_CFG_IS_DEFAULT_MEDIARATE, lTemp) == HXR_OK)
+                    {
+                        // highest precedence
+                        m_initialTargetRate.m_ulInitRate = (UINT32)lTemp;
+                    }
+
+                    // ok if failed.
+                    if (m_initialTargetRate.m_ulInitRate > ulRate)
+                    {
+                        UpshiftAggregate(m_initialTargetRate.m_ulInitRate, NULL);
+                    }
+                    else if (m_initialTargetRate.m_ulInitRate < ulRate)
+                    {
+                        DownshiftAggregate(m_initialTargetRate.m_ulInitRate, NULL);
+                    }
+                }
+            }
+
+            INT32 lTemp = 0;
+            if (m_pQoSConfig->GetConfigInt(DUMP_SELECTION, lTemp) == HXR_OK && lTemp)
+            {
+                UINT32 ulRate = 0;
+                UINT32 ulNewRate = 0;
+                IHXRateDescription* pNewRateDesc = NULL;
+                res = m_pUberMgr->GetCurrentAggregateRateDesc(pNewRateDesc);
+                if (SUCCEEDED(res) &&
+                    SUCCEEDED(pRateDesc->GetAvgRate(ulRate)) &&
+                    SUCCEEDED(pNewRateDesc->GetAvgRate(ulNewRate)))
+                {
+                    printf("Initial Rate Change: %u -> %u\n", ulRate, ulNewRate);fflush(0);
+                }
+                HX_RELEASE(pNewRateDesc);
             }
 
             HX_RELEASE(pRateDesc);
@@ -237,11 +355,14 @@ CASMStreamFilter::CommitSubscription()
             m_bRateCommitted = TRUE;
 
             // Log stream selection info, if necessary
-            if (m_lDebugOutput & (DUMP_ASMHANDLING | DUMP_ALL))
+            INT32 lTemp = 0;
+            if (SUCCEEDED(m_pQoSConfig->GetConfigInt(DUMP_ASMHANDLING, lTemp))
+                && lTemp)
             {
                 m_pUberMgr->Dump();
             }
-            if (m_lDebugOutput & (DUMP_SELECTION | DUMP_ALL))
+            if (SUCCEEDED(m_pQoSConfig->GetConfigInt(DUMP_SELECTION, lTemp))
+                && lTemp)
             {
                 DumpSelection(res);
             }
@@ -333,8 +454,35 @@ CASMStreamFilter::PacketReady(ServerPacket* pPacket)
             ShiftResponse(HXR_OK, ulStreamGroup);
         }
     }
+
+    // Handle market bit
+    pPacket->EnableIHXRTPPacketInfo();
+
+    if (NULL == m_pMBitHandler)
+    {
+
+        IHXRTPPacketInfo* pRTPPacketInfo = NULL;
+        if (pPacket->QueryInterface(IID_IHXRTPPacketInfo, (void**) &pRTPPacketInfo) == HXR_OK)
+        {
+            m_pMBitHandler = &CASMStreamFilter::MBitRTPPktInfo;
+            pRTPPacketInfo->Release();
+        }
+        else
+        {
+            m_pMBitHandler = &CASMStreamFilter::MBitASMRuleNo;
+        }
+    }
+
+    // XXXGo - figure out Marker bit correctly using
+    // "marker=" in an ASMRuleBook
+    BOOL bMBit = unASMRuleNum % 2;
+
+    (this->*m_pMBitHandler)(bMBit, pPacket);
 #endif
-    if (DUMP_PKT == (m_lDebugOutput & DUMP_PKT))
+    INT32 bTemp = 0;
+
+    m_ulLastTS = pPacket->GetMediaTimeInMs();
+    if (m_bPacketTrace)
     {
         printf("\t\t\tsending: %u rule: %u flag: %u MTS: %u\n",
                 unStreamNum,
@@ -345,6 +493,20 @@ CASMStreamFilter::PacketReady(ServerPacket* pPacket)
     }
 
     return m_pPacketSink->PacketReady(pPacket);
+}
+
+HX_RESULT
+CASMStreamFilter::MBitRTPPktInfo(UINT8 bMBit, ServerPacket* pPkt)
+{
+//    pPkt->SetRuleNumber(0);
+    return ((IHXRTPPacketInfo*)pPkt)->SetMarkerBit(bMBit);
+}
+
+HX_RESULT
+CASMStreamFilter::MBitASMRuleNo(UINT8 bMBit, ServerPacket* pPkt)
+{
+    pPkt->SetRuleNumber(bMBit ? 1 : 0);
+    return HXR_OK;
 }
 
 STDMETHODIMP
@@ -392,12 +554,6 @@ CASMStreamFilter::Init(IHXPSinkControl* pSink)
 STDMETHODIMP
 CASMStreamFilter::Done()
 {
-    if (IsLive())
-    {
-        //Unsubscribe to currently subscribed streams and rules.
-        UnsubscribeAllOnDone();
-    }
-
     if (m_pCtrlSource)
     {
     m_pCtrlSource->Done();
@@ -451,7 +607,22 @@ HX_RESULT
 CASMStreamFilter::HandleFileHeader(HX_RESULT status, IHXValues* pHdr)
 {
     HX_ASSERT(m_pCtrlSink);
-    return m_pCtrlSink->FileHeaderReady(status, pHdr);
+    // XXXGo - Need to modify header according to the Stream Selection
+    if (m_bAllowInternalStreamSelection)
+    {
+    IHXValues*  pNewHdr = NULL;
+    if (HXR_OK == status)
+    {
+        status = CopyHeaders(pHdr, pNewHdr);
+    }
+    status = m_pCtrlSink->FileHeaderReady(status, pNewHdr);
+    HX_RELEASE(pNewHdr);
+    }
+    else
+    {
+        status = m_pCtrlSink->FileHeaderReady(status, pHdr);
+    }
+    return status;
 }
 
 /////////////////////////////////////////////////////////////////////////
@@ -463,7 +634,26 @@ HX_RESULT
 CASMStreamFilter::HandleStreamHeader(HX_RESULT status,IHXValues* pHdr)
 {
     HX_ASSERT(m_pCtrlSink);
-    return m_pCtrlSink->StreamHeaderReady(status, pHdr);
+    // XXXGo - Need to modify header according to the Stream Selection
+    if (m_bAllowInternalStreamSelection)
+    {
+        IHXValues*  pNewHdr = NULL;
+        if (HXR_OK == status)
+        {
+            status = CopyHeaders(pHdr, pNewHdr);
+        }
+        if (HXR_OK == status)
+        {
+            status = ModifyStreamHeaders(pNewHdr);
+        }
+        status = m_pCtrlSink->StreamHeaderReady(status, pNewHdr);
+        HX_RELEASE(pNewHdr);
+    }
+    else
+    {
+        status = m_pCtrlSink->StreamHeaderReady(status, pHdr);
+    }
+    return status;
 }
 
 /////////////////////////////////////////////////////////////////////////
@@ -714,7 +904,8 @@ CASMStreamFilter::InitASMRuleHandler(IHXSyncHeaderSource* pHdrSrc)
     if (SUCCEEDED(res))
     {
         INT32 lTemp = 0;
-        if (m_lDebugOutput & (DUMP_ASMHANDLING | DUMP_ALL))
+        if (m_pQoSConfig &&
+                m_pQoSConfig->GetConfigInt(DUMP_ASMHANDLING, lTemp) == HXR_OK && lTemp)
         {
             m_pUberMgr->Dump();
         }
@@ -722,7 +913,8 @@ CASMStreamFilter::InitASMRuleHandler(IHXSyncHeaderSource* pHdrSrc)
 
     // Dump bandwidth descriptors from rulebook, if necessary
     INT32 lTemp = 0;
-    if (m_lDebugOutput & (DUMP_ALLRATE | DUMP_ALL))
+    if (m_pQoSConfig &&
+                m_pQoSConfig->GetConfigInt(DUMP_ALLRATE, lTemp) == HXR_OK && lTemp)
     {
         HX_RESULT ret = HXR_OK;
         UINT32 ulCount = GetNumRateDescriptions();
@@ -751,15 +943,11 @@ CASMStreamFilter::InitASMRuleHandler(IHXSyncHeaderSource* pHdrSrc)
     // the sdp generation code.
     // Note that a different stream may be selected later on due to updated client
     // capability info (e.g. RTSP Bandwidth header)
-    // XXXLY - ClientSession should eventually request this initial stream selection, instead of
+    // XXXLY - Player::Session should eventually request this initial stream selection, instead of
     // always doing it here.
-    if (SUCCEEDED(res))
+    if (m_bAllowInternalStreamSelection && SUCCEEDED(res))
     {
-        DetermineSelectableStreams();
-    }
-    if (SUCCEEDED(res))
-    {
-        m_pUberMgr->SetStreamSelector(m_pStreamSelector);
+        res = SelectStreams();
     }
 
     HX_ASSERT(SUCCEEDED(res));
@@ -768,16 +956,14 @@ CASMStreamFilter::InitASMRuleHandler(IHXSyncHeaderSource* pHdrSrc)
 
 /////////////////////////////////////////////////////////////////////////
 // Method:
-//  CASMStreamFilter::DetermineSelectableStreams
+//  CASMStreamFilter::SelectStreams
 // Purpose:
 //  Determines the set of usable streams, and performs internal stream selection
-//  ulBufferSize: Used to update the VPDBSize with the buffer size received in *-Adaptation headers.
-//                Should be ZERO if we are not using *-Adaptation which is default value.
 // Notes:
 //  Does not commit the inital rate since this method may be called multiple
 //  times (e.g., once during DESCRIBE, later during PLAY with client Bandwidth info)
 HX_RESULT
-CASMStreamFilter::DetermineSelectableStreams(const StreamAdaptationParams* pStreamAdaptationParams)
+CASMStreamFilter::SelectStreams()
 {
     HX_RESULT res = HXR_OK;
 
@@ -785,26 +971,63 @@ CASMStreamFilter::DetermineSelectableStreams(const StreamAdaptationParams* pStre
     if (!m_pStreamSelector)
     {
 
-        m_pStreamSelector = new CStreamSelector();
+        INT32 lTemp = 0;
+        if (m_bAllowInternalStreamSelection &&
+            m_pQoSConfig->GetConfigInt(DUMP_SELECTION, lTemp) == HXR_OK && lTemp)
+        {
+            // take the value
+        }
+        else
+        {
+            // make sure it 0
+            lTemp = 0;
+        }
+
+        m_pStreamSelector = new CStreamSelector((BOOL)lTemp);
         if (!m_pStreamSelector)
             res = HXR_OUTOFMEMORY;
         else
             m_pStreamSelector->AddRef();
 
+        //INT32
+        lTemp = 0;
+        if (m_pQoSConfig->GetConfigInt(DUMP_SUBSCRIPTION, lTemp) == HXR_OK && lTemp)
+        {
+            m_pUberMgr->m_bDumpSub = TRUE;
+            lTemp = 0;
+        }
+
         // Init the stream seletor
         if (SUCCEEDED(res))
-            res = m_pStreamSelector->Init(m_pUberMgr, (IUnknown*)m_pProc->pc->server_context, m_pStats, m_pQoSConfig);
+            res = m_pStreamSelector->Init(m_pUberMgr, m_pProc, m_pStats, m_pQoSConfig);
+    }
+
+
+    /*
+     * Cracks of the selection logic - depends on two flags.
+     */
+    if (SUCCEEDED(res) &&
+        (m_initialTargetRate.m_ulInitRate > 0 || m_initialTargetRate.m_bForceRate))
+    {
+        if (!m_bAllowExternalStreamSelection)
+        {
+            res = m_pStreamSelector->SetInitTargetRate(m_initialTargetRate.m_ulInitRate, m_initialTargetRate.m_bForceRate);
+        }
     }
 
     // Determine set of usable streams
-    if (SUCCEEDED(res))
+    if (SUCCEEDED(res) && m_bAllowInternalStreamSelection)
     {
-        res = m_pStreamSelector->ExcludeUnusableStreams(pStreamAdaptationParams);
+        res = m_pStreamSelector->VerifyStreams();
     }
 
 
+    // Select an initial rate
+    if (SUCCEEDED(res) && !m_bAllowExternalStreamSelection)
+        res = m_pStreamSelector->SelectInitialRateDesc();
+
     INT32 lTemp = 0;
-    if (m_lDebugOutput & (DUMP_SELECTION | DUMP_ALL))
+    if (m_pQoSConfig->GetConfigInt(DUMP_SELECTION, lTemp) == HXR_OK && lTemp)
     {
         DumpSelection(res);
     }
@@ -1014,6 +1237,7 @@ CASMStreamFilter::StreamHeaderReady(HX_RESULT ulStatus, IHXValues* pHeader)
 STDMETHODIMP
 CASMStreamFilter::StreamDone(UINT16 unStreamNumber)
 {
+  //    printf("StreamDone(%u) - LastTS: %u\n", unStreamNumber, m_ulLastTS);fflush(0);
     HX_ASSERT(m_pCtrlSink);
     return m_pCtrlSink->StreamDone(unStreamNumber);
 }
@@ -1062,12 +1286,23 @@ CASMStreamFilter::GetPacket(UINT16 unStreamNumber)
     }
 }
 
+STDMETHODIMP_(ULONG32)
+CASMStreamFilter::IsThreadSafe()
+{
+    if (m_pPullPacketSource)
+    {
+        return m_pPullPacketSource->IsThreadSafe();
+    }
+    HX_ASSERT(FALSE);
+    return 0;
+}
+
 STDMETHODIMP
 CASMStreamFilter::PacketReady(HX_RESULT ulStatus, IHXPacket* pPacket)
 {
     if (m_pPullPacketSink)
     {
-        if (DUMP_PKT == (m_lDebugOutput & DUMP_PKT))
+        if (m_bPacketTrace)
         {
             printf("\t\t\tsending: %u rule: %u flag: %u TS: %u\n",
             pPacket->GetStreamNumber(),
@@ -1093,19 +1328,42 @@ CASMStreamFilter::PacketReady(HX_RESULT ulStatus, IHXPacket* pPacket)
 STDMETHODIMP
 CASMStreamFilter::Subscribe(UINT16 ulLogicalStreamNum, UINT16 uRuleNumber)
 {
-    // Subscription is primarily handled by CStreamSelector as rates are committed.
-
+    // Ignore request if external subscriptions are not allowed
     INT32 lTemp = 0;
-    if (m_bRateCommitted)
+    if (!m_bAllowExternalStreamSelection)
     {
-        // Technically subscribe is always ignored in this call.
-        // Output legacy message if initial rate selection has occurred.
-        if (m_lDebugOutput & (DUMP_ASMHANDLING | DUMP_ALL))
+        if (m_pQoSConfig->GetConfigInt(DUMP_ASMHANDLING, lTemp) == HXR_OK && lTemp)
+        {
+            printf("Ignoring external Subscribe: %u:%u\n", ulLogicalStreamNum,
+                uRuleNumber);fflush(0);
+        }
+        return HXR_OK;
+    }
+    // Otherwise, subscribe to the ASM rule
+    else if (!m_bRateCommitted)
+    {
+        HX_RESULT theErr = HXR_OK;
+        if (m_pQoSConfig->GetConfigInt(DUMP_ASMHANDLING, lTemp) == HXR_OK && lTemp)
+        {
+            printf("External Subscribe: %u:%u\n", ulLogicalStreamNum, uRuleNumber);fflush(0);
+        }
+
+        if (HXR_OK == theErr)
+        {
+            theErr = m_pUberMgr->SubscribeLogicalStreamRule(ulLogicalStreamNum, uRuleNumber, NULL);
+        }
+
+        return theErr;
+    }
+    // Ignore request if initial stream selection has already occurred
+    else
+    {
+        if (m_pQoSConfig->GetConfigInt(DUMP_ASMHANDLING, lTemp) == HXR_OK && lTemp)
         {
             printf("Ignoring subsequent external Subscribe: %u:%u\n", ulLogicalStreamNum, uRuleNumber);fflush(0);
         }
+        return HXR_OK;
     }
-    return HXR_OK;
 }
 
 /////////////////////////////////////////////////////////////////////////
@@ -1117,7 +1375,7 @@ STDMETHODIMP
 CASMStreamFilter::Unsubscribe(UINT16 ulLogicalStreamNum, UINT16 uRuleNumber)
 {
     INT32 lTemp = 0;
-    if (m_lDebugOutput & (DUMP_ASMHANDLING | DUMP_ALL))
+    if (m_pQoSConfig->GetConfigInt(DUMP_ASMHANDLING, lTemp) == HXR_OK && lTemp)
     {
         printf("Ignoring external Unsubscribe: %u:%u\n", ulLogicalStreamNum,
             uRuleNumber);fflush(0);
@@ -1136,6 +1394,33 @@ CASMStreamFilter::SetControlSource(IHXPSourceControl* pCtrlSource)
         return HXR_OK;
     }
     return HXR_INVALID_PARAMETER;
+}
+
+/////////////////////////////////////////////////////////////////////////
+// Method:
+//  CASMStreamFilter::_SetInitialRate
+// Purpose:
+// Subscribes to the physical streams associated with the initial rate
+HX_RESULT
+CASMStreamFilter::_SetInitialRate(UINT32 ulRate)
+{
+    HX_RESULT res = HXR_OK;
+
+    // Find closest (lower or equal) matching rate that is available for selection
+    IHXRateDescription* pRateDesc = NULL;
+    if (SUCCEEDED(res))
+        res = m_pUberMgr->FindRateDescByClosestAvgRate(ulRate, TRUE, FALSE, pRateDesc);
+
+    if (SUCCEEDED(res))
+        res = m_pUberMgr->SetAggregateRateDesc(pRateDesc, NULL);
+
+    if (SUCCEEDED(res))
+        res = m_pUberMgr->CommitInitialAggregateRateDesc();
+
+    HX_RELEASE(pRateDesc);
+
+    HX_ASSERT(SUCCEEDED(res));
+    return res;
 }
 
 STDMETHODIMP_(UINT32)
@@ -1373,21 +1658,6 @@ CASMStreamFilter::SetAggregateRateDesc(IHXRateDescription* pRateDesc, IHXRateDes
 }
 
 STDMETHODIMP
-CASMStreamFilter::SelectLogicalStream(UINT32 ulStreamGroupNum,
-                                      UINT32 ulLogicalStreamNum)
-{
-    // Validate state
-    if (!m_pUberMgr)
-    {
-        HX_ASSERT(FALSE);
-        return HXR_FAIL;
-    }
-
-    return m_pUberMgr->SelectLogicalStream(ulStreamGroupNum, 
-                                           ulLogicalStreamNum);
-}
-
-STDMETHODIMP
 CASMStreamFilter::CommitInitialAggregateRateDesc()
 {
     // Validate state
@@ -1397,9 +1667,9 @@ CASMStreamFilter::CommitInitialAggregateRateDesc()
         return HXR_FAIL;
     }
 
-    if (m_pStreamSelector && !m_bRateCommitted)
+    if (m_pStreamSelector)
     {
-        m_pStreamSelector->SelectInitialRateDesc(m_pRateSelInfo);
+        m_pStreamSelector->SelectBetterInitialRateDesc(m_pRateSelInfo);
     }
 
     return m_pUberMgr->CommitInitialAggregateRateDesc();
@@ -1449,19 +1719,6 @@ CASMStreamFilter::GetCurrentStreamGroupRateDesc(UINT32 ulStreamGroupNum, REF(IHX
 }
 
 STDMETHODIMP
-CASMStreamFilter::GetNextSwitchableStreamGroupRateDesc(UINT32 ulStreamGroupNum, REF(IHXRateDescription*)pRateDesc)
-{
-    // Validate state
-    if (!m_pUberMgr)
-    {
-        HX_ASSERT(FALSE);
-        return HXR_FAIL;
-    }
-
-    return m_pUberMgr->GetNextSwitchableStreamGroupRateDesc(ulStreamGroupNum, pRateDesc);
-}
-
-STDMETHODIMP
 CASMStreamFilter::CommitInitialStreamGroupRateDesc(UINT32 ulStreamGroupNum)
 {
     // Validate state
@@ -1490,8 +1747,7 @@ CASMStreamFilter::IsInitalStreamGroupRateDescCommitted(UINT32 ulStreamGroupNum)
 STDMETHODIMP
 CASMStreamFilter::UpshiftStreamGroup(UINT32 ulStreamGroupNum,
                                      UINT32 ulRate,
-                                     IHXStreamRateDescResponse* pResp,
-                                     BOOL bIsClientInitiated)
+                                     IHXStreamRateDescResponse* pResp)
 {
     // Validate state
     if (!m_pUberMgr)
@@ -1500,25 +1756,13 @@ CASMStreamFilter::UpshiftStreamGroup(UINT32 ulStreamGroupNum,
         return HXR_FAIL;
     }
 
-    HX_RESULT hr = HXR_FAIL;
-    hr = m_pUberMgr->UpshiftStreamGroup(ulStreamGroupNum, ulRate, pResp, bIsClientInitiated);
-
-    // Dump adaptation info, if necessary
-    if (SUCCEEDED(hr) && (m_lDebugOutput & (DUMP_ADAPTATION | DUMP_ALL)))
-    {
-        printf("UpshiftStreamGroup(%u): StreamGroupNum: %u. ClientInitiated: %d.\n",
-            ulRate, ulStreamGroupNum, bIsClientInitiated);
-        fflush(0);
-    }
-
-    return hr;
+    return m_pUberMgr->UpshiftStreamGroup(ulStreamGroupNum, ulRate, pResp);
 }
 
 STDMETHODIMP
 CASMStreamFilter::DownshiftStreamGroup(UINT32 ulStreamGroupNum,
                                        UINT32 ulRate,
-                                       IHXStreamRateDescResponse* pResp,
-                                       BOOL bIsClientInitiated)
+                                       IHXStreamRateDescResponse* pResp)
 {
     // Validate state
     if (!m_pUberMgr)
@@ -1527,18 +1771,7 @@ CASMStreamFilter::DownshiftStreamGroup(UINT32 ulStreamGroupNum,
         return HXR_FAIL;
     }
 
-    HX_RESULT hr = HXR_FAIL;
-    hr = m_pUberMgr->DownshiftStreamGroup(ulStreamGroupNum, ulRate, pResp, bIsClientInitiated);
-        
-    // Dump adaptation info, if necessary
-    if (SUCCEEDED(hr) && (m_lDebugOutput & (DUMP_ADAPTATION | DUMP_ALL)))
-    {
-        printf("DownshiftStreamGroup(%u): StreamGroupNum: %u. ClientInitiated: %d.\n",
-            ulRate, ulStreamGroupNum, bIsClientInitiated);
-        fflush(0);
-    }
-
-    return hr;
+    return m_pUberMgr->DownshiftStreamGroup(ulStreamGroupNum, ulRate, pResp);
 }
 
 STDMETHODIMP
@@ -1571,70 +1804,24 @@ CASMStreamFilter::UnsubscribeLogicalStreamRule(UINT32 ulLogicalStreamNum,
     return m_pUberMgr->UnsubscribeLogicalStreamRule(ulLogicalStreamNum, ulRuleNum, pResp);
 }
 
-STDMETHODIMP
-CASMStreamFilter::GetLowestAvgRate(UINT32 ulStreamGroupNum, REF(UINT32) ulLowestAvgRate)
-{
-    // Validate state
-    if (!m_pUberMgr)
-    {
-        HX_ASSERT(FALSE);
-        return HXR_FAIL;
-    }
-
-    return m_pUberMgr->GetLowestAvgRate(ulStreamGroupNum, ulLowestAvgRate);
-}
-
-STDMETHODIMP
-CASMStreamFilter::SetDownshiftOnFeedbackTimeoutFlag(BOOL bFlag)
-{
-    // Validate state
-    if (!m_pUberMgr)
-    {
-        HX_ASSERT(FALSE);
-        return HXR_FAIL;
-    }
-
-    return m_pUberMgr->SetDownshiftOnFeedbackTimeoutFlag(bFlag);
-}
-
-STDMETHODIMP
-CASMStreamFilter::GetNextSwitchableRateDesc(REF(IHXRateDescription*)pRateDesc)
-{
-    // Validate state
-    if (!m_pUberMgr)
-    {
-        HX_ASSERT(FALSE);
-        return HXR_FAIL;
-    }
-
-    return m_pUberMgr->GetNextSwitchableRateDesc(pRateDesc);
-}
-
 /////////////////////////////////////////////////////////////////////////
 // Method:
 //  CASMStreamFilter::UpshiftAggregate
 // Purpose:
 //  Upshifts to a higher rate
 STDMETHODIMP
-CASMStreamFilter::UpshiftAggregate(UINT32 ulRate, IHXRateDescResponse* pResp, BOOL bIsClientInitiated)
+CASMStreamFilter::UpshiftAggregate(UINT32 ulRate, IHXRateDescResponse* pResp)
 {
-    // Validate state
-    if (!m_pUberMgr)
-    {
-        HX_ASSERT(FALSE);
-        return HXR_FAIL;
-    }
-
     HX_RESULT res = HXR_OK;
 
     // Perform actual uphift
     if (SUCCEEDED(res))
-        res = m_pUberMgr->UpshiftAggregate(ulRate, NULL, bIsClientInitiated);
+        res = m_pUberMgr->UpshiftAggregate(ulRate, NULL);
 
     // Dump adaptation info, if necessary
-    if (m_lDebugOutput & (DUMP_ADAPTATION | DUMP_ALL))
+    if (m_bDumpAdaptationInfo)
     {
-        printf("UpshiftAggregate(%u). ClientInitiated: %d.\n", ulRate, bIsClientInitiated);
+        printf("UpshiftAggregate(%u): pkt: %u\n", ulRate, m_ulPktCount);
         fflush(0);
     }
 
@@ -1661,6 +1848,26 @@ CASMStreamFilter::UpshiftAggregate(UINT32 ulRate, IHXRateDescResponse* pResp, BO
 
 /////////////////////////////////////////////////////////////////////////
 // Method:
+//  CASMStreamFilter::SetClientAverageBandwidth
+// Purpose:
+//  Set Initial Target Rate
+STDMETHODIMP
+CASMStreamFilter::SetClientAverageBandwidth(UINT32 ulAvgBandwidth)
+{
+    HX_RESULT res = HXR_OK;
+
+    if (!m_initialTargetRate.m_bForceRate)
+    {
+        if (m_pStreamSelector)
+                m_pStreamSelector->SetInitTargetRate(ulAvgBandwidth, FALSE);
+
+        m_initialTargetRate.m_ulInitRate = ulAvgBandwidth;
+    }
+    return res;
+}
+
+/////////////////////////////////////////////////////////////////////////
+// Method:
 //  CASMStreamFilter::SetRateSelectionInfoObject
 // Purpose:
 //  Provide initial rate selection info.
@@ -1668,7 +1875,6 @@ CASMStreamFilter::UpshiftAggregate(UINT32 ulRate, IHXRateDescResponse* pResp, BO
 STDMETHODIMP
 CASMStreamFilter::SetRateSelectionInfoObject(IHXRateSelectionInfo* pRateSelInfo)
 {
-    HX_RELEASE(m_pRateSelInfo);
     m_pRateSelInfo = pRateSelInfo;
     HX_ADDREF(m_pRateSelInfo);
     return HXR_OK;
@@ -1679,25 +1885,18 @@ CASMStreamFilter::SetRateSelectionInfoObject(IHXRateSelectionInfo* pRateSelInfo)
 // Purpose:
 //  Downshifts to a lower rate
 STDMETHODIMP
-CASMStreamFilter::DownshiftAggregate(UINT32 ulRate, IHXRateDescResponse* pResp, BOOL bIsClientInitiated)
+CASMStreamFilter::DownshiftAggregate(UINT32 ulRate, IHXRateDescResponse* pResp)
 {
-    // Validate state
-    if (!m_pUberMgr)
-    {
-        HX_ASSERT(FALSE);
-        return HXR_FAIL;
-    }
-
     HX_RESULT res = HXR_OK;
 
     // Perform actual downshift
     if (SUCCEEDED(res))
-        res = m_pUberMgr->DownshiftAggregate(ulRate, NULL, bIsClientInitiated);
+        res = m_pUberMgr->DownshiftAggregate(ulRate, NULL);
 
     // Dump adaptation info, if necessary
-    if (m_lDebugOutput & (DUMP_ADAPTATION | DUMP_ALL))
+    if (m_bDumpAdaptationInfo)
     {
-        printf("DownshiftAggregate(%u). ClientInitiated: %d.\n", ulRate, bIsClientInitiated);
+        printf("DownshiftAggregate(%u): pkt: %u\n", ulRate, m_ulPktCount);
         fflush(0);
     }
 
@@ -1731,7 +1930,7 @@ void
 CASMStreamFilter::ShiftResponse(HX_RESULT status)
 {
     // Log adaptation info, if necessary
-    if (m_lDebugOutput & (DUMP_ADAPTATION | DUMP_ALL))
+    if (m_bDumpAdaptationInfo)
     {
         if (HXR_OK == status)
         {
@@ -1785,7 +1984,7 @@ void
 CASMStreamFilter::ShiftResponse(HX_RESULT status, UINT32 ulStreamGroup)
 {
     // Log adaptation info, if necessary
-    if (m_lDebugOutput & (DUMP_ADAPTATION | DUMP_ALL))
+    if (m_bDumpAdaptationInfo)
     {
         if (HXR_OK == status)
         {
@@ -1852,6 +2051,24 @@ CASMStreamFilter::UpdateStats(IHXRateDescription* pRateDesc)
     }
 }
 
+/////////////////////////////////////////////////////////////////////////
+// Method:
+//  CASMStreamFilter::SetInitial
+// Purpose:
+//  Sets initial bandwidth (type == 0)
+//  Testing purpose only
+void
+CASMStreamFilter::SetInitial(UINT32 type, UINT32 ulVal)
+{
+    if (0 == type)
+    {
+        m_initialTargetRate.m_bForceRate = TRUE;
+        m_initialTargetRate.m_ulInitRate = ulVal;
+
+        if (m_pStreamSelector)
+            m_pStreamSelector->SetInitTargetRate(ulVal, TRUE);
+    }
+}
 
 STDMETHODIMP
 CASMStreamFilter::EnableTCPMode()
@@ -1972,45 +2189,5 @@ CASMStreamFilter::QueryInterface(REFIID riid, void** ppvObj)
 
     *ppvObj = NULL;
     return HXR_NOINTERFACE;
-}
-
-// Get the current active streams & rules and unsubscribe from those.
-HX_RESULT
-CASMStreamFilter::UnsubscribeAllOnDone()
-{
-    HX_RESULT res = HXR_OK;
-
-    // Validate state
-    if (!m_pUberMgr)
-    {
-        HX_ASSERT(FALSE);
-        return HXR_FAIL;
-    }
-    
-    for (UINT16 i = 0; i < m_pUberMgr->GetNumStreamGroups(); i++)
-    {
-        IHXRateDescription* pRateDesc = NULL;
-        UINT32 ulSelectedLogiclStreamNum = MAX_UINT16;
-        res = m_pUberMgr->GetSelectedLogicalStreamNum(i, ulSelectedLogiclStreamNum);
-
-        if (SUCCEEDED(res))
-        {
-            res = m_pUberMgr->GetCurrentStreamGroupRateDesc(i, pRateDesc);
-        }
-
-        if (SUCCEEDED(res) && pRateDesc)
-        {
-            UINT32* aulRuleArray = pRateDesc->GetRuleArray();
-            for (UINT16 j = 0; j < pRateDesc->GetNumRules(); j++)
-            {
-                m_pUberMgr->UnsubscribeLogicalStreamRule(ulSelectedLogiclStreamNum,
-                    aulRuleArray[j], NULL);
-            }
-        }
-
-        HX_RELEASE(pRateDesc);
-    }
-
-    return res;
 }
 

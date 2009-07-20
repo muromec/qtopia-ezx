@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: client.h,v 1.20 2007/08/18 00:21:14 dcollins Exp $
+ * Source last modified: $Id: client.h,v 1.17 2006/06/26 17:20:57 darrick Exp $
  *
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.
  *
@@ -38,30 +38,54 @@
 #ifndef _CLIENT_H_
 #define _CLIENT_H_
 
+#define REPLAY_BUFFER_SIZE 4096
+
+class State;
+class ConnList;
+class SIO;
+class TCPIO;
+class Client;
+class HXProtocol;
+class LCClientList;
+class HTTP;
+class Engine;
+class ClientGUIDEntry;
+class ClientRegTree;
+
+struct IHXClientStats;
+
 #include "base_callback.h"
+#include "callback_container.h"
 #include "proc.h"
+#include "sockio.h"
+#include "inetwork.h"
 #include "hxnet.h"
 #include "servsockimp.h"
 #include "server_engine.h"
+#include "timeval.h"
+#include "mutex.h"
 #include "hxshutdown.h"
+
 #include "servlist.h"
 #include "clientregtree.h"  // allows inlining of GetRegId
+
+#ifdef PAULM_CLIENTAR
+#include "objdbg.h"
+#include "odbg.h"
+#endif
+
 #include "servprotdef.h" // ClientType
+
 #include "hxprotmgr.h" /* HXProtocolType */
-#include "hxclientprofile.h"
 
-class       PacketFlowWrapper;
-class       ClientSession;
-class       HXProtocol;
-class       ClientGUIDEntry;
-class       ClientRegTree;
-struct      IHXClientStats;
-
-class Client : public IHXServerShutdownResponse,
-               public HXListElem
+class Client: public IHXServerShutdownResponse,
+#ifdef PAULM_CLIENTAR
+              public ObjDebugger,
+#endif
+              public IHXThreadSafeMethods
 {
 public:
-    Client(Process* proc);
+    Client(Process* p);
     virtual ~Client(void);
 
     /*
@@ -72,68 +96,61 @@ public:
     STDMETHOD_(UINT32,Release)          (THIS);
 
     /*
-     * IHXServerShutdownResponse methods
+     * IHXThreadSafeMethods methods
      */
-    STDMETHOD(OnShutDownStart)           (THIS_ BOOL bLogPlayerTermination);
+    STDMETHOD_(UINT32,IsThreadSafe)     (THIS);
+
+    /*
+     * IHXServerShutdownResponse
+     */
+    STDMETHOD(OnShutDownStart)           (THIS_
+                                          BOOL bLogPlayerTermination);
+
     STDMETHOD(OnShutDownEnd)             (THIS);
+
 
     /*
      * Client methods
      */
-    HXProtocol*     GetProtocol();
+
     void            SessionDone(const char* sessionID);
-    UINT32          GetConnId() { return m_ulConnId; }
 
-    void            Init(HXProtocolType type, HXProtocol* pProtocol);
+    UINT32          id() { return conn_id; }
+    HXProtocol*     m_pProtocol;
+
+    void            init(HXProtocolType type, HXProtocol* pProtocol);
     void            OnClosed(HX_RESULT status);
+    void            update_stats();
 
-    void            InitStats(IHXSockAddr* pLocalAddr,
-                              IHXSockAddr* pPeerAddr,
-                              BOOL bIsCloak);
-    void            UpdateStats();
-    HXBOOL          UseRegistryForStats();
-    void            UpdateProtocolStatsInfo(ClientType nType = PLAYER_CLIENT);
-    void            CleanupStats();
+    Process*        proc;
+    UINT32          conn_id;
 
-    IHXClientStats* GetClientStats();
-    
-    UINT32          GetRegId(ClientRegTree::Field nField);
+    BOOL            is_cloak;
 
-    UINT32          GetRegistryConnId();
-    void            SetRegistryConnId(UINT32 ulConnId);
+    BOOL            m_bUseRegistryForStats;
+    BOOL            use_registry_for_stats();
 
-    UINT32          GetClientStatsObjId();
-    void            SetClientStatsObjId(UINT32 ulObjId);
+    HXProtocol*     protocol();
 
-    const char*     GetPlayerGUID() { return m_pPlayerGUID; };
-    HX_RESULT       SetPlayerGUID(char* pGUID, int pLen);
-    
-    HXBOOL          IsAlive();
+    ULONG32         m_ulRefCount;
 
-    void            Done(HX_RESULT status);
-    HX_RESULT       GenerateNewSessionID(CHXString& sessionID,
-                                         UINT32 ulSeqNo);
-    HX_RESULT       NewSession(ClientSession** ppSession,
-                               UINT32 ulSeqNo,
-                               BOOL bRetainEntityForSetup=TRUE);
-    HX_RESULT       NewSessionWithID(ClientSession** ppSession,
-                                     UINT32 ulSeqNo,
-                                     const char* pSessionID,
-                                     BOOL bRetainEntityForSetup=TRUE);
-    ClientSession*  FindSession(const char* pSessionID);
-    HX_RESULT       RemoveSession(const char* pSessionID,
-                                  HX_RESULT status);
-    void            ClearSessionList(HX_RESULT status);
-    INT32           NumSessions() { return m_pSessions ? m_pSessions->GetCount() : 0; }
+    BOOL            m_bIsAProxy;
+    BOOL            m_bNeedCountDecrement;
 
-    void            SetStreamStartTime(const char* pSessionID,
-                                       UINT32 ulStreamNum,
-                                       UINT32 ulTimestamp);
+#if ENABLE_LATENCY_STATS
+    void            TCorePassCB();
+    void            TDispatch();
+    void            TStreamer();
+    void            TFirstRead();
+    INT32           m_ulStartTime;
+    INT32           m_ulCorePassCBTime;
+    INT32           m_ulDispatchTime;
+    INT32           m_ulStreamerTime;
+    INT32           m_ulFirstReadTime;
+#endif
+    UINT32          m_ulCreateTime;
 
-    HX_RESULT       HandleDefaultSubscription(const char* szSessionID);
-
-    class ClientDeleteCallback : public SimpleCallback,
-                                 public BaseCallback
+    class ClientDeleteCallback : public SimpleCallback, public BaseCallback
     {
     public:
         void func(Process*) { (void) Func(); delete this; }
@@ -151,66 +168,61 @@ public:
         DELETE_CB_QED,
         DEAD
     } m_state;
-
-    ULONG32             m_ulRefCount;
-
+    BOOL isAlive();
     /*
      * for every server session the following number indicates where
-     * in the list of total players connected this client lies.
+     * in the list of total players connected does this client lie.
      */
-    UINT32              m_ulRegistryConnId;
-    UINT32              m_ulClientStatsObjId;
+    UINT32          m_ulRegistryConnId;
+    UINT32          m_ulClientStatsObjId;
 
-    Process*            m_pProc;
-    UINT32              m_ulConnId;
+    HXProtocolType  m_protType;
+    ClientType      m_clientType;
+    char*           m_pPlayerGUID;
 
-    HXBOOL              m_bIsAProxy;
-    HXBOOL              m_bNeedCountDecrement;
-    HXBOOL              m_bIsCloak;
-    HXBOOL              m_bUseRegistryForStats;
+    ClientGUIDEntry* m_pClientGUIDEntry;
+    ClientRegTree*  m_pRegTree;
+    IHXClientStats* m_pStats;
 
-    HXProtocol*         m_pProtocol;
-    HXProtocolType      m_protType;
-    ClientType          m_clientType;
-    char*               m_pPlayerGUID;
+    UINT32 GetRegId(ClientRegTree::Field nField);
+    void init_stats(IHXSockAddr* pLocalAddr, IHXSockAddr* pPeerAddr,
+                    BOOL bIsCloak);
+    void update_protocol_statistics_info(ClientType nType = PLAYER_CLIENT);
+    void cleanup_stats();
+    IHXClientStats* get_client_stats();
 
-    ClientGUIDEntry*    m_pClientGUIDEntry;
-    ClientRegTree*      m_pRegTree;
-    IHXClientStats*     m_pStats;
+    UINT32 get_registry_conn_id();
+    void set_registry_conn_id(UINT32 ulConnId);
 
-    UINT32              m_uBytesSent;
-    HX_RESULT           m_ulCloseStatus;
-    
-    UINT32              m_ulCreateTime;
+    UINT32 get_client_stats_obj_id();
+    void set_client_stats_obj_id(UINT32 ulObjId);
 
-#if ENABLE_LATENCY_STATS
-    void                TCorePassCB();
-    void                TDispatch();
-    void                TStreamer();
-    void                TFirstRead();
-    INT32               m_ulStartTime;
-    INT32               m_ulCorePassCBTime;
-    INT32               m_ulDispatchTime;
-    INT32               m_ulStreamerTime;
-    INT32               m_ulFirstReadTime;
+    HX_RESULT   SetPlayerGUID(char* pGUID, int pLen);
+    const char* GetPlayerGUID() { return m_pPlayerGUID; };
+
+    UINT32          m_uBytesSent;
+
+#ifdef PAULM_CLIENTTIMING
+    int             in_streamer;
+    int             died_from_timeout;
 #endif
-    
-    PacketFlowWrapper*  m_pPacketFlowWrap;
-    CHXSimpleList*      m_pSessions;
-    static UINT32       m_ulNextSessionID;
+
+    INT32           m_ulThreadSafeFlags;
+    HX_RESULT       m_ulCloseStatus;
 };
 
 inline HXProtocol*
-Client::GetProtocol()
+Client::protocol()
 {
     return m_pProtocol;
 }
 
-inline HXBOOL
-Client::IsAlive()
+inline BOOL
+Client::isAlive()
 {
     return m_state == ALIVE ? TRUE : FALSE;
 }
+
 
 inline UINT32
 Client::GetRegId(ClientRegTree::Field nField)
@@ -218,38 +230,38 @@ Client::GetRegId(ClientRegTree::Field nField)
     return m_pRegTree ? m_pRegTree->GetRegId(nField) : 0;
 }
 
-inline HXBOOL
-Client::UseRegistryForStats()
+inline BOOL
+Client::use_registry_for_stats()
 {
     return m_bUseRegistryForStats;
 }
 
 inline IHXClientStats*
-Client::GetClientStats()
+Client::get_client_stats()
 {
     return m_pStats;
 }
 
 inline UINT32
-Client::GetClientStatsObjId()
+Client::get_client_stats_obj_id()
 {
     return m_ulClientStatsObjId;
 }
 
 inline void
-Client::SetClientStatsObjId(UINT32 ulObjId)
+Client::set_client_stats_obj_id(UINT32 ulObjId)
 {
     m_ulClientStatsObjId = ulObjId;
 }
 
 inline UINT32
-Client::GetRegistryConnId()
+Client::get_registry_conn_id()
 {
     return m_ulRegistryConnId;
 }
 
 inline void
-Client::SetRegistryConnId(UINT32 ulConnId)
+Client::set_registry_conn_id(UINT32 ulConnId)
 {
     m_ulRegistryConnId = ulConnId;
 }

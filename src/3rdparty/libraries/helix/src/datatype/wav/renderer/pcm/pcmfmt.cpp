@@ -48,7 +48,7 @@
 #include "pcm_convert.h"
 
 CPCMAudioFormat::CPCMAudioFormat(IHXCommonClassFactory* pCommonClassFactory,
-                                 CPCMAudioRenderer*     pPCMAudioRenderer)
+				 CPCMAudioRenderer*     pPCMAudioRenderer)
     : CAudioFormat(pCommonClassFactory, pPCMAudioRenderer)
 {
     m_ucMimeType       = kMimeTypeUnknown;
@@ -78,12 +78,12 @@ HX_RESULT CPCMAudioFormat::Init(IHXValues* pHeader)
             if (!strcmp(pszMimeType, "audio/L8"))
             {
                 m_ucMimeType = kMimeTypeAudioL8;
-                m_pAudioFmt->uBitsPerSample = 8;
+		m_pAudioFmt->uBitsPerSample = 8;
             }
             else if (!strcmp(pszMimeType, "audio/L16"))
             {
                 m_ucMimeType = kMimeTypeAudioL16;
-                m_pAudioFmt->uBitsPerSample = 16;
+		m_pAudioFmt->uBitsPerSample = 16;
             }
             else if (!strcmp(pszMimeType, "audio/x-pn-wav"))
             {
@@ -92,12 +92,12 @@ HX_RESULT CPCMAudioFormat::Init(IHXValues* pHeader)
             else if (!strcmp(pszMimeType, "audio/PCMA") || !strcmp(pszMimeType, "audio/pcma"))
             {
                 m_ucMimeType = kMimeTypeAudioPCMA;
-                m_pAudioFmt->uBitsPerSample = 16;
+		m_pAudioFmt->uBitsPerSample = 16;
             }
             else if (!strcmp(pszMimeType, "audio/PCMU"))
             {
-                m_ucMimeType = kMimeTypeAudioPCMU;
-                m_pAudioFmt->uBitsPerSample = 16;
+            	m_ucMimeType = kMimeTypeAudioPCMU;
+		m_pAudioFmt->uBitsPerSample = 16;
             }
             // Get the endianness
             HXBOOL bBigEndian = TestBigEndian();
@@ -165,23 +165,23 @@ HX_RESULT CPCMAudioFormat::Init(IHXValues* pHeader)
                     if (SUCCEEDED(retVal))
                     {
                         if (pPcmFormatRecord->usFormatTag     == PN_PCM_ZERO_OFFSET &&
-                            pPcmFormatRecord->usBitsPerSample == 8)
+	                    pPcmFormatRecord->usBitsPerSample == 8)
                         {
-                            m_bZeroOffsetPCM = TRUE;
+	                    m_bZeroOffsetPCM = TRUE;
                         }
                         else
                         {
-                            m_bZeroOffsetPCM = FALSE;
+	                    m_bZeroOffsetPCM = FALSE;
                         }
 
                         if (pPcmFormatRecord->usBitsPerSample    == 16 &&
-                            pPcmFormatRecord->usSampleEndianness != bBigEndian) 
+	                    pPcmFormatRecord->usSampleEndianness != bBigEndian) 
                         {
-                            m_bSwapSampleBytes = TRUE;
+	                    m_bSwapSampleBytes = TRUE;
                         }
                         else
                         {
-                            m_bSwapSampleBytes = FALSE;
+	                    m_bSwapSampleBytes = FALSE;
                         }
                         // Get the "MaxPacketSize" property
                         UINT32 ulMaxPacketSize = 0;
@@ -219,7 +219,7 @@ HX_RESULT CPCMAudioFormat::Init(IHXValues* pHeader)
             }
             else
             {
-                retVal = HXR_FAIL;      
+                retVal = HXR_FAIL;	
             }
         }
         HX_RELEASE(pMimeTypeStr);
@@ -253,7 +253,7 @@ CMediaPacket* CPCMAudioFormat::CreateAssembledPacket(IHXPacket* pPacket)
 }
 
 HX_RESULT CPCMAudioFormat::DecodeAudioData(HXAudioData& audioData,
-                                           HXBOOL bFlushCodec)
+					   HXBOOL bFlushCodec)
 {
     return DecodeAudioData(audioData,
                            bFlushCodec,
@@ -261,8 +261,8 @@ HX_RESULT CPCMAudioFormat::DecodeAudioData(HXAudioData& audioData,
 }
 
 HX_RESULT CPCMAudioFormat::DecodeAudioData(HXAudioData& audioData,
-                                           HXBOOL bFlushCodec,
-                                           CMediaPacket *pPacket)
+					   HXBOOL bFlushCodec,
+					   CMediaPacket *pPacket)
 {
     HX_RESULT retVal = HXR_FAIL;
     

@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: osxaudio.cpp,v 1.7 2008/05/02 23:06:41 bobclark Exp $
+ * Source last modified: $Id: osxaudio.cpp,v 1.4 2007/01/12 18:56:30 bobclark Exp $
  * 
  * Portions Copyright (c) 1995-2006 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -190,19 +190,19 @@ CAudioOutOSX::_Imp_Resume(void)
 {
     OSStatus err = noErr;
     
-    mResetTimeNanos = ::AudioConvertHostTimeToNanos(::AudioGetCurrentHostTime());
-    
-    mCurrentTime = mResetTimeNanos;
-    mResetTimeNanos -= mElapsedNanosAtPause;
-    mElapsedNanosAtPause = 0;
-    mNanoSecondsThatCoreAudioDrynessOccurred = 0;
-    mAccumulatedNanoSecondsOfCoreAudioDryness = 0;
-    
     err = ::AudioDeviceStart(mAudioDevice, HALIOProc);
     if (err != noErr)
     {
         return HXR_AUDIO_DRIVER;
     }
+    
+    mResetTimeNanos = ::AudioConvertHostTimeToNanos(::AudioGetCurrentHostTime());
+    
+    mResetTimeNanos -= mElapsedNanosAtPause;
+    mCurrentTime = mElapsedNanosAtPause;
+    mElapsedNanosAtPause = 0;
+    mNanoSecondsThatCoreAudioDrynessOccurred = 0;
+    mAccumulatedNanoSecondsOfCoreAudioDryness = 0;
     
     // This is important!
     OnTimeSync();
@@ -227,7 +227,6 @@ CAudioOutOSX::_Imp_Reset(void)
 {
     _Imp_Drain();
     mResetTimeNanos = ::AudioConvertHostTimeToNanos(::AudioGetCurrentHostTime());
-    mCurrentTime = mResetTimeNanos;
     mElapsedNanos = 0;
     mElapsedNanosAtPause = 0;
     mNanoSecondsThatCoreAudioDrynessOccurred = 0;
@@ -284,13 +283,6 @@ CAudioOutOSX::_Imp_CheckFormat(const HXAudioFormat* pFormat)
     {
         // if it's asking for more channels than we have,
         // bail out so it asks again with fewer channels.
-        return HXR_AUDIO_DRIVER;
-    }
-    
-    // next bail out for single-channel requests: we want at least stereo!
-    
-    if (pFormat->uChannels < 2)
-    {
         return HXR_AUDIO_DRIVER;
     }
     

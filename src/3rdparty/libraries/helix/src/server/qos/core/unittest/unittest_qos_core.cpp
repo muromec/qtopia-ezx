@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: unittest_qos_core.cpp,v 1.7 2007/10/11 06:38:37 yphadke Exp $ 
+ * Source last modified: $Id: unittest_qos_core.cpp,v 1.6 2003/04/08 21:42:08 damonlan Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -34,15 +34,13 @@
  * Contributor(s):  
  *   
  * ***** END LICENSE BLOCK ***** */  
-
+#define INITGUID
 #include "hxtypes.h"
 #include "hxcom.h"
-#include "hxengin.h"
 #include "ihxpckts.h"
 #include "hxqossig.h"
 #include "hxqos.h"
 #include "hxccf.h"
-#include "hxqosinfo.h"
 
 #include "mutex.h"
 #include "chxmapstringtoob.h"
@@ -52,9 +50,6 @@
 #include "qos_sig_bus.h"
 #include "qos_test_sink.h"
 #include "qos_test_engine.h"
-
-#include "ut_uasmultimatch.h"
-#include "leak_check.h"
 
 UINT32*	g_pConcurrentOps = new UINT32;
 UINT32*	g_pConcurrentMemOps = new UINT32;
@@ -67,19 +62,17 @@ extern char** environ;
 int
 main(int argc, char* argv[])
 {
-    HX_ADD_LEAK_CHECK
-
     char** ep = environ;
     
     QoSTestEngine* pEngine = new QoSTestEngine();
 
-    ///* Verify the Controller */
+    /* Verify the Controller */
      pEngine->TestController();
 
-    ///* Verify Signal Bus*/
+    /* Verify Signal Bus*/
     pEngine->TestSignalBus();
 
-    ///* Verify Profile Selection */
+    /* Verify Profile Selection */
     pEngine->TestProfileManager();
 
     /* Cleanup */
@@ -92,9 +85,6 @@ main(int argc, char* argv[])
     delete g_pConcurrentOps;
     g_pConcurrentOps = NULL;
     
-    /* Test UAS multimatching */
-    UTUASMultimatchTestDriver UASMultimatchDriver;
-    UASMultimatchDriver.Run();
-
+    exit(0);
     return 0;
 }

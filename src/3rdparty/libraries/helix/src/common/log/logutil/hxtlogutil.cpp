@@ -42,11 +42,6 @@
 #include "hxplugn.h"
 #include "hxassert.h"
 
-#if defined(_SYMBIAN)
-#include "symbian_gm_inst.h"
-#endif
-
-
 #if defined(HELIX_CONFIG_LOGGING_USE_FPRINTF)
 
 void HXLogVfprintf(EHXTLogFuncArea nFuncArea, const char* szMsg, va_list argptr)
@@ -86,30 +81,36 @@ void HXLogFprintf(const char* szMsg, ...)
 
 #else /* #if defined(HELIX_FEATURE_LOGGING_USE_FPRINTF) */
 
+#if defined(HELIX_FEATURE_LOG_STATICDLLACCESS)
+#include "dllpath.h"
+#include "dllacces.h"
+#include "hxthread.h"
+#include "hxscope_lock.h"
+static
+HXMutex* CreationMutexInstance()
+{
+    static HXMutex* pMutex;
+    if (!pMutex)
+    {
+        HXMutex::MakeMutex(pMutex);
+    }
+    return pMutex;
+}
+
+static DLLAccess g_LogDLL;
+BOOL             g_bTriedInit = FALSE;
+HXMutex*         g_pCreationMutex = CreationMutexInstance();
+
+#endif /* #if defined(HELIX_FEATURE_LOG_STATICDLLACCESS) */
 #include "hlxclib/string.h"
 
-// This array maps the Producer SDK functional areas
-// (which start at 0 (NONE) and go up to 23 (PUB)) to
-// client 4cc codes
-static const EHXTLogFuncArea g_eProducerSDKTo4ccMap[PUB + 1] = 
-{
-    HXLOG_ENON, HXLOG_EACT, HXLOG_EAUC, HXLOG_EAUP,
-    HXLOG_EBCA, HXLOG_ECAP, HXLOG_ECMD, HXLOG_EFLO,
-    HXLOG_EFLR, HXLOG_EGUI, HXLOG_EJOB, HXLOG_ELIC,
-    HXLOG_EPOS, HXLOG_EREM, HXLOG_ECON, HXLOG_EENC,
-    HXLOG_ECOR, HXLOG_EFLT, HXLOG_ESTA, HXLOG_EVIC,
-    HXLOG_EVIP, HXLOG_EVIR, HXLOG_EMED, HXLOG_EPUB
-};
-const EHXTLogFuncArea kDefaultFuncArea = HXLOG_ENON;
 
 #if !defined(HELIX_CONFIG_NOSTATICS)
-
-extern IHXTInternalLogWriter*   g_pLogWriter = NULL;
+static IHXDllAccess*            g_pDllAccess = NULL;
+static IHXTInternalLogWriter*   g_pLogWriter = NULL;
 static IHXTLogSystemContext*    g_pLogSystemContext = NULL;
 static IHXTLogSystem*           g_pLogSystem = NULL;
-
-#else /* #if !defined(HELIX_CONFIG_NOSTATICS) */
-
+#else
 #include "hxglobalmgr_utils.h"
 
 HX_DEFINE_GLOBAL_PTR_FUNCS_COM(IHXTLogSystemContext)
@@ -124,67 +125,136 @@ HX_DEFINE_GLOBAL_PTR_FUNCS_COM(IHXTInternalLogWriter)
 HX_DEFINE_GLOBAL_KEY(g_pLogWriter)
 #define g_pLogWriter MAKE_GLOBAL_PTR_ALIAS_COM(IHXTInternalLogWriter, g_pLogWriter)
 
-#endif /* #if !defined(HELIX_CONFIG_NOSTATICS) #else */
+#if !defined(HELIX_FEATURE_CORE_LOG)
+HX_DEFINE_GLOBAL_PTR_FUNCS_COM(IHXDllAccess)
+HX_DEFINE_GLOBAL_KEY(g_pDllAccess)
+#define g_pDllAccess MAKE_GLOBAL_PTR_ALIAS_COM(IHXDllAccess, g_pDllAccess)
+#endif
+
+#endif // HELIX_CONFIG_NOSTATICS
 
 HX_RESULT DoLogWriterInit()
 {
-    HX_RESULT retVal = HXR_FAIL;
-
+    HX_RESULT res = HXR_FAIL;
     if(g_pLogSystem != NULL)
     {
-        retVal = g_pLogSystem->QueryInterface(IID_IHXTLogSystemContext, (void**) &g_pLogSystemContext);
-        if (SUCCEEDED(retVal))
+        res = g_pLogSystem->QueryInterface(IID_IHXTLogSystemContext, (void**)&g_pLogSystemContext);
+        if (SUCCEEDED(res))
         {       
-            IHXTLogWriter* pLogWriter = NULL;
-            retVal = g_pLogSystem->GetWriterInterface(&pLogWriter);
-            if (SUCCEEDED(retVal))
+            IHXTLogWriter* pLogWriter = 0;
+            res = g_pLogSystem->GetWriterInterface(&pLogWriter);
+            if (SUCCEEDED(res))
             {
-                retVal = pLogWriter->QueryInterface(IID_IHXTInternalLogWriter, (void**) &g_pLogWriter);
+                res = pLogWriter->QueryInterface(IID_IHXTInternalLogWriter, (void**)&g_pLogWriter);
+                HX_RELEASE(pLogWriter);
             }
-            HX_RELEASE(pLogWriter);
         }
     } // End of if(g_pLogSystem != NULL)
 
-    return retVal;
+    return res;
 }
 
-EHXTLogFuncArea MapFunctionalArea(EHXTLogFuncArea eFuncArea)
+static
+HX_RESULT DoLogSystemInterfaceInit(FPCREATELOGSYSTEMINTERFACE fpCreateLogSystem, IUnknown* pContext)
 {
-    EHXTLogFuncArea eRet = eFuncArea;
-    if (eFuncArea <= PUB)
+    if (!fpCreateLogSystem)
     {
-        eRet = g_eProducerSDKTo4ccMap[eFuncArea];
+        return HXR_FAIL;
     }
-    return eRet;
+
+    HX_RESULT res = (*fpCreateLogSystem)(&g_pLogSystem);
+    if (SUCCEEDED(res))
+    {
+#if defined(HELIX_FEATURE_CLIENT)
+        // Call InitPlugin() on the log system plugin we just loaded
+        IHXPlugin* pPlug = 0;
+        res = g_pLogSystem->QueryInterface(IID_IHXPlugin, (void**)&pPlug);
+        if (HXR_OK == res)
+        {
+            HX_ASSERT(pContext);
+            res = pPlug->InitPlugin(pContext);
+            HX_RELEASE(pPlug);
+        }
+
+#endif
+        res = DoLogWriterInit();
+    }
+    return res;
 }
+
+// These functions will attempt to create a DLLAccess
+// class and therefore you must link against DLLAccess
+// in common_system before they will work
+#if defined(HELIX_FEATURE_LOG_STATICDLLACCESS)
+
+void Init_Logging(IHXTLogWriter** ppILog)
+{	
+    HXScopeLock lock(g_pCreationMutex);
+    
+    g_bTriedInit = TRUE;
+    
+    if (!g_pLogSystem)
+    {
+        UINT32 ulNameLen = 255;
+        CHXString strDllName;
+        DLLAccess::CreateName("log", "log", strDllName.GetBuffer(ulNameLen+1), ulNameLen, 0, 0);
+        strDllName.ReleaseBuffer();
+
+        FPCREATELOGSYSTEMINTERFACE fpCreateLogSystem = NULL;
+        if (g_LogDLL.isOpen() || g_LogDLL.open(strDllName, DLLTYPE_ENCSDK) == DLLAccess::DLL_OK)
+        {
+            fpCreateLogSystem = (FPCREATELOGSYSTEMINTERFACE)(g_LogDLL.getSymbol("RMACreateLogSystem"));
+        }
+
+        // Note: Application is reponsible should display warning msg that logging 
+        // failed to load.  SDK plugins should not printf anything
+        DoLogSystemInterfaceInit(fpCreateLogSystem, NULL);
+        if (g_pLogWriter)
+        {
+            g_pLogWriter->QueryInterface(IID_IHXTLogWriter, (void**)ppILog);
+        }
+    } 
+}
+
 
 void RSLog(UINT32 nMsg, const char* szMsg, ...)
 {
-    if (g_pLogWriter)
+    if( !g_bTriedInit )
+    {
+        Init_Logging(NULL);
+    }
+    if( g_pLogWriter )
     {
         va_list VariableArguments;
         va_start(VariableArguments, szMsg);
-        g_pLogWriter->LogMessage("RealNetworks", LC_DEV_DIAG, kDefaultFuncArea, nMsg, szMsg, VariableArguments);
+        g_pLogWriter->LogMessage("RealNetworks", LC_DEV_DIAG, NONE, nMsg, szMsg, VariableArguments);
         va_end(VariableArguments);
     }
 }
 
 void RSLog(EHXTLogCode nLogCode, UINT32 nMsg, const char* szMsg, ...)
 {
+    if( !g_bTriedInit )
+    {
+        Init_Logging(NULL);
+    }
     if( g_pLogWriter )
     {
         va_list VariableArguments;
         va_start(VariableArguments, szMsg);
-        g_pLogWriter->LogMessage("RealNetworks", nLogCode, kDefaultFuncArea, nMsg, szMsg, VariableArguments);
+        g_pLogWriter->LogMessage("RealNetworks", nLogCode, NONE, nMsg, szMsg, VariableArguments);
         va_end(VariableArguments);
     }
 }
 
 void RSLog(EHXTLogCode nLogCode, EHXTLogFuncArea nFuncArea, UINT32 nMsg, const char* szMsg, ...)
 {
+    if( !g_bTriedInit )
+    {
+        Init_Logging(NULL);
+    }
     if( g_pLogWriter )
     {
-//        nFuncArea = MapFunctionalArea(nFuncArea);
         va_list VariableArguments;
         va_start(VariableArguments, szMsg);
         g_pLogWriter->LogMessage("RealNetworks", nLogCode, nFuncArea, nMsg, szMsg, VariableArguments);
@@ -194,31 +264,42 @@ void RSLog(EHXTLogCode nLogCode, EHXTLogFuncArea nFuncArea, UINT32 nMsg, const c
 
 void RSLog(const char* szMsg, ...) 
 {	
+    if( !g_bTriedInit )
+    {
+        Init_Logging(NULL);
+    }
     if( g_pLogWriter )
     {
         va_list VariableArguments;
         va_start(VariableArguments, szMsg);
-        g_pLogWriter->LogMessage("RealNetworks", LC_DEV_DIAG, kDefaultFuncArea, MAX_UINT32, szMsg, VariableArguments);
+        g_pLogWriter->LogMessage("RealNetworks", LC_DEV_DIAG, NONE, MAX_UINT32, szMsg, VariableArguments);
         va_end(VariableArguments);
     }
 }
 
 void RSLog(EHXTLogCode nLogCode, const char* szMsg, ...) 
 {
+    if( !g_bTriedInit )
+    {
+        Init_Logging(NULL);
+    }
     if( g_pLogWriter )
     {
         va_list VariableArguments;
         va_start(VariableArguments, szMsg);
-        g_pLogWriter->LogMessage("RealNetworks", nLogCode, kDefaultFuncArea, MAX_UINT32, szMsg, VariableArguments);
+        g_pLogWriter->LogMessage("RealNetworks", nLogCode, NONE, MAX_UINT32, szMsg, VariableArguments);
         va_end(VariableArguments);
     }
 }
 
 void RSLog(EHXTLogCode nLogCode, EHXTLogFuncArea nFuncArea, const char* szMsg, ...) 
 {
+    if( !g_bTriedInit )
+    {
+        Init_Logging(NULL);
+    }
     if( g_pLogWriter )
     {
-//        nFuncArea = MapFunctionalArea(nFuncArea);
         va_list VariableArguments;
         va_start(VariableArguments, szMsg);
         g_pLogWriter->LogMessage("RealNetworks", nLogCode, nFuncArea, MAX_UINT32, szMsg, VariableArguments);
@@ -226,48 +307,90 @@ void RSLog(EHXTLogCode nLogCode, EHXTLogFuncArea nFuncArea, const char* szMsg, .
     }
 }
 
+void HXTLog_Push_Context(const char* szContext)
+{
+    if( !g_pLogSystemContext )
+    {
+        Init_Logging(NULL);
+    }
+    
+    if(g_pLogSystemContext)
+    {
+        g_pLogSystemContext->PushContext(szContext);
+    }
+}
+
+void HXTLog_Pop_Context()
+{
+    if( !g_pLogSystemContext )
+    {
+        Init_Logging(NULL);
+    }
+    
+    if(g_pLogSystemContext)
+    {
+        g_pLogSystemContext->PopContext();
+    }
+}
+
+void HXTLog_Set_FileAndLine(const char * szFilename, int nLineNum)
+{
+    if( !g_pLogSystemContext )
+    {
+        Init_Logging(NULL);
+    }
+    
+    if(g_pLogSystemContext)
+    {
+        g_pLogSystemContext->SetThreadFileAndLine(szFilename, nLineNum);
+    }
+}
+
+void HXTLog_SetThreadJobName(const char* szJobName, UINT32 nThreadId)
+{
+    if( !g_pLogSystemContext )
+    {
+        Init_Logging(NULL);
+    }
+    
+    if(g_pLogSystemContext)
+    {
+        g_pLogSystemContext->SetThreadJobName(szJobName, nThreadId);
+    }
+}
+
+void HXTLog_CreateChildThread(UINT32 nParentThreadId, UINT32 nChildThreadId)
+{
+    if( !g_pLogSystemContext )
+    {
+        Init_Logging(NULL);
+    }
+    
+    if(g_pLogSystemContext)
+    {
+        g_pLogSystemContext->SetParentChildRelationship(nParentThreadId, nChildThreadId);
+    }
+}
+
+void HXTLog_EndThread(UINT32 nThreadId)
+{
+    if( !g_pLogSystemContext )
+    {
+        Init_Logging(NULL);
+    }
+    
+    if(g_pLogSystemContext)
+    {
+        g_pLogSystemContext->EndThread(nThreadId);
+    }
+}
+
+#endif /* #if defined(HELIX_FEATURE_LOG_STATICDLLACCESS) */
+
 HXBOOL 
 HXLoggingEnabled() 
 { 
     return (g_pLogWriter && g_pLogWriter->IsEnabled()) ? TRUE : FALSE;
-}
-
-//
-// Function invoked to get core log system 
-// reference from global manager. Functionality enabled
-// only for symbian builds.
-//
-void HXEnableCoreLogging()
-{
-#if defined(HELIX_FEATURE_CORE_LOG) && defined (_SYMBIAN)
-
-    if(g_pLogSystem == NULL)
-    {
-        
-        HXGlobalManager* pGM = HXGlobalManager::Instance();
-        IHXTLogSystem** pInstance = NULL;
-        IUnknown* pContext = NULL;
-        HX_RESULT res = HXR_FAIL;
-        
-        if(pGM != NULL)
-        {
-            pInstance = reinterpret_cast<IHXTLogSystem**>(pGM->Get((const *)SYMBIAN_GLOBAL_LOGSYSTEM_ID));
-            if(pInstance != NULL)
-            {
-                pContext = *pInstance;
-            }
-            
-            if(pContext != NULL)
-            {
-                res = pContext->QueryInterface(IID_IHXTLogSystem, (void**)&g_pLogSystem);
-                if (SUCCEEDED(res))
-                {
-                    res = DoLogWriterInit();
-                }
-            }
-        } // End of     if(pGM != NULL)
-    } // End of if(g_pLogSystem != NULL)
-#endif // End of #if defined(HELIX_FEATURE_CORE_LOG) && defined (_SYMBIAN)
 }
 
 // Each DLL must call HXEnableLogging() at least once
@@ -276,18 +399,39 @@ void HXEnableLogging(IUnknown* pContext)
 {
     if (pContext && !g_pLogSystem)
     {
-        IHXLogSystemManager* pLogSystemManager = NULL;
-        HX_RESULT rv = pContext->QueryInterface(IID_IHXLogSystemManager, (void**) &pLogSystemManager);
-        if (SUCCEEDED(rv))
+#if defined(HELIX_FEATURE_CORE_LOG)
+        HX_RESULT res = HXR_FAIL;
+        res = pContext->QueryInterface(IID_IHXTLogSystem, (void**)&g_pLogSystem);
+        if (SUCCEEDED(res))
         {
-            // Get the log system from the log system manager
-            rv = pLogSystemManager->GetLogSystem(g_pLogSystem);
-            if (SUCCEEDED(rv))
-            {
-                rv = DoLogWriterInit();
-            }
+            res = DoLogWriterInit();
         }
-        HX_RELEASE(pLogSystemManager);
+#else
+        IHXCommonClassFactory* pCCF = NULL;
+        pContext->QueryInterface(IID_IHXCommonClassFactory, (void**) &pCCF);
+        if (pCCF)
+        {
+            pCCF->CreateInstance(CLSID_IHXDllAccess, (void**) &g_pDllAccess);
+            if (g_pDllAccess)
+            {
+                // Create the dll name
+                // MAXDLLSUFFIXLEN is defined in hxtlogutil.h
+                char szDLLName[3 + HXLOG_MAXDLLSUFFIXLEN + 1];  /* Flawfinder: ignore */
+                strcpy(szDLLName, "log"); /* Flawfinder: ignore */
+                strcat(szDLLName, HXLOG_DLLSUFFIX); /* Flawfinder: ignore */
+
+                // Attempt to get the RMAGetLogSystemInterface entry point
+                g_pDllAccess->Open(szDLLName, HXDLLTYPE_PLUGIN);
+                if(g_pDllAccess->IsOpen())
+                {
+                    FPCREATELOGSYSTEMINTERFACE fpCreateLogSystem =
+                        (FPCREATELOGSYSTEMINTERFACE)(g_pDllAccess->GetSymbol("RMACreateLogSystem"));
+                    DoLogSystemInterfaceInit(fpCreateLogSystem, pContext);
+                }
+            }
+            HX_RELEASE(pCCF);
+        }
+#endif
     } 
 }
 
@@ -307,6 +451,10 @@ void HXDisableLogging(HXBOOL bShutdown)
         }
         HX_RELEASE(g_pLogSystem);
     }
+#if !defined(HELIX_FEATURE_CORE_LOG)
+    HX_RELEASE(g_pDllAccess);
+#endif
+    
 }
 
 void HXLog1(EHXTLogFuncArea nFuncArea, const char* szMsg, ...)
@@ -359,7 +507,7 @@ void HXLog1(const char* szMsg, ...)
     {
         va_list VariableArguments;
         va_start(VariableArguments, szMsg);
-        g_pLogWriter->LogMessage("RealNetworks", LC_CLIENT_LEVEL1, kDefaultFuncArea, MAX_UINT32, szMsg, VariableArguments);
+        g_pLogWriter->LogMessage("RealNetworks", LC_CLIENT_LEVEL1, NONE, MAX_UINT32, szMsg, VariableArguments);
         va_end(VariableArguments);
     }
 }
@@ -370,7 +518,7 @@ void HXLog2(const char* szMsg, ...)
     {
         va_list VariableArguments;
         va_start(VariableArguments, szMsg);
-        g_pLogWriter->LogMessage("RealNetworks", LC_CLIENT_LEVEL2, kDefaultFuncArea, MAX_UINT32, szMsg, VariableArguments);
+        g_pLogWriter->LogMessage("RealNetworks", LC_CLIENT_LEVEL2, NONE, MAX_UINT32, szMsg, VariableArguments);
         va_end(VariableArguments);
     }
 }
@@ -381,7 +529,7 @@ void HXLog3(const char* szMsg, ...)
     {
         va_list VariableArguments;
         va_start(VariableArguments, szMsg);
-        g_pLogWriter->LogMessage("RealNetworks", LC_CLIENT_LEVEL3, kDefaultFuncArea, MAX_UINT32, szMsg, VariableArguments);
+        g_pLogWriter->LogMessage("RealNetworks", LC_CLIENT_LEVEL3, NONE, MAX_UINT32, szMsg, VariableArguments);
         va_end(VariableArguments);
     }
 }
@@ -392,7 +540,7 @@ void HXLog4(const char* szMsg, ...)
     {
         va_list VariableArguments;
         va_start(VariableArguments, szMsg);
-        g_pLogWriter->LogMessage("RealNetworks", LC_CLIENT_LEVEL4, kDefaultFuncArea, MAX_UINT32, szMsg, VariableArguments);
+        g_pLogWriter->LogMessage("RealNetworks", LC_CLIENT_LEVEL4, NONE, MAX_UINT32, szMsg, VariableArguments);
         va_end(VariableArguments);
     }
 }
@@ -418,30 +566,6 @@ void HXLog_Set_FileAndLine(const char *szFilename, int nLineNum)
     if(g_pLogSystemContext)
     {
         g_pLogSystemContext->SetThreadFileAndLine(szFilename, nLineNum);
-    }
-}
-
-void HXLog_SetThreadJobName(const char* szJobName, UINT32 nThreadId)
-{
-    if(g_pLogSystemContext)
-    {
-        g_pLogSystemContext->SetThreadJobName(szJobName, nThreadId);
-    }
-}
-
-void HXLog_CreateChildThread(UINT32 nParentThreadId, UINT32 nChildThreadId)
-{
-    if(g_pLogSystemContext)
-    {
-        g_pLogSystemContext->SetParentChildRelationship(nParentThreadId, nChildThreadId);
-    }
-}
-
-void HXLog_EndThread(UINT32 nThreadId)
-{
-    if(g_pLogSystemContext)
-    {
-        g_pLogSystemContext->EndThread(nThreadId);
     }
 }
 

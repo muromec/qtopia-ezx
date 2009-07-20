@@ -55,7 +55,7 @@
 #include "unix_net.h"
 #endif
 
-#if defined(_WINDOWS) || defined(_UNIX)
+#if defined(_WINDOWS)
 // Platform has new net services implementation (eventually all 
 // platforms will support the new api and this will go away)
 #define HELIX_CLIENT_IPV6_NET_API
@@ -69,9 +69,6 @@
 // com interface implementation
 BEGIN_INTERFACE_LIST(CHXClientNetServicesShim)
     INTERFACE_LIST_ENTRY(IID_IHXNetServices, IHXNetServices)
-#ifdef HELIX_FEATURE_SECURE_SOCKET
-    INTERFACE_LIST_ENTRY(IID_IHXSecureNetServices, IHXSecureNetServices)
-#endif 
     INTERFACE_LIST_ENTRY(IID_IHXContextUser, IHXContextUser)
     INTERFACE_LIST_ENTRY_DELEGATE_BLIND( _InternalQI )
 END_INTERFACE_LIST
@@ -380,22 +377,3 @@ STDMETHODIMP CHXClientNetServicesShim::CreateSocket(IHXSocket** ppSock)
 
     return retVal;
 }
-
-#ifdef HELIX_FEATURE_SECURE_SOCKET
-STDMETHODIMP CHXClientNetServicesShim::CreateSecureSocket(IHXSecureSocket** ppSock)
-{
-    HX_RESULT retVal = HXR_FAIL;
-    if (m_pDefNetServices)
-    {
-        IHXSecureNetServices* pSecNetService = NULL;
-        m_pDefNetServices->QueryInterface(IID_IHXSecureNetServices, (void**)&pSecNetService);
-        if(pSecNetService)
-        {
-            retVal = pSecNetService->CreateSecureSocket(ppSock);
-            HX_RELEASE(pSecNetService);
-        }
-    }
-    return retVal;
-}
-#endif
-

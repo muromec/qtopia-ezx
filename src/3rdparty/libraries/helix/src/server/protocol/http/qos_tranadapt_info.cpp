@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: qos_tranadapt_info.cpp,v 1.3 2007/08/14 12:27:53 imakandar Exp $
+ * Source last modified: $Id: qos_tranadapt_info.cpp,v 1.2 2005/07/22 18:55:45 richardjones Exp $
  *
  * Portions Copyright (c) 1995-2005 RealNetworks, Inc. All Rights Reserved.
  *
@@ -57,8 +57,6 @@ HTTPQoSTranAdaptInfo::HTTPQoSTranAdaptInfo(void)
     , m_ulReceivedThroughput(0)
     , m_ulBytesSent(0)
     , m_ulPacketsSent(0)
-    , m_ulSuccessfulResends(0)
-    , m_ulFailedResends(0)
 {
     // Empty
 }

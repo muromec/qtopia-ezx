@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxurl.cpp,v 1.54 2009/03/13 19:33:56 gvalverde Exp $
+ * Source last modified: $Id: hxurl.cpp,v 1.48 2006/11/29 14:56:44 ehyche Exp $
  *
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  *
@@ -18,7 +18,7 @@
  * contents of the file.
  *
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -49,7 +49,7 @@
 
 #include "hlxclib/string.h"
 #include "hlxclib/stdlib.h"
-#include "hlxclib/ctype.h"
+#include <ctype.h>
 
 #include "hxcom.h"
 #include "hxtypes.h"
@@ -68,9 +68,6 @@
 #include "hxurlutil.h"
 #include "hxescapeutil.h"
 
-#if defined(HELIX_FEATURE_PREFERENCES)
-#include "hxprefutil.h"
-#endif // HELIX_FEATURE_PREFERENCES 
 #include "hxheap.h"
 #ifdef _DEBUG
 #undef HX_THIS_FILE
@@ -90,7 +87,6 @@ CHXURL::CHXURL (const char* pszURL)
 , m_pProperties (NULL)
 , m_pOptions (NULL)
 , m_pCCF(CreateCCF())
-, m_pContext(NULL)
 {
     if (m_pCCF)
     {
@@ -108,11 +104,9 @@ CHXURL::CHXURL (const char* pszURL, IUnknown* pContext)
 , m_pProperties (NULL)
 , m_pOptions (NULL)
 , m_pCCF(0)
-, m_pContext(pContext)
 {
     if (pContext)
     {
-        pContext->AddRef();    
         pContext->QueryInterface(IID_IHXCommonClassFactory, (void**)&m_pCCF);
     }
 
@@ -121,7 +115,6 @@ CHXURL::CHXURL (const char* pszURL, IUnknown* pContext)
 
 CHXURL::~CHXURL ()
 {
-    HX_RELEASE(m_pContext);
     HX_RELEASE(m_pProperties);
     HX_RELEASE(m_pOptions);
     HX_RELEASE(m_pCCF);
@@ -133,18 +126,12 @@ CHXURL::CHXURL(const CHXURL& rhs)
 , m_pProperties (NULL)
 , m_pOptions (NULL)
 , m_pCCF(rhs.m_pCCF)
-, m_pContext(rhs.m_pContext)
 {
     if (m_pCCF)
     {
         m_pCCF->AddRef();
     }
 
-    if (m_pContext)
-    {
-        m_pContext->AddRef();
-    }
-    
     ConstructURL(rhs.GetURL());
 }
 
@@ -156,8 +143,6 @@ CHXURL& CHXURL::operator=(const CHXURL& rhs)
         HX_RELEASE(m_pProperties);
         HX_RELEASE(m_pOptions);
         HX_RELEASE(m_pCCF);
-        HX_RELEASE(m_pContext);
-        
         m_LastError = HXR_OK;
         m_unProtocol = fileProtocol;
 
@@ -167,12 +152,6 @@ CHXURL& CHXURL::operator=(const CHXURL& rhs)
         if (m_pCCF)
         {
             m_pCCF->AddRef();
-        }
-        
-        m_pContext = rhs.m_pContext;
-        if (m_pContext)
-        {
-            m_pContext->AddRef();
         }
     }
 
@@ -424,7 +403,7 @@ HX_RESULT CHXURL::ParseBody (const char* pszURL)
             }
  
             // port
-            UINT16 port = (UINT16) m_url.Port();
+            UINT16 port = m_url.Port();
             if(port == 0)
             {
                 port = m_unDefaultPort;
@@ -438,16 +417,9 @@ HX_RESULT CHXURL::ParseBody (const char* pszURL)
 
     }
 
-    HXBOOL bIgnoreOptions = FALSE;
-#if defined(HELIX_FEATURE_PREFERENCES)
-    if(m_pContext)
-    {    
-        ReadPrefBOOL(m_pContext, "IgnoreURLOptions", bIgnoreOptions);
-    }
-#endif //HELIX_FEATURE_PREFERENCES
-    
-    // collect other options info if it has and if allowed by preferences
-    if (!m_url.Query().IsEmpty() && !bIgnoreOptions)
+
+    // collect other options info if it has
+    if (!m_url.Query().IsEmpty())
     {
         HX_RELEASE(m_pOptions);
         HX_RESULT hr = HXURLUtil::GetOptions(m_pCCF, m_url, m_pOptions);
@@ -465,9 +437,7 @@ HX_RESULT CHXURL::ParseBody (const char* pszURL)
         }
     }
 
-    if (!m_url.Path().IsEmpty()     || 
-        !m_url.Query().IsEmpty()    ||
-        !m_url.Fragment().IsEmpty())
+    if (!m_url.Path().IsEmpty())
     {
         // XXXLCM is PROPERTY_RESOURCE stores everything after host
         CHXString strResource = m_url.Path();
@@ -483,38 +453,15 @@ HX_RESULT CHXURL::ParseBody (const char* pszURL)
         }
         ::SaveStringToHeader(m_pProperties, PROPERTY_RESOURCE, strResource, m_pCCF);
 
-        if (!m_url.Path().IsEmpty())
-        {
-            // note: paths are stored *unescaped* for convenience (very likely use/need)
+        // note: paths are stored *unescaped* for convenience (very likely use/need)
 
-            // PROPERTY_FULLPATH is the full filename including path, e.g., "the/path/foo.rm"
-            CHXString strFullPath = HXEscapeUtil::UnEscape(m_url.Path());
-            ::SaveStringToHeader(m_pProperties, PROPERTY_FULLPATH, strFullPath, m_pCCF);
+        // PROPERTY_FULLPATH is the full filename including path, e.g., "the/path/foo.rm"
+        ::SaveStringToHeader(m_pProperties, PROPERTY_FULLPATH, HXEscapeUtil::UnEscape(m_url.Path()), m_pCCF);
 
-            // Get the extension from the full path. Get the last '.'
-	    INT32 lPeriod = strFullPath.ReverseFind('.');
-	    if (lPeriod >= 0)
-	    {
-                // Get the extension by itself
-	        CHXString cExtension = strFullPath.Right(strFullPath.GetLength() - lPeriod - 1);
-                if (cExtension.GetLength() > 0)
-                {
-                    // Convert to lower case
-                    cExtension.MakeLower();
-                    // Set the PROPERTY_EXTENSION
-                    ::SaveStringToHeader(m_pProperties, PROPERTY_EXTENSION, cExtension, m_pCCF);
-                }
-            }
+        // PROPERTY_PATH is the directory containing the file, e.g., "the/path/"
+        CHXString folder = HXEscapeUtil::UnEscape(HXPathUtil::GetNetPathDirectory(m_url.Path()));
+        ::SaveStringToHeader(m_pProperties, PROPERTY_PATH, folder, m_pCCF);
 
-            // PROPERTY_PATH is the directory containing the file, e.g., "the/path/"
-            CHXString folder = HXEscapeUtil::UnEscape(HXPathUtil::GetNetPathDirectory(m_url.Path()));
-            ::SaveStringToHeader(m_pProperties, PROPERTY_PATH, folder, m_pCCF);
-        }
-        else
-        {
-            ::SaveStringToHeader(m_pProperties, PROPERTY_FULLPATH, "/", m_pCCF);
-            ::SaveStringToHeader(m_pProperties, PROPERTY_PATH, "/", m_pCCF);
-        }
     }
     else if (m_unProtocol == rtspProtocol)
     {

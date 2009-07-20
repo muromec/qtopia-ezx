@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: static_source_container.cpp,v 1.4 2007/08/18 00:21:11 dcollins Exp $ 
+ * Source last modified: $Id: static_source_container.cpp,v 1.3 2003/09/04 22:35:34 dcollins Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -109,7 +109,9 @@ StaticSourceContainer::~StaticSourceContainer()
 	{
 	    if (m_ppPacketStreams [i]->m_Handle)
 	    {
-		m_pThreadSafeScheduler->Remove(m_ppPacketStreams[i]->m_Handle);
+		(m_ppPacketStreams [i]->m_bThreadSafeGetPacket ) ?
+		    m_pThreadSafeScheduler->Remove(m_ppPacketStreams [i]->m_Handle) :
+		    m_pScheduler->Remove(m_ppPacketStreams [i]->m_Handle);
 	    }
 
 	    HX_RELEASE(m_ppPacketStreams [i]);
@@ -235,7 +237,9 @@ StaticSourceContainer::Done()
 	if ( (m_ppPacketStreams) && (m_ppPacketStreams [i]) &&
 	     (m_ppPacketStreams [i]->m_Handle) )
 	{
-            m_pThreadSafeScheduler->Remove(m_ppPacketStreams[i]->m_Handle);
+	    (m_ppPacketStreams [i]->m_bThreadSafeGetPacket ) ?
+		m_pThreadSafeScheduler->Remove(m_ppPacketStreams [i]->m_Handle) :
+		m_pScheduler->Remove(m_ppPacketStreams [i]->m_Handle);
 	}
 
         HX_RELEASE(m_ppPacketStreams [i]);
@@ -403,7 +407,9 @@ StaticSourceContainer::StopPackets(UINT16 unStreamNumber)
     {
 	if  (m_ppPacketStreams [unStreamNumber]->m_Handle)
 	{
-            m_pThreadSafeScheduler->Remove(m_ppPacketStreams [unStreamNumber]->m_Handle);
+	    (m_ppPacketStreams [unStreamNumber]->m_bThreadSafeGetPacket ) ?
+		m_pThreadSafeScheduler->Remove(m_ppPacketStreams [unStreamNumber]->m_Handle) :
+		m_pScheduler->Remove(m_ppPacketStreams [unStreamNumber]->m_Handle);
 	}
 
 	m_ppPacketStreams [unStreamNumber]->m_bPacketsStarted = FALSE;
@@ -423,11 +429,18 @@ GetPacketCallback::GetPacketCallback(StaticSourceContainer* pSource, UINT16 unSt
     , m_Handle		         (0)
     , m_unStreamNo               (unStreamNumber)
     , m_bPacketsStarted	         (FALSE)
+    , m_bThreadSafeGetPacket     (FALSE)
 {
     if (pSource)
     {
 	m_pOwner = pSource;
 	m_pOwner->AddRef();
+
+	if (m_pOwner->m_pSourcePackets)
+	{
+	    m_bThreadSafeGetPacket = (m_pOwner->m_pSourcePackets->IsThreadSafe() &
+				      HX_THREADSAFE_METHOD_FF_GETPACKET) ? TRUE : FALSE;
+	}
     }
 
     m_pTimeToSchedule.tv_sec = m_pTimeToSchedule.tv_usec = 0;
@@ -488,6 +501,16 @@ GetPacketCallback::Func()
 void
 GetPacketCallback::ScheduleNextPacket()
 {
-    m_Handle = m_pOwner->m_pThreadSafeScheduler->AbsoluteEnter(this, m_pTimeToSchedule);
+    if (m_bThreadSafeGetPacket)
+    {
+	m_Handle = m_pOwner->m_pThreadSafeScheduler->AbsoluteEnter(this, m_pTimeToSchedule);
+    }
+    else
+    {
+	m_Handle = m_pOwner->m_pScheduler->AbsoluteEnter(this, m_pTimeToSchedule);
+    }
 }
+
+
+
 

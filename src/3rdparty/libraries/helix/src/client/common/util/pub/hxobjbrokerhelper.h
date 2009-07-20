@@ -17,7 +17,7 @@
  * contents of the file.
  *
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -46,16 +46,12 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-#if defined(HELIX_CONFIG_NIMBUS)
-#include "hxobjbrokerhelper2.h"
-#else
 #ifndef _HXOBJBROKERHELPER_H_
 #define _HXOBJBROKERHELPER_H_
 
 #include "hxcom.h"
 #include "dllacces.h"
 #include "hxsingleton.h"
-#include "ihxcontext.h"
 
 _INTERFACE IHXCommonClassFactory;
 
@@ -81,14 +77,13 @@ public:
     HX_RESULT ReleaseObjectBroker_ ();
 
 private:
+    UINT32    m_ulRefCount;
+
     HX_RESULT CreateRootContext_ ();
     HX_RESULT AcquireObjectBroker_ ();
     
     DLLAccess* m_pLibObjBroker;
     IUnknown* m_pRootContext;
-    SPIHXContext m_spGenericContext;
-    UINT32    m_ulRefCount;
-
 
     CHXObjBrokerWrapper_ ();
     ~CHXObjBrokerWrapper_ (); 
@@ -99,4 +94,3 @@ private:
 HX_DECLARE_SINGLETON (HXObjBrokerHelper, CHXObjBrokerWrapper_);
 
 #endif
-#endif /* HELIX_CONFIG_NIMBUS */

@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: pcktflowmgr.cpp,v 1.23 2009/01/08 01:38:04 ckarusala Exp $
+ * Source last modified: $Id: pcktflowmgr.cpp,v 1.19 2006/12/21 05:06:06 tknox Exp $
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -63,6 +63,8 @@
 #include "mem_cache.h"
 #include "hxpiids.h"
 #include "globals.h"
+#include "player.h"
+
 #include "hxpcktflwctrl.h"
 #include "hxqossess.h"
 #include "basicpcktflow.h"
@@ -125,24 +127,46 @@ PacketFlowManager::~PacketFlowManager()
 }
 
 void
-PacketFlowManager::RegisterSource(IUnknown* pSourceCtrl,
+PacketFlowManager::RegisterSource(IHXPSourceControl* pSourceCtrl,
                                   IHXPacketFlowControl** ppPacketFlowControl,
                                   IHXSessionStats* pSessionStats,
                                   UINT16 unStreamCount,
                                   BOOL bIsLive,
                                   BOOL bIsMulticast,
-                                  DataConvertShim* pDataConv,
-                                  BOOL bIsFCS)
+                                  DataConvertShim* pDataConv)
 {
     BasicPacketFlow* pPacketFlow;
+    IHXPSourceLivePackets* pSourceLivePackets;
+    IHXPSourcePackets* pSourcePackets;
     IHXServerPacketSource* pSource = NULL;
 
-    if (SUCCEEDED(pSourceCtrl->QueryInterface(IID_IHXServerPacketSource,
+    if (SUCCEEDED(pSourceCtrl->QueryInterface(IID_IHXPSourceLivePackets,
+					      (void **)&pSourceLivePackets)))
+    {
+        HX_ASSERT(0);
+#if 0
+	pPacketFlow = BasicPacketFlow::Create(m_pProc, pSessionStats, unStreamCount, this,
+					      pSourceLivePackets, bIsMulticast);
+	pSourceLivePackets->Init(pPacketFlow);
+#endif
+    }
+    /*    
+     * We don't need this QI because PPM is still in use.
+    else if (SUCCEEDED(pSourceCtrl->QueryInterface(IID_IHXPSourcePackets,
+                                               (void **)&pSourcePackets)))
+    {
+	pPacketFlow = BasicPacketFlow::Create(m_pProc, pSessionStats, unStreamCount, this,
+					      pSourcePackets, bIsMulticast);
+	pSourcePackets->Init(pPacketFlow);
+	
+    }
+    */    
+    else if (SUCCEEDED(pSourceCtrl->QueryInterface(IID_IHXServerPacketSource,
 						   (void **)&pSource)))
     {
 	// MDP
 	pPacketFlow = BasicPacketFlow::Create(m_pProc, pSessionStats, unStreamCount, this,
-					      pSource, bIsMulticast, bIsLive, bIsFCS);
+					      pSource, bIsMulticast, bIsLive);
     }
     else
     {
@@ -160,26 +184,25 @@ PacketFlowManager::RegisterSource(IUnknown* pSourceCtrl,
 }
 
 void
-PacketFlowManager::RegisterSource(IUnknown* pSourceCtrl,
+PacketFlowManager::RegisterSource(IHXPSourceControl* pSourceCtrl,
                                   IHXPacketFlowControl** ppPacketFlowControl,
                                   IHXSessionStats* pSessionStats,
                                   UINT16 unStreamCount,
                                   BOOL bIsLive,
                                   BOOL bIsMulticast,
                                   DataConvertShim* pDataConv,
-                                  Client* pClient,
-                                  const char* szPlayerSessionId,
-                                  BOOL bIsFCS)
+                                  Player* pPlayerCtrl,
+                                  const char* szPlayerSessionId)
 {
-    HX_ASSERT(pClient);
+    HX_ASSERT(pPlayerCtrl);
     
     RegisterSource(pSourceCtrl, ppPacketFlowControl, pSessionStats, unStreamCount, bIsLive, 
-                   bIsMulticast, pDataConv, bIsFCS);
+                   bIsMulticast, pDataConv);
 
     if (*ppPacketFlowControl)
     {
         BasicPacketFlow *pPacketFlow = (BasicPacketFlow*)(*ppPacketFlowControl);
-        pPacketFlow->SetPlayerInfo(pClient, szPlayerSessionId, pSessionStats);
+        pPacketFlow->SetPlayerInfo(pPlayerCtrl, szPlayerSessionId, pSessionStats);
     }
 }
 

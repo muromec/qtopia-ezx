@@ -1,7 +1,7 @@
 # 
 #  ***** BEGIN LICENSE BLOCK *****  
 #   
-#  Source last modified: $Id: win32-tm1.cf,v 1.11 2007/06/13 01:12:50 jfinnecy Exp $ 
+#  Source last modified: $Id: win32-tm1.cf,v 1.10 2006/07/06 19:28:06 jfinnecy Exp $ 
 #   
 #  Copyright Notices: 
 #   
@@ -194,7 +194,7 @@ class TCSLinker(Linker, Linker2):
         # with the circular dependancies. After this armerge is run
         # use mergedlibpath instead of static_libs.
         #
-        armerge_cmd   = os.path.join("$(BUILD_ROOT)", "bin", "armerge.py")
+        armerge_cmd   = os.path.join(BUILD_ROOT, "bin", "armerge.py")
         tmpMergePath  = self.armerge_tmp_path()
         mergedLibPath = self.armerge_lib_path()
         cmd           = "python %s -a tmar -d %s %s %s" % (armerge_cmd,

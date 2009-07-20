@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxevent.h,v 1.11 2007/08/14 00:43:10 milko Exp $
+ * Source last modified: $Id: hxevent.h,v 1.7 2007/02/16 09:08:46 lovish Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -66,20 +66,6 @@
 #define HX_SURFACE_MODE_CHANGE (HX_SURFACE_EVENTS + 2)
 #define HX_SURFACE_UPDATE2     (HX_SURFACE_EVENTS + 3)
 #define HX_SURFACE_NEXT_EVENT  (HX_SURFACE_EVENTS + 4)
-#define HX_SURFACE_DAMAGED     (HX_SURFACE_EVENTS + 5)
-
-// HX_SURFACE_DAMAGED is sent by external rendering engine to a
-// Helix object representing the surface to notify of the damage
-// occuring to the rendering surface and thus needing to update
-// it.
-//    ULONG32 event;      HX_SURFACE_DAMAGED
-//    void*   window;     Native Window - may be null if no window is
-//                        associated with the site
-//    void*   param1;     NULL = entire surface is damaged
-//			  HXREGION* = surface sub-region damaged 
-//    void*   param2;     NULL = unused
-//    void*   result;     HRESULT result code of message handling
-//    HXBOOL    handled;    TRUE if handled, FALSE if not handled
 
 // HX_SURFACE_UPDATE is sent by the site to the renderer when the
 // surface has damage and needs to be updated.  The event struct is
@@ -89,7 +75,7 @@
 //    void*   window;     Native Window - may be null if no window is
 //                        associated with the site
 //    void*   param1;     IHXVideoSurface*
-//    void*   param2;     UNIX - HXxWindow
+//    void*   param2;     UNIX - HXxWindow, Mac/Win - UNUSED
 //    void*   result;     HRESULT result code of message handling
 //    HXBOOL    handled;    TRUE if handled, FALSE if not handled
 
@@ -408,46 +394,12 @@
 #define HX_VK_SCROLL         XK_Scroll_Lock
 #endif
 
-// --------------------------- CONFIGURATION EVENTS --------------------------
-// This class of events are sent to either promote and inquire about
-// set of conditions relevant to configuration of the components. 
-#define HX_CONFIG_EVENTS	HX_BASE_EVENT + 0x00005000
-
-#define HX_RETRIEVE_CONFIG	(HX_CONFIG_EVENTS + 1)
-// HX_RETRIEVE_CONFIG is sent to retrieve the
-// configuration information from the object on the event network.  
-// Each objet receiving this event can insert globally applicable
-// configuration information. On return, the calling object
-// can examine the global configuration provided and act
-// accordingly.
-// On one specific case, this event by top level site at the time of
-// initialization to a delegated site to retrive confguration
-// information for the site.
-//    ULONG32 event;      HX_RETRIEVE_CONFIG
-//    void*   window;     *HXxWindow - may be null if no window is
-//                        associated with the site or event is not
-//			  dispatched by the site or if window specific
-//			  configuration information is not needed.
-//    void*   param1;     IHXValues* interface to used to insert
-//			  the configuration information.
-//			  The provided interface is no longer valid
-//			  after the event notification returns.
-//    void*   param2;     IHXValues* interface used to inidcate type
-//			  of configuration needed.  If NULL, the
-//			  request is for all known type of configuration
-//			  values.  When the interface is provided, the
-//			  callee may optionally restrict the configuration
-//			  provided to the ndicated set.
-//    void*   result;     HXRESULT result code of message handling
-//    HXBOOL  handled;    TRUE if handled an thus at least one piece
-//			  of configuration was inserted or no configuration
-//			  is known to be available. FALSE if configuration
-//			  is known to exist but could not be obtained.
 
 // Each event class should have a comment describing the kinds
 // of events that belong to this class
 // The next event class should use this base:
-#define HX_NEXT_EVENT_CLASS    HX_BASE_EVENT + 0x00006000
+#define HX_NEXT_EVENT_CLASS    HX_BASE_EVENT + 0x00005000
+
 
 // $Private:
 #ifdef _WINDOWS

@@ -37,10 +37,7 @@
 
 UmakefileVersion(2,1)
 
-if project.IsDefined("HELIX_FEATURE_SERVER_MP4FF_HINTTRACK_SUPPORT"):
-    MultiTargetMake("libumakefil")
-else:
-    MultiTargetMake("libumakefil",
-                    "dllumakefil")
+MultiTargetMake("libumakefil",
+                "dllumakefil")
 
 

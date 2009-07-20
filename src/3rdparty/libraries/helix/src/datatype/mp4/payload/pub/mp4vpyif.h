@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: mp4vpyif.h,v 1.4 2009/01/15 17:18:51 ehyche Exp $
+ * Source last modified: $Id: mp4vpyif.h,v 1.2 2005/10/28 10:58:39 pankajgupta Exp $
  * 
  * Portions Copyright (c) 1995-2005 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -65,8 +65,8 @@ class IMP4VPayloadFormat : public IHXPayloadFormatObject
 public:
     // *** IUnknown methods ***
     STDMETHOD(QueryInterface)	(THIS_
-                                REFIID riid,
-                                void** ppvObj) PURE;
+				REFIID riid,
+				void** ppvObj) PURE;
     STDMETHOD_(ULONG32,AddRef)	(THIS) PURE;
     STDMETHOD_(ULONG32,Release)	(THIS) PURE;
 
@@ -74,32 +74,30 @@ public:
      *	IHXPayloadFormatObject methods
      */
     STDMETHOD(Init)		(THIS_
-                                IUnknown* pContext,
-                                HXBOOL bPacketize) PURE;
+				IUnknown* pContext,
+				HXBOOL bPacketize) PURE;
     STDMETHOD(Close)		(THIS)	{ return HXR_NOTIMPL; }
     STDMETHOD(Reset)		(THIS) PURE;
     STDMETHOD(SetStreamHeader)	(THIS_
-                                IHXValues* pHeader) PURE;
+				IHXValues* pHeader) PURE;
     STDMETHOD(GetStreamHeader)	(THIS_
-                                REF(IHXValues*) pHeader) PURE;
+				REF(IHXValues*) pHeader) PURE;
     STDMETHOD(SetPacket)	(THIS_
-                                IHXPacket* pPacket) PURE;
+				IHXPacket* pPacket) PURE;
     STDMETHOD(GetPacket)	(THIS_
-                                REF(IHXPacket*) pOutPacket) PURE;
+				REF(IHXPacket*) pOutPacket) PURE;
     STDMETHOD(Flush)		(THIS) PURE;
 
     /*
      *	IMP4VPayloadFormat methods
      */
-    virtual ULONG32      GetBitstreamHeaderSize(void) = 0;
+    virtual ULONG32 GetBitstreamHeaderSize(void) = 0;
     virtual const UINT8* GetBitstreamHeader(void) = 0;
-    virtual UINT8        GetBitstreamType(void) { return 2; };
-    virtual HX_RESULT    CreateHXCodecPacket(UINT32* &pHXCodecDataOut) = 0;
-    virtual HX_RESULT    SetTimeAnchor(ULONG32 ulTimeMs) = 0;
-    virtual const char*  GetCodecId(void) = 0;
-    virtual void         SetAllocator(CHXBufferMemoryAllocator* pAllocator) = 0;
-    virtual HX_RESULT    SetNextCodecId() = 0;
-    virtual void         ResetCodecId() = 0;
+    virtual UINT8 GetBitstreamType(void) { return 2; };
+    virtual HX_RESULT CreateHXCodecPacket(UINT32* &pHXCodecDataOut) = 0;
+    virtual HX_RESULT SetTimeAnchor(ULONG32 ulTimeMs) = 0;
+	virtual const char* GetCodecId(void) = 0;
+	virtual void SetAllocator(CHXBufferMemoryAllocator*	pAllocator) = 0;
 };
 
 #endif	// _MP4VPYIF_H_

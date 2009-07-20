@@ -42,4 +42,4 @@ UseCommonObjects()
 if project.IsDefined("HELIX_FEATURE_SERVER"):
     MultiTargetMake("aviffdll")
 else:
-    MultiTargetMake("avifflib","aviffdll")
+    MultiTargetMake("avifflib")

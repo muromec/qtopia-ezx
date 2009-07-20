@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxaudstr.h,v 1.23 2009/05/01 14:09:36 sfu Exp $
+ * Source last modified: $Id: hxaudstr.h,v 1.20 2007/03/23 00:42:08 milko Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -340,13 +340,11 @@ public:
     HX_RESULT	GetFormat( HXAudioFormat* pAudioFormat );
 
     HX_RESULT	MixIntoBuffer( 
-			    UCHAR*	   pBuf,
-			    ULONG32	   ulBufSize,
-			    ULONG32&       ulBufTime,
-			    HXBOOL&	   bIsMixBufferDirty,
-                            HXBOOL&        bOptimizedMixing,
-                            CHXSimpleList* pStreamBufferList = NULL,
-			    HXBOOL	   bGetCrossFadeData = FALSE
+			    UCHAR*	pBuf,
+			    ULONG32	ulBufSize,
+			    ULONG32&    ulBufTime,
+			    HXBOOL&	bIsMixBufferDirty,
+			    HXBOOL	bGetCrossFadeData = FALSE
 			    );
     ULONG32		MixData(
 				UCHAR*  pDestBuf
@@ -383,9 +381,7 @@ public:
 #else
 	INT64	GetLastAudioWriteTime() {return m_llLastWriteTime - (INT64)m_ulBaseTime;};
 #endif
-	void	UpdateStreamLastWriteTime(HXBOOL bForceUpdate = FALSE, 
-					  HXBOOL bOnResume = FALSE, 
-					  HXBOOL bNotRealResume = FALSE);
+	void	UpdateStreamLastWriteTime(HXBOOL bForceUpdate = FALSE, HXBOOL bOnResume = FALSE);
 	void	SaveLastNMilliSeconds(HXBOOL bSave, UINT32 ulNMilliSeconds);
 	void	RewindStream(INT32 lTimeToRewind);
 
@@ -535,9 +531,6 @@ protected:
     HXBOOL		m_bHasStartTime;
     HXBOOL		m_bBeyondStartTime;
     UINT32		m_ulStartTime;
-    UINT32		m_ulSeekTime;
-    UINT32		m_ulLiveJoiningTime;
-    UINT32		m_bLiveJoiningTimeSet;
 
 /*
  *  Left around for future debugging
@@ -592,11 +585,7 @@ private:
 #ifdef HELIX_FEATURE_VOLUME
     IHXVolume* m_pStreamVolume;
 #endif
-    
-    HX_RESULT CreateDirectOutput(CHXSimpleList* pStreamBufferList, INT64 llStartTimeInSamples, UINT32 nSamples);
-    HX_RESULT RemoveOldPackets(INT64 llStartTimeInSamples);
-    IHXBuffer* m_pSilenceBuffer;    //hold silence data
-    HX_RESULT AddSilenceBuffer(CHXSimpleList* pStreamBufferList, UINT32 ulSizeInBytes);
+
 };
 
 #ifdef _MACINTOSH

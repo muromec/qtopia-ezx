@@ -78,7 +78,7 @@ protected:
 
     HXBOOL HandleMuxConfig(Bitstream& bs);
     HXBOOL GetPayloadLengths(Bitstream& bs);
-    HXBOOL GetPayloads(Bitstream& bs, ULONG32 ulTime);
+    void GetPayloads(Bitstream& bs, ULONG32 ulTime);
 
 private:
     ULONG32 m_ulSampleRate;

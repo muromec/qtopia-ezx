@@ -18,7 +18,7 @@
  * contents of the file. 
  *   
  * Alternatively, the contents of this file may be used under the 
- * terms of the GNU General Public License Version 2 (the 
+ * terms of the GNU General Public License Version 2 or later (the 
  * "GPL") in which case the provisions of the GPL are applicable 
  * instead of those above. If you wish to allow use of your version of 
  * this file only under the terms of the GPL, and not to allow others  
@@ -58,8 +58,7 @@
 #define MAX_COLOR_TABLE_SIZE 256
 #define MAX_CHUNK_PREFETCH 2
 
-#define PRIOR_SEEK_TIME		0
-#define SIZE_OF_AVI_VIDEO_HEADER  48
+#define PRIOR_SEEK_TIME		1500
 
 class CAVIFileFormat;
 class CAVIIndex;

@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: aacdec.h,v 1.10 2008/06/05 13:00:25 vkathuria Exp $
+ * Source last modified: $Id: aacdec.h,v 1.9 2006/07/19 14:19:16 damann Exp $
  *
  * Portions Copyright (c) 1995-2005 RealNetworks, Inc. All Rights Reserved.
  *
@@ -85,7 +85,7 @@ extern "C" {
  *       0 bits =    0 bytes per CCE-D (uses bits from the SCE/CPE/CCE-I it is coupled to)
  */
 #ifndef AAC_MAX_NCHANS                          /* if max channels isn't set in makefile, */
-#define AAC_MAX_NCHANS          6               /* set to default max number of channels  */
+#define AAC_MAX_NCHANS          2               /* set to default max number of channels  */
 #endif
 #define AAC_MAX_NSAMPS          1024
 #define AAC_MAINBUF_SIZE        (768 * AAC_MAX_NCHANS)

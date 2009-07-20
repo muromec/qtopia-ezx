@@ -84,10 +84,10 @@ class CQTOffsetToTimeMapper;
  */
 class CQTFileFormat :	public IHXPlugin, 
 			public IHXFileFormatObject, 
-			public IHXFormatResponse,
 			public IHXFileResponse,
 			public IHXAtomizationCommander,
 			public IHXAtomizerResponse,
+			public IHXThreadSafeMethods,
 			public IHXASMSource,
 			public IHXPacketFormat,
 			public IQTTrackResponse,
@@ -172,36 +172,6 @@ public:
 			    HX_RESULT status);
 
     /*
-     *	IHXFormatResponse methods
-     */
-
-   STDMETHOD(PacketReady)		(THIS_
-					HX_RESULT	status,
-					IHXPacket*	pPacket);
-
-    STDMETHOD(FileHeaderReady)		(THIS_
-					HX_RESULT	status,
-					IHXValues*	pHeader) ;
-
-    STDMETHOD(StreamHeaderReady)	(THIS_
-					HX_RESULT	status,
-					IHXValues*	pHeader) ;
-
-    STDMETHOD(StreamDone)		(THIS_
-					UINT16		unStreamNumber) ;
-
-    /*
-        These methods are duplicated in IHXFileResponse.			    
-
-        STDMETHOD(InitDone)	    (THIS_
-     	        	            HX_RESULT status);
-     
-        STDMETHOD(SeekDone)	    (THIS_ 
-     		                    HX_RESULT status);
-     
-    */
-
-    /*
      *	IHXAtomizationCommander
      */
     STDMETHOD_(QTAtomizerCmd,GetAtomCommand)	(THIS_
@@ -215,6 +185,11 @@ public:
     STDMETHOD(AtomReady)    (THIS_
 			    HX_RESULT status,
 			    CQTAtom* pRootAtom);
+
+    /*
+     *	IHXThreadSafeMethods
+     */
+    STDMETHOD_(UINT32,IsThreadSafe)(THIS);
 
     /*
      *	IHXASMSource methods
@@ -280,7 +255,7 @@ protected:
 
     virtual ~CQTFileFormat(); 
 
-#if defined(HELIX_FEATURE_3GPP_METAINFO) || defined(HELIX_FEATURE_SERVER)
+#if (defined HELIX_FEATURE_3GPP_METAINFO || defined HELIX_FEATURE_SERVER)
     HX_RESULT SetPropertyOnHeader(HX_RESULT status, IHXValues* pHeader,
                                   const char* key, const char* value, 
                                   ULONG32 valueLength);
@@ -335,7 +310,7 @@ private:
     HX_RESULT GetResourceErrorString(UINT32 ulErrorID, CHXString& rErrorStr);
 
     void  WarnIfNotHinted(HX_RESULT status, HXBOOL bIgnoreHintTracks);
-    HX_RESULT  CreateNewFileFormatObject(const char* purl);
+    
     IHXScheduler* m_pScheduler;
 
     IHXErrorMessages*	m_pErrorMessages;
@@ -391,7 +366,6 @@ private:
     CQTOffsetToTimeMapper* m_pOffsetToTimeMapper;
     IHXFileObject*  m_pFileObject;
     UINT32 m_ulNextPacketTime;	// in milliseconds
-    IHXFileFormatObject*   m_pRedirectFFObject;
 };
 
 

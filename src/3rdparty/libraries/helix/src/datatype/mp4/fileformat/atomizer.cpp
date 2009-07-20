@@ -652,13 +652,8 @@ STDMETHODIMP CAtomizer::ReadDone
 
 		    AtomType = CQTAtom::GetUL32(pHeader->pType);
 		    ulAtomSize = CQTAtom::GetUL32(pHeader->pSize);
-			
-		    if (ulAtomSize == 0)
-		    {
-			// This Atom extends to the of enclosing container
-			ulAtomSize = ATOMIZE_ALL;
-		    }
-		    else if (AtomType == 0)
+
+		    if (AtomType == 0)
 		    {
 			if (m_State == ATMZR_ProcHeader)
 			{
@@ -676,6 +671,11 @@ STDMETHODIMP CAtomizer::ReadDone
 			m_AtomType = AtomType;
 			ReadDataCB(QT_EXTENDED_SIZE);
 			return retVal;
+		    }
+		    else if (ulAtomSize == 0)
+		    {
+			// This Atom extends to the of enclosing container
+			ulAtomSize = ATOMIZE_ALL;
 		    }
 
 		    // drop to case below;
@@ -858,13 +858,6 @@ STDMETHODIMP CAtomizer::ReadDone
 			    m_ulNewAtomOffset = m_ulCurrentOffset +
 						ulAtomSize -
 						ulDataLen;
-				if (m_ulNewAtomOffset < m_ulCurrentOffset)
-				{
-					status = HXR_CORRUPT_FILE;
-					break;
-				}
-
-
 			    m_State = ATMZR_ProcHeader;
 
                             //  Do this for all cases; if the file sys says it
@@ -1115,6 +1108,12 @@ STDMETHODIMP CAtomizer::QueryInterface(REFIID riid, void** ppvObj)
 	*ppvObj = (IHXAtomizationCommander*) this;
 	return HXR_OK;
     }
+    else if (IsEqualIID(riid, IID_IHXThreadSafeMethods))
+    {
+	AddRef();
+	*ppvObj = (IHXThreadSafeMethods*) this;
+	return HXR_OK;
+    }
     else if (IsEqualIID(riid, IID_IUnknown))
     {
 	AddRef();
@@ -1168,6 +1167,21 @@ STDMETHODIMP_(ULONG32) CAtomizer::Release()
     delete this;
     return 0;
 }
+
+///////////////////////////////////////////////////////////////////////////////
+//  Method:
+//	IHXThreadSafeMethods::IsThreadsafe
+//
+//  Purpose:
+//	This routine returns threadsafeness information about the file object
+//	which is used by the server for improved performance.
+//
+STDMETHODIMP_(UINT32)
+CAtomizer::IsThreadSafe()
+{
+    return HX_THREADSAFE_METHOD_FF_GETPACKET | HX_THREADSAFE_METHOD_FSR_READDONE;
+}
+
 
 /****************************************************************************
  *  Class CAtomizer::RecursionCallback

@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxbuffer.cpp,v 1.19 2007/11/21 19:52:56 ping Exp $
+ * Source last modified: $Id: hxbuffer.cpp,v 1.17 2006/09/14 21:07:06 gwright Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -336,153 +336,104 @@ HX_RESULT CHXBuffer::SetSize(ULONG32 ulLength, HXBOOL copyExistingData)
         return HXR_UNEXPECTED;
     }
 
-    // special case when the current data is "owned" by another CHXBuffer
-    if (m_bJustPointToExistingData)
+    if (ulLength <= GetSize())
     {
-        // we will own the data after SetSize() is called
-        m_bJustPointToExistingData = FALSE;
-
-        HX_ASSERT(!IsShort());
-        if (ulLength <= MaxPnbufShortDataLen)
+        if (IsShort()) 
         {
-            if (copyExistingData)
-            {
-                memcpy(m_ShortData, m_BigData.m_pData, ulLength); /* Flawfinder: ignore */
-            }
             m_ShortData[MaxPnbufShortDataLen] = (UCHAR)ulLength;
-            m_BigData.m_pData = NULL;
-            m_ulAllocLength = 0;
         }
         else
         {
+            m_BigData.m_ulLength = ulLength;
+        }
+        return HXR_OK;
+    }
+
+    if (ulLength <= MaxPnbufShortDataLen)
+    {
+        if (IsShort())
+        {
+            // New size short, old size short
+            // Nothing to do
+        }
+        else
+        {
+            // New size short, old size big
+            UCHAR temp[MaxPnbufShortDataLen];
+            memcpy(temp, m_BigData.m_pData, ulLength); /* Flawfinder: ignore */
+            Deallocate(m_BigData.m_pData);
+            m_ulAllocLength = 0;
+            memcpy(m_ShortData, temp, ulLength); /* Flawfinder: ignore */
+        }
+        m_ShortData[MaxPnbufShortDataLen] = (UCHAR)ulLength;
+    }
+    else
+    {
+        if (IsShort())
+        {
+            // New size big, old size short
+
             UCHAR* pNewData = Allocate(ulLength);
+            m_ulAllocLength = ulLength;
+
+            // Allocate new data
+            // Treat alloc error
             if (!pNewData)
             {
                 return HXR_OUTOFMEMORY;
             }
 
-           m_ulAllocLength = ulLength;
-
+            // copy memory
             if (copyExistingData) 
             {
-                if (m_BigData.m_ulLength <= m_ulAllocLength)
-                {
-                    memcpy(pNewData, m_BigData.m_pData, m_BigData.m_ulLength); /* Flawfinder: ignore */
-                }
-                else
-                {
-                    memcpy(pNewData, m_BigData.m_pData, m_ulAllocLength); /* Flawfinder: ignore */
-                }
+                memcpy(pNewData, m_ShortData, m_ShortData[MaxPnbufShortDataLen]); /* Flawfinder: ignore */
             }
 
+            // Assign data
             m_BigData.m_pData = pNewData;
+
+            // Force length
             m_BigData.m_ulLength = ulLength;
+
+            // Init extra field
             m_BigData.m_FreeWithMallocInterfaceIfAvail = TRUE;
-        }
-    }
-    else
-    {
-        HX_ASSERT(!m_bJustPointToExistingData);
 
-        if (ulLength <= GetSize())
-        {
-            if (IsShort()) 
-            {
-                m_ShortData[MaxPnbufShortDataLen] = (UCHAR)ulLength;
-            }
-            else
-            {
-                m_BigData.m_ulLength = ulLength;
-            }
-            return HXR_OK;
-        }
-
-        if (ulLength <= MaxPnbufShortDataLen)
-        {
-            if (IsShort())
-            {
-                // New size short, old size short
-                // Nothing to do
-            }
-            else
-            {
-                // New size short, old size big
-                UCHAR temp[MaxPnbufShortDataLen];
-                memcpy(temp, m_BigData.m_pData, ulLength); /* Flawfinder: ignore */
-                Deallocate(m_BigData.m_pData);
-                m_ulAllocLength = 0;
-                memcpy(m_ShortData, temp, ulLength); /* Flawfinder: ignore */
-            }
-            m_ShortData[MaxPnbufShortDataLen] = (UCHAR)ulLength;
+            // Mark data as big
+            m_ShortData[MaxPnbufShortDataLen] = BigDataTag;
         }
         else
         {
-            if (IsShort())
+            if( ulLength <= m_ulAllocLength )
             {
-                // New size big, old size short
-
-                UCHAR* pNewData = Allocate(ulLength);
-                m_ulAllocLength = ulLength;
-
-                // Allocate new data
-                // Treat alloc error
-                if (!pNewData)
-                {
-                    return HXR_OUTOFMEMORY;
-                }
-
-                // copy memory
-                if (copyExistingData) 
-                {
-                    memcpy(pNewData, m_ShortData, m_ShortData[MaxPnbufShortDataLen]); /* Flawfinder: ignore */
-                }
-
-                // Assign data
-                m_BigData.m_pData = pNewData;
-
-                // Force length
-                m_BigData.m_ulLength = ulLength;
-
-                // Init extra field
-                m_BigData.m_FreeWithMallocInterfaceIfAvail = TRUE;
-
-                // Mark data as big
-                m_ShortData[MaxPnbufShortDataLen] = BigDataTag;
+               m_BigData.m_ulLength = ulLength;
+               m_BigData.m_FreeWithMallocInterfaceIfAvail = TRUE;
+               return HXR_OK;
             }
-            else
+            // New size big, old size big
+            // Reallocate the data
+            UCHAR* pTemp = copyExistingData 
+                ? Reallocate(m_BigData.m_pData, m_BigData.m_ulLength, ulLength) 
+                : Allocate(ulLength);
+            // Treat alloc error
+            if (!pTemp)
             {
-                if( ulLength <= m_ulAllocLength )
-                {
-                m_BigData.m_ulLength = ulLength;
-                m_BigData.m_FreeWithMallocInterfaceIfAvail = TRUE;
-                return HXR_OK;
-                }
-                // New size big, old size big
-                // Reallocate the data
-                UCHAR* pTemp = copyExistingData 
-                    ? Reallocate(m_BigData.m_pData, m_BigData.m_ulLength, ulLength) 
-                    : Allocate(ulLength);
-                // Treat alloc error
-                if (!pTemp)
-                {
-                    return HXR_OUTOFMEMORY;
-                }
-                m_ulAllocLength = ulLength;
-                // Deallocate old memory
-                if (!copyExistingData) 
-                {
-                    Deallocate(m_BigData.m_pData);
-                }
-
-                // Assign data
-                m_BigData.m_pData = pTemp;
-
-                // Force length
-                m_BigData.m_ulLength = ulLength;
-
-                // Set flag
-                m_BigData.m_FreeWithMallocInterfaceIfAvail = TRUE;
+                return HXR_OUTOFMEMORY;
             }
+            m_ulAllocLength = ulLength;
+            // Deallocate old memory
+            if (!copyExistingData) 
+            {
+                Deallocate(m_BigData.m_pData);
+            }
+
+            // Assign data
+            m_BigData.m_pData = pTemp;
+
+            // Force length
+            m_BigData.m_ulLength = ulLength;
+
+            // Set flag
+            m_BigData.m_FreeWithMallocInterfaceIfAvail = TRUE;
         }
     }
     

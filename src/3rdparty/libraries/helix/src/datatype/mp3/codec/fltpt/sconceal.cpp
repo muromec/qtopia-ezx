@@ -41,7 +41,7 @@
 #include "hlxclib/math.h"   // sqrt, pow...
 
 #ifdef _VXWORKS
-#include "private/trigP.h"
+#include "private\trigP.h"
 #endif
 
 #if !defined(_WINDOWS) && !defined(_OPENWAVE)

@@ -17,7 +17,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -470,23 +470,10 @@ CHXSymbianSocket::SetOption(HXSockOpt name, UINT32 val)
         return HXR_OK;
     case HX_SOCKOPT_APP_READBUF_MAX:
         return HXR_NOTIMPL;
-
-    case HX_SOCKOPT_UDP_RCVBUF:
-    	if (m_sock.SetOpt(KSoUdpRecvBuf, KSolInetUdp, val) == KErrNone)
-        {
-            return HXR_OK;
-        }
-        return HXR_FAIL;
     case HX_SOCKOPT_APP_SNDBUF:
         return HXR_NOTIMPL;
     case HX_SOCKOPT_APP_AGGLIMIT:
         return HXR_NOTIMPL;
-    // called from HelixSocket in WM-RTSP
-    case HX_SOCKOPT_APP_RCVBUF:
-    	return HXR_NOTIMPL;
-    case HX_SOCKOPT_TCP_NODELAY:
-    	return HXR_NOTIMPL;
-    
     default:
         HX_ASSERT(false);
         HXLOGL1(HXLOG_NETW, "CHXSymbianSocket::SetOption %d nothing is done", name);

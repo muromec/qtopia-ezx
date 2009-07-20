@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: globals.h,v 1.9 2007/08/20 19:35:14 dcollins Exp $
+ * Source last modified: $Id: globals.h,v 1.7 2006/03/29 18:29:36 seansmith Exp $
  *
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.
  *
@@ -44,6 +44,7 @@ extern BOOL     g_bReportRestart;
 extern BOOL     g_bFastMalloc;
 extern BOOL     g_bFastMallocAll;
 extern UINT32   g_ulReportServerStats;
+extern BOOL     g_bForceThreadSafePlugins;
 extern BOOL     g_bSkipCPUTest;
 extern BOOL     g_bAllowCoreDump;
 extern BOOL     g_bShowDebugErrorMessages;
@@ -83,6 +84,7 @@ extern UINT32*  g_pAggreg;
 extern UINT32*  g_pIsForcedSelect;
 extern Timeval* g_pNow;
 extern BOOL*    g_bITimerAvailable;
+extern BOOL*    g_bLimitParallelism;
 extern UINT32*  g_pNumCrashAvoids;
 
 extern UINT32*  g_pAggregateTo;

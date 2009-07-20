@@ -17,7 +17,7 @@
  * contents of the file.
  *
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -71,21 +71,12 @@ HX_RESULT SetupDllAccessPaths(const char* pRootDirectory)
         rootDirectorySpec = CHXFileSpecUtils::GetCurrentApplicationDir();
     }
 
-#ifdef HELIX_CONFIG_MEDIAPLATFORM_SINGLE_DIRECTORY
-    GetDLLAccessPath()->SetPath(DLLTYPE_PLUGIN, rootDirectorySpec.SpecifyChildDirectory(".").GetPathName());
-    GetDLLAccessPath()->SetPath(DLLTYPE_CODEC, rootDirectorySpec.SpecifyChildDirectory(".").GetPathName());
-    GetDLLAccessPath()->SetPath(DLLTYPE_OBJBROKR, rootDirectorySpec.SpecifyChildDirectory(".").GetPathName());
-    GetDLLAccessPath()->SetPath(DLLTYPE_COMMON, rootDirectorySpec.SpecifyChildDirectory(".").GetPathName());
-    GetDLLAccessPath()->SetPath(DLLTYPE_UPDATE, rootDirectorySpec.SpecifyChildDirectory(".").GetPathName());
-    GetDLLAccessPath()->SetPath(DLLTYPE_RCAPLUGIN, rootDirectorySpec.SpecifyChildDirectory(".").GetPathName());
-#else
     GetDLLAccessPath()->SetPath(DLLTYPE_PLUGIN, rootDirectorySpec.SpecifyChildDirectory("plugins").GetPathName());
     GetDLLAccessPath()->SetPath(DLLTYPE_CODEC, rootDirectorySpec.SpecifyChildDirectory("codecs").GetPathName());
     GetDLLAccessPath()->SetPath(DLLTYPE_OBJBROKR, rootDirectorySpec.SpecifyChildDirectory("common").GetPathName());
     GetDLLAccessPath()->SetPath(DLLTYPE_COMMON, rootDirectorySpec.SpecifyChildDirectory("common").GetPathName());
     GetDLLAccessPath()->SetPath(DLLTYPE_UPDATE, rootDirectorySpec.SpecifyChildDirectory("update").GetPathName());
     GetDLLAccessPath()->SetPath(DLLTYPE_RCAPLUGIN, rootDirectorySpec.SpecifyChildDirectory("RCAPlugins").GetPathName());
-#endif
 
     return HXR_OK;
 }

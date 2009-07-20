@@ -1,6 +1,6 @@
 #  -*- python -*-
 # ***** BEGIN LICENSE BLOCK *****  
-# Source last modified: $Id: Umakefil,v 1.6 2009/02/09 20:01:35 dcollins Exp $ 
+# Source last modified: $Id: Umakefil,v 1.5 2004/08/02 18:30:17 damonlan Exp $ 
 #   
 # Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
 #       
@@ -64,7 +64,6 @@ project.AddSources ("remotenetsvc.cpp",
 	            "context.cpp", 
                     "cfgreg.cpp", 
                     "errorcontroller.cpp",
-                    "rbsfactory.cpp",
 	            )
 
 LibraryTarget('rscontext')

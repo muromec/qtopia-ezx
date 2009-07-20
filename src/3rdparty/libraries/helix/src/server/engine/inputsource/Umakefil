@@ -1,5 +1,5 @@
 # ***** BEGIN LICENSE BLOCK *****  
-# Source last modified: $Id: Umakefil,v 1.14 2008/09/11 23:10:08 jzeng Exp $ 
+# Source last modified: $Id: Umakefil,v 1.9 2006/07/14 20:46:21 ghori Exp $ 
 #   
 # Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
 #       
@@ -38,54 +38,43 @@
 UmakefileVersion(2,1)
 
 project.AddModuleIncludes(
-      "common/include"
-    , "common/container/pub"
-    , "common/netio/pub"
-    , "common/dbgtool/pub"
-    , "common/system/pub"
-    , "common/util/pub"
-    , "common/runtime/pub"
-    , "common/fileio/pub"
-    , "common/system/pub/globals"
-    , "server/include"
-    , "server/common/struct/pub"
-    , "server/common/util/pub"
-    , "server/common/netio/pub"
-    , "server/engine/core/pub"
-    , "server/engine/netio/pub"
-    , "server/engine/dataflow/pub"
-    , "server/engine/broadcast/pub"
-    , "server/engine/config/pub"
-    , "server/engine/context/pub"
-    , "server/engine/core/pub"
-    , "server/engine/registry/pub"
-    , "server/engine/session/pub"
-    , "server/protocol/common/pub"
-    , "server/qos/core/pub"
-    )
-
-if "HELIX_FEATURE_SERVER_FCS" in project.defines:
-    project.AddModuleIncludes("datatype-restricted/rm/video/payload/pub",
-                              "server-restricted/datatype/playlist/pub")
-
+	  "common/include"
+	, "common/container/pub"
+	, "common/netio/pub"
+	, "common/dbgtool/pub"
+	, "common/system/pub"
+	, "common/util/pub"
+	, "common/runtime/pub"
+	, "common/fileio/pub"
+        , "common/system/pub/globals"
+	, "server/include"
+	, "server/common/struct/pub"
+	, "server/common/util/pub"
+        , "server/common/netio/pub"
+	, "server/engine/core/pub"
+	, "server/engine/netio/pub"
+	, "server/engine/dataflow/pub"
+	, "server/engine/broadcast/pub"
+	, "server/engine/config/pub"
+	, "server/engine/context/pub"
+	, "server/engine/core/pub"
+	, "server/engine/registry/pub"
+	, "server/engine/session/pub"
+	, "server/protocol/common/pub"
+	, "server/qos/core/pub"
+	)
 
 project.AddSources (
-      "srcfinder.cpp"
-    , "ff_source.cpp"
-    , "fileformat_handler.cpp"
-    , "inputsrc_push.cpp"
-    , "ratedescmgr.cpp"
-    , "streamgroupmgr.cpp"
-    , "uberstreammgr.cpp"
-    , "streamselector.cpp"
-    , "asmstreamfilter.cpp"
-    , "live_source_wrapper.cpp"
-    )
-
-if "HELIX_FEATURE_SERVER_FCS" in project.defines:
-    project.AddSources ("base_shim.cpp",
-                        "ppmstaticshim.cpp", 
-                        "mdpshim.cpp")
+	  "srcfinder.cpp"
+	, "ff_source.cpp"
+	, "fileformat_handler.cpp"
+	, "inputsrc_push.cpp"
+	, "ratedescmgr.cpp"
+	, "streamgroupmgr.cpp"
+	, "uberstreammgr.cpp"
+	, "streamselector.cpp"
+	, "asmstreamfilter.cpp"
+	)
 
 LibraryTarget('inputsourcelib')
 

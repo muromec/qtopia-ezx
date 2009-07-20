@@ -1,7 +1,7 @@
 # 
 #  ***** BEGIN LICENSE BLOCK *****  
 #   
-#  Source last modified: $Id: helix-server-restricted.pf,v 1.2 2007/08/07 21:37:48 jgordon Exp $ 
+#  Source last modified: $Id: helix-server-restricted.pf,v 1.1 2007/04/27 01:00:29 dcollins Exp $ 
 #   
 #  Copyright Notices: 
 #   
@@ -80,7 +80,6 @@ project.AddDefines('HELIX_FEATURE_SECURE_LICENSE')
 project.AddDefines('HELIX_FEATURE_QOS')
 project.AddDefines('HELIX_FEATURE_SERVER_CAPEX')
 project.AddDefines('HELIX_FEATURE_VIEWSOURCE')
-project.AddDefines('HELIX_FEATURE_SERVER_FCS')
 
 project.AddDefines('HELIX_FEATURE_SERVER_RMFF')
 project.AddDefines('HELIX_FEATURE_SERVER_RMFF_SOURCE')

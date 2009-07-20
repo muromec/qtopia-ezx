@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: rdttran.cpp,v 1.24 2009/02/20 22:46:03 rkondru Exp $
+ * Source last modified: $Id: rdttran.cpp,v 1.22 2007/01/11 21:19:42 milko Exp $
  *
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  *
@@ -1817,7 +1817,6 @@ TNGUDPTransport::writePacket(BYTE* pData, UINT32 dataLen)
 	rc = m_pUDPSocket->Write(pSendBuffer);
 	HX_RELEASE(pSendBuffer);
     }
-	delete[] pData;
     return rc;
 }
 
@@ -2719,48 +2718,7 @@ TNGUDPTransport::handleStreamEndPacket(IHXBuffer* pBuffer, UINT32* pPos,
                                    packetSent,
                                    lastTimestamp,
                                    ulEndReasonCode);
-	
-	// Helix Server 12 has a bug where it may send garbage data in the
-    // same datagram after a stream-end RDT packet. This data is getting
-	// interpreted as an RDT data packet. Therefore, we check here to
-	// see if an RDT data packet follows this this stream-end packet.
-	// If it does, we check the stream number of the data packet. If
-	// it is not a legal stream number, then we go ahead and consume
-	// all of the rest of the data in this datagram.
-	//
-	// Is there at least 3 bytes left in this datagram?
-	if (*pLen >= 3)
-	{
-		// Get the packet type
-		UINT16 usPacketType = getshort(pOff + 1);
-		// Will this be considered a data packet?
-		if (usPacketType < 0xff00)
-		{
-			// This will be considered a data packet. So now extract the
-			// stream number from the data packet.
-			BYTE ucStreamID = (BYTE)((*pOff & 0x3e) >> 1);
-			// Is this a legal stream number? We check this by
-			// trying to query the RTSPStreamHandler for an RTSPStreamData
-			// which mathces this stream number. If no such RTSPStreamData
-			// exists, then we know this is a bogus stream number.
-			//
-			// Do we have a stream handler?
-			if (m_pStreamHandler)
-			{
-			    // Query the stream handler using this stream number
-			    RTSPStreamData* pStreamData = m_pStreamHandler->getStreamData((UINT16) ucStreamID);
-			    if (!pStreamData)
-			    {
-			        // This is a bogus stream number, so consume all the
-			        // rest of the datagram.
-			        UINT32 ulBytesLeft = *pLen;
-			        (*pLen) -= ulBytesLeft;
-			        (*pPos) += ulBytesLeft;
-			    }
-			}
-		}
-	}
-								   
+
     return HXR_OK;
 }
 

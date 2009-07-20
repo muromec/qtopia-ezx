@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: ihxlist.h,v 1.4 2008/09/10 15:51:46 ehyche Exp $
+ * Source last modified: $Id: ihxlist.h,v 1.2 2005/03/14 19:27:09 bobclark Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -119,9 +119,5 @@ DECLARE_INTERFACE_(IHXList, IUnknown)
     STDMETHOD_(IUnknown*,GetHead)       (THIS) PURE;
     STDMETHOD_(IUnknown*,GetTail)       (THIS) PURE;
 };
-
-#include "hxcomptr.h"
-DEFINE_SMART_PTR(IHXListIterator)
-DEFINE_SMART_PTR(IHXList)
 
 #endif /* _IHXLIST_H_ */

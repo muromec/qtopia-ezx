@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: win_pref.cpp,v 1.12 2007/09/21 04:35:43 anshuman Exp $
+ * Source last modified: $Id: win_pref.cpp,v 1.8 2006/02/07 19:21:32 ping Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -62,8 +62,6 @@
 #include "hxassert.h"
 
 #include "win_pref.h"  
-#include "hlxclib/time.h"
-#include <tchar.h>
 
 #include "hxwinver.h"  
 #include "dbcs.h"  
@@ -74,7 +72,7 @@
 #include "hxstrutl.h"
 
 #ifndef _WIN16
-// Not in win16.  Any place that this is used must be ifdefed out.
+// Not in win16.  Any place that this is used must be ifdefed out.•
 #include "hxwinreg.h"
 #else 
 #include "winreg16.h"//use this instead (in remove_pref function).  Partial functionality
@@ -153,52 +151,6 @@ CWinPref::CWinPref(const char* pCompanyName,
             *pSpace = '_';
 	}
     }
-    // See if the "HKEY_CURRENT_USER\Software\Helix\WinPrefLogFile" key is set
-    HKEY hKey;
-    LONG lErr = RegOpenKey(HKEY_CURRENT_USER, "Software\\Helix\\WinPrefLogFile", &hKey);
-    if (lErr == ERROR_SUCCESS)
-    {
-        // Get the size of the key
-        LONG lBufSize = 0;
-        lErr = RegQueryValue(hKey, NULL, NULL, &lBufSize);
-        if (lErr == ERROR_SUCCESS && lBufSize > 0)
-        {
-            // Allocate a buffer
-            BYTE* pBuf = new BYTE [lBufSize];
-            if (pBuf)
-            {
-                // Now get the key
-                lErr = RegQueryValue(hKey, NULL, OS_STRING((LPTSTR) pBuf), &lBufSize);
-                if (lErr == ERROR_SUCCESS)
-                {
-                    // Get the length of the file name string
-                    int lStrLen = _tcslen((LPCTSTR) pBuf);
-                    if (lStrLen > 0)
-                    {
-                        FILE* fp = _tfopen((LPCTSTR) pBuf, TEXT("a"));
-                        if (fp)
-                        {
-                            struct tm* newtime = NULL;
-                            time_t     aclock;
-                            // Get the time in seconds
-                            time(&aclock);
-                            // Convert to struct rm form
-                            newtime = localtime(&aclock);
-                            // Print out the time
-                            fprintf(fp, "Time:                %s", asctime(newtime));
-                            fprintf(fp, "Helix Pref Location: %s\\%s\n",
-                                    (m_bCommon ? "HKEY_CLASSES_ROOT" : "HKEY_CURRENT_USER"),
-                                    RootKeyName);
-                            fclose(fp);
-                        }
-                    }
-                }
-            }
-            HX_VECTOR_DELETE(pBuf);
-        }
-        // Close the reg key
-        RegCloseKey(hKey);
-    }
 }
 
 /*  read_pref reads the preference specified by Key to the Buffer. */	
@@ -263,7 +215,7 @@ HX_RESULT CWinPref::read_pref(const char* pPrefKey, IHXBuffer*& pBuffer)
     {
 	delete [] pKeyName;
     }
-#if defined(_UNICODE) && !defined(_WINCE)
+#ifdef _UNICODE
     if (HXR_OK == theErr)
     {
 	OS_STRING_TYPE str((OS_TEXT_PTR)( pBuffer->GetBuffer() ));
@@ -272,7 +224,7 @@ HX_RESULT CWinPref::read_pref(const char* pPrefKey, IHXBuffer*& pBuffer)
 	pBuffer->SetSize( strlen(ascii)+1 );
 	strcpy( (char*)pBuffer->GetBuffer(), ascii );
     }
-#endif //_UNICODE && !_WINCE
+#endif //_UNICODE
     
     return theErr;
 }

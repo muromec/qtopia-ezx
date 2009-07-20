@@ -42,11 +42,7 @@
 #define MAX_DECODED_MP4_FRAMES_IN_STEP		3
 #define DECODE_CALLBACK_RNGBUF_SIZE		10
 #else	// HELIX_FEATURE_MIN_HEAP
-#ifdef HELIX_CONFIG_MOBLIN
-#define MAX_BUFFERED_DECODED_MP4_FRAMES		6
-#else
 #define MAX_BUFFERED_DECODED_MP4_FRAMES		4
-#endif
 #define MAX_DECODED_MP4_FRAMES_IN_STEP		3
 #define DECODE_CALLBACK_RNGBUF_SIZE		10
 #endif	// HELIX_FEATURE_MIN_HEAP
@@ -73,7 +69,7 @@
 #include "hxvctrl.h"
 #include "hxsite2.h"
 #include "hxthread.h"
-#include "hxmtypes.h"
+
 #include "hxtick.h"
 #include "hxassert.h"
 #include "hxstrutl.h"
@@ -81,16 +77,13 @@
 #include "timeval.h"
 #include "cttime.h"
 #include "hxcodec.h"
-#include "addupcol.h"
 
 #include "mp4video.h"
 #include "mp4vpyld.h"
 #ifdef HELIX_FEATURE_VIDEO_CODEC_AVC1
 #include "h264pyld.h"
 #endif //HELIX_FEATURE_VIDEO_CODEC_AVC1
-#if defined(HELIX_FEATURE_VIDEO_CODEC_VP6)
-#include "flvpyld.h"
-#endif //HELIX_FEATURE_VIDEO_CODEC_VP6
+
 /****************************************************************************
  *  Locals
  */
@@ -115,7 +108,6 @@ CMP4VideoFormat::CMP4VideoFormat(IHXCommonClassFactory* pCommonClassFactory,
     , m_ulHeightContainedInSegment(0)
     , m_pCodecOutputBIH(NULL)
     , m_bFirstDecode(TRUE)
-    , m_bDecoderMemMgt(FALSE)
 {
     HX_ASSERT(m_pCommonClassFactory);
     HX_ASSERT(pMP4VideoRenderer);
@@ -253,59 +245,16 @@ HX_RESULT CMP4VideoFormat::Init(IHXValues* pHeader)
     // Initialize Decoder
     if (SUCCEEDED(retVal) && m_pRssm)
     {
-        // Set the return value
-        retVal = HXR_REQUEST_UPGRADE;
-        // Loop through all possible codec IDs tha tthe depacketizer knows about
-        while (retVal == HXR_REQUEST_UPGRADE)
-        {
-            retVal = m_pDecoder->Init(m_pMP4VideoRenderer->GetContext(),
-				      this,
-				      NULL,
-				      m_pInputAllocator,
-				      m_pMP4VideoRenderer->m_pOutputAllocator);
-            if (retVal == HXR_REQUEST_UPGRADE)
-            {
-                // The depacketizer may know about more than one codec ID,
-                // so we ask the depacketizer to advance to the next codec ID.
-                HX_RESULT rv = m_pRssm->SetNextCodecId();
-                // If the depacketizer was successful, then it has
-                // another codec ID for us to try. If it returned failure,
-                // then it doesn't know about any more codec IDs.
-                if (FAILED(rv))
-                {
-                    // The depacketizer doesn't konw about any more codec ID's,
-                    // so we will reset the depacketizer back to the first
-                    // codec ID, so that it will be the one to show up in
-                    // AU request.
-                    m_pRssm->ResetCodecId();
-                    // Now we need to break out of the loop
-                    break;
-                }
-            }
-        }
-        // If we failed with HXR_REQUEST_UPGRADE, then we need to
-        // populate the upgrade collection
-        if (retVal == HXR_REQUEST_UPGRADE)
-        {
-            // Get the length of the codec ID string
-            UINT32 ulIDLen = (UINT32) strlen(m_pRssm->GetCodecId());
-            // Allocate a string
-            char* pszAUStr = new char [ulIDLen + 1];
-            if (pszAUStr)
-            {
-                // Copy the string into the buffer
-                strcpy(pszAUStr, m_pRssm->GetCodecId());
-                // Make sure it is lower-case
-                strlwr(pszAUStr);
-                // Add this to the upgrade collection
-                AddToAutoUpgradeCollection(pszAUStr, m_pMP4VideoRenderer->GetContext());
-            }
-            HX_VECTOR_DELETE(pszAUStr);
-        }
+	retVal = m_pDecoder->Init(m_pMP4VideoRenderer->GetContext(),
+				  this,
+				  NULL,
+				  m_pInputAllocator,
+				  m_pMP4VideoRenderer->m_pOutputAllocator);
+
 	if (SUCCEEDED(retVal))
 	{
 	    HX_MOF* pImageInfo;
-	    m_pDecoder->GetProperty(SP_HWMEM_MGT, &m_bDecoderMemMgt);
+	    
 	    if (m_pDecoder->GetImageInfo(pImageInfo) == HXR_OK)
 	    {
 		retVal = SetupOutputFormat(pImageInfo);
@@ -353,7 +302,7 @@ HX_RESULT CMP4VideoFormat::Init(IHXValues* pHeader)
  *  Method:
  *    CMP4VideoFormat::SetupOutputFormat
  *
-*/
+ */
 HX_RESULT
 CMP4VideoFormat::SetupOutputFormat(HX_MOF* pMof)
 {
@@ -362,38 +311,28 @@ CMP4VideoFormat::SetupOutputFormat(HX_MOF* pMof)
 
     if (!m_pCodecOutputBIH)
     {
-        m_pCodecOutputBIH = new HXBitmapInfoHeader;
-        if (!m_pCodecOutputBIH)
-        {
-            return HXR_OUTOFMEMORY;
-        }
-        memset(m_pCodecOutputBIH, 0, sizeof(HXBitmapInfoHeader));
+	m_pCodecOutputBIH = new HXBitmapInfoHeader;
+	if (!m_pCodecOutputBIH)
+	{
+	    return HXR_OUTOFMEMORY;
+	}
+	memset(m_pCodecOutputBIH, 0, sizeof(HXBitmapInfoHeader));
     }
 
     m_sMediaSize.cy = pMofOutI->uiHeight;
     m_sMediaSize.cx = pMofOutI->uiWidth;
 
-    UINT32 ulColorType;
-    switch (pMofOutI->submoftag)
-    {
-        case HX_RGB3_ID:    ulColorType = HX_RGB; break;
-        case HX_YUY2_ID:    ulColorType = HX_YUY2; break;
-        case HX_NV21_ID:    ulColorType = HX_NV21; break;
-        case HX_OMXV_ID:    ulColorType = HX_OMXV; break;
-        default:            ulColorType = HX_I420; break;
-    }
-
     m_pCodecOutputBIH->biBitCount = pMofOutI->uiBitCount;
-    m_pCodecOutputBIH->biCompression = ulColorType;
+    m_pCodecOutputBIH->biCompression = HX_I420;
     m_pCodecOutputBIH->biWidth = pMofOutI->uiWidth;
     m_pCodecOutputBIH->biHeight = pMofOutI->uiHeight;
     m_pCodecOutputBIH->biPlanes = 1;
 
     m_pCodecOutputBIH->biSizeImage =
-        (m_pCodecOutputBIH->biWidth *
-         m_pCodecOutputBIH->biBitCount *
-         m_pCodecOutputBIH->biHeight +
-         7) / 8;
+	(m_pCodecOutputBIH->biWidth * 
+	 m_pCodecOutputBIH->biBitCount * 
+	 m_pCodecOutputBIH->biHeight + 
+	 7) / 8;
 
     return retVal;
 }
@@ -460,24 +399,6 @@ const UINT8* CMP4VideoFormat::GetBitstreamHeader(void)
     return pHeader;
 }
 
-HX_RESULT CMP4VideoFormat::GetStreamHeader(REF(IHXValues*) rpValues)
-{
-    HX_RESULT retVal = HXR_UNEXPECTED;
-
-    if (m_pHeader)
-    {
-        // Make sure our out parameter is initially NULL
-        HX_ASSERT(rpValues == NULL);
-        // Assign the out parameter
-        rpValues = m_pHeader;
-        // AddRef before going out
-        rpValues->AddRef();
-        // Clear the return value
-        retVal = HXR_OK;
-    }
-
-    return retVal;
-}
 
 /****************************************************************************
  *  Method:
@@ -537,20 +458,11 @@ CMediaPacket* CMP4VideoFormat::CreateAssembledPacket(IHXPacket* pCodecData)
 
     m_pMP4VideoRenderer->BltIfNeeded();
 
-    if (pCodecData)
-    {
     status = m_pRssm->SetPacket(pCodecData);
     if( status == HXR_OUTOFMEMORY )
     {
 	m_LastError = status;
         return NULL;
-    }
-    }
-    else
-    {
-        // CreateAssembledPacket called with NULL, so
-        // call Flush on the depacketizer
-        status = m_pRssm->Flush();
     }
     m_pRssm->CreateHXCodecPacket(pCodecPacketRaw);
     pCodecPacket = (HXCODEC_DATA*) pCodecPacketRaw;
@@ -592,26 +504,6 @@ CMediaPacket* CMP4VideoFormat::CreateAssembledPacket(IHXPacket* pCodecData)
 	}
     }
     
-    // Are we flushing?
-    if (!pCodecData)
-    {
-        // Create a dummy HXCODEC_DATA to inform the 
-        // decoder that no more packets are coming
-        CMediaPacket* pDummy = CreateFinalDummyFrame();
-        if (pDummy)
-        {
-            // Did we already have an outgoing frame packet?
-            if (pFramePacket)
-            {
-                // We already had an outgoing packet, so return it
-                ReturnAssembledPacket(pFramePacket);
-                pFramePacket = NULL;
-            }
-            // Return the dummy frame
-            ReturnAssembledPacket(pDummy);
-        }
-    }
-
     return pFramePacket;
 }
 
@@ -660,8 +552,8 @@ void CMP4VideoFormat::ReleaseDecodedPacket(HXCODEC_DATA* &pDecodedPacket)
 
     if (pDecodedPacket)
     {
-        KillMP4VSampleDesc(pDecodedPacket, this);
-        pDecodedPacket = NULL;
+	KillMP4VSampleDesc(pDecodedPacket, m_pMP4VideoRenderer);
+	pDecodedPacket = NULL;
     }
 }
 
@@ -761,7 +653,7 @@ CMediaPacket* CMP4VideoFormat::CreateDecodedPacket(CMediaPacket* pFrameToDecode)
 	}
 
 #if !defined(HELIX_FEATURE_VIDEO_MPEG4_DISCARD_LATE_ENCODED_FRAMES)
-	if (pDecodedPacket && !m_pMP4VideoRenderer->IsUntimedMode())
+	if (pDecodedPacket)
 	{
 	    if (m_pMP4VideoRenderer->ComputeTimeAhead(
 		    pDecodedPacket->timestamp, 
@@ -844,7 +736,7 @@ CMediaPacket* CMP4VideoFormat::CreateDecodedPacket(CMediaPacket* pFrameToDecode)
 		
 		pVideoPacket->SetBufferKiller(KillOutputBuffer);
 		pVideoPacket->SetSampleDescKiller(KillMP4VSampleDesc);
-		pVideoPacket->m_pUserData = this;
+		pVideoPacket->m_pUserData = m_pMP4VideoRenderer;
 		
 		pDecodedPacket = NULL;
 		
@@ -891,11 +783,6 @@ CMediaPacket* CMP4VideoFormat::CreateDecodedPacket(CMediaPacket* pFrameToDecode)
     return pDecodedFrame;
 }
 
-void CMP4VideoFormat::OnPacketsEnded()
-{
-    CreateAssembledPacket(NULL);
-}
-
 CMP4VDecoder* CMP4VideoFormat::CreateDecoder()
 {
     return new CMP4VDecoder();
@@ -940,16 +827,17 @@ HX_RESULT CMP4VideoFormat::DecodeDone(HXCODEC_DATA* pData)
 
 	    if (!m_pDecodedRngBuf->Put(pFrame))
 	    {
-		    ReleaseDecodedPacket(pFrame);
-		    m_pMP4VideoRenderer->ReportDroppedFrame();
+		ReleaseDecodedPacket(pFrame);
+		m_pMP4VideoRenderer->ReportDroppedFrame();
 	    }
 	}
 	else
 	{
 	    if (pData->data)
 	    {
-            _KillOutputBuffer(pData->data);
-            m_pMP4VideoRenderer->ReportDroppedFrame();
+		m_pMP4VideoRenderer->m_pOutputAllocator->ReleasePacketPtr(
+		    pData->data);
+		m_pMP4VideoRenderer->ReportDroppedFrame();
 	    }
 	}
     }
@@ -1023,11 +911,6 @@ HX_RESULT CMP4VideoFormat::InitBitmapInfoHeader(
     return HXR_OK;
 }
 
-void 
-CMP4VideoFormat:: DecoderReleaseBuffer(UINT8* pBuff)
-{
-    m_pDecoder->ReleaseBuffer(pBuff);
-}
 
 /****************************************************************************
  *  Method:
@@ -1095,49 +978,6 @@ HX_RESULT CMP4VideoFormat::CreateAllocators(void)
     return retVal;
 }
 
-CMediaPacket* CMP4VideoFormat::CreateFinalDummyFrame()
-{
-    CMediaPacket* pRet = NULL;
-
-    // For some codecs we need to tell the decoder we have passed
-    // it the last frame. Otherwise, we will not get the last frame
-    // out of the decoder, due to the frame delay caused by B-frames.
-    // Therefore, we need to create a dummy HXCODEC_DATA with special
-    // parameters and pass this into the codec.
-    //
-    // Produce a dummy HXCODEC_DATA
-    HXCODEC_DATA* pCodecData = new HXCODEC_DATA;
-    if (pCodecData)
-    {
-        // Set the values
-        pCodecData->dataLength  = 0;
-        pCodecData->data        = NULL;
-//        pCodecData->timestamp   = m_ulLastTimestamp;
-//        pCodecData->sequenceNum = m_ulLastSequenceNumber + 1;
-        pCodecData->timestamp   = 0;
-        pCodecData->sequenceNum = 0;
-        pCodecData->flags       = 0; // don't care
-        pCodecData->lastPacket  = TRUE;
-        pCodecData->numSegments = 1;
-        pCodecData->Segments[0].bIsValid        = FALSE;
-        pCodecData->Segments[0].ulSegmentOffset = 0;
-        // Now create the media packet
-        pRet = new CMediaPacket(pCodecData,
-                                (UINT8*) pCodecData, 
-                                pCodecData->dataLength,
-                                pCodecData->dataLength,
-                                pCodecData->timestamp,
-                                pCodecData->flags,
-                                NULL);
-        if (pRet)
-        {
-            pRet->SetBufferKiller(KillInputBuffer);
-            pRet->m_pUserData = this;
-        }
-    }
-
-    return pRet;
-}
 
 /****************************************************************************
  *  Method:
@@ -1184,21 +1024,6 @@ void CMP4VideoFormat::KillInputBuffer(void* pBuffer, void* pUserData)
     }
 }
 
-void CMP4VideoFormat::_KillOutputBuffer(void* pBuffer)
-{
-    if(m_bDecoderMemMgt)
-    {
-        DecoderReleaseBuffer((UINT8*)pBuffer);
-        
-    }
-    else
-    {
-         if (m_pMP4VideoRenderer)
-         {
-             m_pMP4VideoRenderer->m_pOutputAllocator->ReleasePacketPtr((UINT8*) pBuffer);
-         }
-    }
-}
 
 /****************************************************************************
  *  Method:
@@ -1209,12 +1034,13 @@ void CMP4VideoFormat::KillOutputBuffer(void* pBuffer, void* pUserData)
 {
     if (pBuffer)
     {
-        CMP4VideoFormat* pVidFmt = (CMP4VideoFormat*)pUserData;
-        HX_ASSERT(pVidFmt);
-        if (pVidFmt)
-        {
-            pVidFmt->_KillOutputBuffer(pBuffer);
-        }
+	CMP4VideoRenderer* pVidRnd = (CMP4VideoRenderer*) pUserData;
+	HX_ASSERT(pVidRnd);
+
+	if (pVidRnd)
+	{
+	    pVidRnd->m_pOutputAllocator->ReleasePacketPtr((UINT8*) pBuffer);
+	}
     }
 }
 
@@ -1230,7 +1056,4 @@ void CMP4VideoFormat::RegisterPayloadFormats()
 	// H264 video format
     m_fmtFactory.RegisterBuilder(&H264PayloadFormat::Build);
 #endif	// defined(HELIX_FEATURE_VIDEO_CODEC_AVC1)
-#if defined(HELIX_FEATURE_VIDEO_CODEC_VP6)
-    m_fmtFactory.RegisterBuilder(&CHXFLVPayloadFormat::Build);
-#endif
 }

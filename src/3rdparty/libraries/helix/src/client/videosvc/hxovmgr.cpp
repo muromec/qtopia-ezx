@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxovmgr.cpp,v 1.9 2008/06/04 06:49:33 ping Exp $
+ * Source last modified: $Id: hxovmgr.cpp,v 1.7 2006/02/16 23:07:08 ping Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -194,7 +194,7 @@ STDMETHODIMP HXOverlayManager::HasOverlay(THIS_
                 IHXOverlayResponse* pResp
                 ) 
 {
-    HX_LOCK(m_pMutex);
+    m_pMutex->Lock();
 
     HX_RESULT res = HXR_FAIL;
     if (!m_pCurrentOverlayOwner)
@@ -203,8 +203,7 @@ STDMETHODIMP HXOverlayManager::HasOverlay(THIS_
         res = HXR_OK;
     }
 
-    HX_UNLOCK(m_pMutex);
-
+    m_pMutex->Unlock();
     return res;
 }
 
@@ -215,7 +214,7 @@ STDMETHODIMP HXOverlayManager::AddStats(THIS_
     if (m_bChangingOwner)
         return HXR_OK;
 
-    HX_LOCK(m_pMutex);
+    m_pMutex->Lock();
 
     CSiteStats* pStats;
     CStatPoint* pPoint;
@@ -274,8 +273,7 @@ STDMETHODIMP HXOverlayManager::AddStats(THIS_
 
     ValidateCurrentOwner();
 
-    HX_UNLOCK(m_pMutex);
-
+    m_pMutex->Unlock();
     return HXR_OK;
 }
 
@@ -366,7 +364,7 @@ STDMETHODIMP HXOverlayManager::Func(void)
 {
     m_bChangingOwner = TRUE;
 
-    HX_LOCK(m_pMutex);
+    m_pMutex->Lock();
 
     AddRef();
     
@@ -386,8 +384,8 @@ STDMETHODIMP HXOverlayManager::Func(void)
     m_CallbackHandle         = 0;
 
     Release();
-
-    HX_UNLOCK(m_pMutex);
+    
+    m_pMutex->Unlock();
 
     m_bChangingOwner = FALSE;
 
@@ -396,7 +394,7 @@ STDMETHODIMP HXOverlayManager::Func(void)
 
 STDMETHODIMP HXOverlayManager::RemoveOverlayRequest(THIS_ IHXOverlayResponse* pResp ) 
 {
-    HX_LOCK(m_pMutex);
+    m_pMutex->Lock();
     
     HX_RESULT res = HXR_FAIL;
 
@@ -437,6 +435,6 @@ STDMETHODIMP HXOverlayManager::RemoveOverlayRequest(THIS_ IHXOverlayResponse* pR
         m_ListOfSiteStats.GetNext(pos);
     }
 
-    HX_UNLOCK(m_pMutex);
+    m_pMutex->Unlock();
     return res;
 }

@@ -78,33 +78,13 @@
 #include "hxrendr.h"
 #include "hxformt.h"
 #include "hxengin.h"
-#include "hxpacketflags.h"
 
 #include "sdptools.h"
 #include "mp4desc.h"
 #include "mp4vpyld.h"
 #include "mp4pyldutil.h"
 #include "avcconfig.h"
-#include "pckunpck.h"
-#include "hxver.h"
-#include "mp4payload.ver"
 
-const char* const MP4VPayloadFormat::m_ppszMPEG4VideoCodecID[] = {
-#ifdef HELIX_FEATURE_OMX_VIDEO_DECODER_MP4
-                                                                    "OMXV",
-#endif
-                                                                    "MP4V", NULL};
-
-const char* const MP4VPayloadFormat::m_ppszAVCCodecID[]        = {
-#ifdef HELIX_FEATURE_OMX_VIDEO_DECODER_AVC1
-                                                                    "OMXV",
-#endif
-                                                                    "AVC1", "AVCQ", NULL};
-
-const char* const MP4VPayloadFormat::zm_pDescription    = "RealNetworks MPEG4 Video Packetizer Plugin";
-const char* const MP4VPayloadFormat::zm_pCopyright      = HXVER_COPYRIGHT;
-const char* const MP4VPayloadFormat::zm_pMoreInfoURL    = HXVER_MOREINFO;
-const char* const zm_pMimeType    = "video/MP4V-ES";
 
 MP4VPayloadFormat::MP4VPayloadFormat(CHXBufferMemoryAllocator* pAllocator)
     : m_lRefCount	(0)
@@ -124,10 +104,8 @@ MP4VPayloadFormat::MP4VPayloadFormat(CHXBufferMemoryAllocator* pAllocator)
     , m_bUsesRTPPackets (FALSE)
     , m_bRTPPacketTested(FALSE)
     , m_bPacketize	(FALSE)
-    , m_ulCodecIDIndex(0)
-    , m_ppszCodecID(NULL)
     , m_PayloadID	(PYID_UNKNOWN)
-    , m_pContext(NULL)
+    , m_pCodecId	(NULL)
 {
     if (m_pAllocator)
     {
@@ -148,7 +126,6 @@ MP4VPayloadFormat::~MP4VPayloadFormat()
     }
     HX_RELEASE(m_pClassFactory);
     HX_RELEASE(m_pStreamHeader);
-    HX_RELEASE(m_pContext);
 }
 
 HX_RESULT MP4VPayloadFormat::Build(REF(IMP4VPayloadFormat*) pFmt)
@@ -181,8 +158,6 @@ MP4VPayloadFormat::QueryInterface(REFIID riid, void** ppvObj)
     {
 	{ GET_IIDHANDLE(IID_IUnknown), this },
 	{ GET_IIDHANDLE(IID_IHXPayloadFormatObject), (IHXPayloadFormatObject*) this },
-	{ GET_IIDHANDLE(IID_IHXPluginProperties), (IHXPluginProperties*) this },
-	{ GET_IIDHANDLE(IID_IHXPlugin), (IHXPlugin*) this },
     };
     return ::QIFind(qiList, QILISTSIZE(qiList), riid, ppvObj);
 }
@@ -217,138 +192,6 @@ MP4VPayloadFormat::Release()
 
     delete this;
     return 0;
-}
-
-HX_RESULT STDAPICALLTYPE 
-MP4VPayloadFormat::HXCreateInstance(IUnknown** ppIUnknown)
-{
-    *ppIUnknown = (IUnknown*)(IHXPlugin*) new MP4VPayloadFormat();
-    if (*ppIUnknown)
-    {
-        (*ppIUnknown)->AddRef();
-        return HXR_OK;
-    }
-
-    return HXR_OUTOFMEMORY;
-}
-
-HX_RESULT STDAPICALLTYPE 
-MP4VPayloadFormat::CanUnload(void)
-{
-    return CanUnload2();
-}
-
-HX_RESULT STDAPICALLTYPE 
-MP4VPayloadFormat::CanUnload2(void)
-{
-    return ((CHXBaseCountingObject::ObjectsActive() > 0) ? HXR_FAIL : HXR_OK);
-}
-
-/************************************************************************
- *  IHXPlugin methods
- */
-/************************************************************************
- *  Method:
- *    IHXPlugin::InitPlugin
- *  Purpose:
- *    Initializes the plugin for use. This interface must always be
- *    called before any other method is called. This is primarily needed
- *    so that the plugin can have access to the context for creation of
- *    IHXBuffers and IMalloc.
- */
-STDMETHODIMP 
-MP4VPayloadFormat::InitPlugin(IUnknown* /*IN*/ pContext)
-{
-    HX_RESULT retVal = HXR_OK;
-
-    HX_ASSERT(pContext);
-
-    if(!pContext)
-    {
-        return HXR_INVALID_PARAMETER;
-    }
-
-    m_pContext = pContext;
-    m_pContext->AddRef();
-
-    HX_RELEASE(m_pClassFactory);
-    retVal = m_pContext->QueryInterface(IID_IHXCommonClassFactory,
-					 (void**) &m_pClassFactory);
-
-    return retVal;
-}
-
-/************************************************************************
- *  Method:
- *    IHXPlugin::GetPluginInfo
- *  Purpose:
- *    Returns the basic information about this plugin. Including:
- *
- *    bLoadMultiple	whether or not this plugin DLL can be loaded
- *			multiple times. All File Formats must set
- *			this value to TRUE.
- *    pDescription	which is used in about UIs (can be NULL)
- *    pCopyright	which is used in about UIs (can be NULL)
- *    pMoreInfoURL	which is used in about UIs (can be NULL)
- */
-STDMETHODIMP MP4VPayloadFormat::GetPluginInfo
-(
-    REF(HXBOOL)         bLoadMultiple,
-    REF(const char*)    pDescription,
-    REF(const char*)    pCopyright,
-    REF(const char*)    pMoreInfoURL,
-    REF(ULONG32)        ulVersionNumber
-)
-{
-    bLoadMultiple   = TRUE;   // Must be true for file formats.
-
-    pDescription    = zm_pDescription;
-    pCopyright      = zm_pCopyright;
-    pMoreInfoURL    = zm_pMoreInfoURL;
-    ulVersionNumber = TARVER_ULONG32_VERSION;
-
-    return HXR_OK;
-}
-
-/************************************************************************
- *  Method:
- *      IHXPluginProperties::GetProperties
- */
-
-STDMETHODIMP
-MP4VPayloadFormat::GetProperties(REF(IHXValues*) pIHXValuesProperties)
-{
-    HX_RESULT res = HXR_FAIL;
-    HX_ASSERT(m_pClassFactory);
-    if(!m_pClassFactory)
-    {
-        return res;
-    }
-    m_pClassFactory->CreateInstance(IID_IHXValues, (void**)&pIHXValuesProperties);
-
-    if (pIHXValuesProperties)
-    {
-        //plugin class
-        res = SetCStringPropertyCCF(pIHXValuesProperties, PLUGIN_CLASS,
-                                    PLUGIN_PACKETIZER_TYPE, m_pContext);
-        if (HXR_OK != res)
-        {
-            return res;
-        }
-
-        //mime type
-        res = SetCStringPropertyCCF(pIHXValuesProperties, PLUGIN_PACKETIZER_MIME,
-                                    zm_pMimeType, m_pContext); 
-        if (HXR_OK != res)
-        {
-            return res;
-        }
-    }
-    else
-    {
-        return HXR_OUTOFMEMORY;
-    }
-    return HXR_OK;
 }
 
 
@@ -512,7 +355,7 @@ HX_RESULT MP4VPayloadFormat::SetAssemblerHeader(IHXValues* pHeader)
     {
 	retVal = HXR_FAIL;
 
-        m_ppszCodecID = (const char**) m_ppszMPEG4VideoCodecID;
+	m_pCodecId = "MP4V";
 
 	if (strcasecmp(pMimeTypeData, MP4V_3016_PAYLOAD_MIME_TYPE) == 0)
 	{
@@ -532,7 +375,7 @@ HX_RESULT MP4VPayloadFormat::SetAssemblerHeader(IHXValues* pHeader)
 	else if (strcasecmp(pMimeTypeData, MP4V_HX_AVC1_PAYLOAD_MIME_TYPE) == 0)
 	{
 	    m_PayloadID = PYID_X_HX_AVC1;
-            m_ppszCodecID = (const char**) m_ppszAVCCodecID;
+	    m_pCodecId = "AVC1";
 	    retVal = SetAssemblerHX3GPPH264Header(pHeader);
 	}
 	else if (strcasecmp(pMimeTypeData, MP4V_HX_DIVX_PAYLOAD_MIME_TYPE) == 0)
@@ -710,19 +553,12 @@ HX_RESULT MP4VPayloadFormat::SetAssemblerHX3GPPH264Header(IHXValues* pHeader)
 
     HX_RELEASE(pAVCConfigurationBoxBuffer);
 
-    retVal = HXR_OK;
     return retVal;
 }
 
-HX_RESULT MP4VPayloadFormat::SetAssemblerHXAVIHeader(IHXValues* pHeader)
+HX_RESULT MP4VPayloadFormat::SetAssemblerHXAVIHeader(IHXValues* /* pHeader */)
 {
-    HX_RESULT retVal = HXR_OK;
-
-    // We'll let decoder initialize with in-band bitstream
-    HX_VECTOR_DELETE(m_pBitstreamHeader);
-    m_ulBitstreamHeaderSize = 0;
-
-    return retVal;
+    return HXR_OK;
 }
 
 STDMETHODIMP
@@ -1444,22 +1280,6 @@ HX_RESULT MP4VPayloadFormat::CreateHXCodecPacket(UINT32* &pHXCodecDataOut)
 
 		HX_ASSERT(pPacket);
 
-                // Determine if this is a keyframe. If there
-                // are multiple packets with the same timestamp,
-                // then only look at the first one.
-                if (ulIdx == 0)
-                {
-                    // Get the ASM flags
-                    BYTE ucFlags = pPacket->GetASMFlags();
-                    // Is HX_ASM_SWITCH_ON set in the ASM flags?
-                    if (ucFlags & HX_ASM_SWITCH_ON)
-                    {
-                        // This is a keyframe packet, so set the keyframe
-                        // flag in the HXCODEC_DATA flags field.
-                        pHXCodecData->flags |= HX_KEYFRAME_FLAG;
-                    }
-                }
-
 		ulSegmentSize = 0;
 
 		pHXCodecSegmentInfo[ulIdx].ulSegmentOffset = ulFrameSize;
@@ -1571,43 +1391,6 @@ HX_RESULT MP4VPayloadFormat::CreateHXCodecPacket(UINT32* &pHXCodecDataOut)
     }
 
     return retVal;
-}
-
-const char* MP4VPayloadFormat::GetCodecId()
-{
-    const char* pszRet = NULL;
-
-    if (m_ppszCodecID)
-    {
-        pszRet = m_ppszCodecID[m_ulCodecIDIndex];
-    }
-
-    return pszRet;
-}
-
-HX_RESULT MP4VPayloadFormat::SetNextCodecId()
-{
-    HX_RESULT retVal = HXR_FAIL;
-
-    // Is our current codec ID non-NULL?
-    if (m_ppszCodecID && m_ppszCodecID[m_ulCodecIDIndex])
-    {
-        // Advance the codec ID index
-        m_ulCodecIDIndex++;
-        // Now is our codec index non-NULL?
-        if (m_ppszCodecID[m_ulCodecIDIndex])
-        {
-            // If we have a non-NULL codec ID, then clear the return value
-            retVal = HXR_OK;
-        }
-    }
-
-    return retVal;
-}
-
-void MP4VPayloadFormat::ResetCodecId()
-{
-    m_ulCodecIDIndex = 0;
 }
 
 

@@ -1,8 +1,8 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: sdpmdgen.cpp,v 1.74 2009/06/05 05:31:55 ckarusala Exp $
- *
+ * Source last modified: $Id: sdpmdgen.cpp,v 1.54 2007/04/24 05:10:19 npatil Exp $
+ * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
- *
+ * 
  * The contents of this file, and the files included with this file,
  * are subject to the current version of the RealNetworks Public
  * Source License (the "RPSL") available at
@@ -16,9 +16,9 @@
  * to this file, the RCSL.  Please see the applicable RPSL or RCSL for
  * the rights, obligations and limitations governing use of the
  * contents of the file.
- *
+ * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -28,23 +28,23 @@
  * the GPL. If you do not delete the provisions above, a recipient may
  * use your version of this file under the terms of any one of the
  * RPSL, the RCSL or the GPL.
- *
+ * 
  * This file is part of the Helix DNA Technology. RealNetworks is the
  * developer of the Original Code and owns the copyrights in the
  * portions it created.
- *
+ * 
  * This file, and the files included with this file, is distributed
  * and made available on an 'AS IS' basis, WITHOUT WARRANTY OF ANY
  * KIND, EITHER EXPRESS OR IMPLIED, AND REALNETWORKS HEREBY DISCLAIMS
  * ALL SUCH WARRANTIES, INCLUDING WITHOUT LIMITATION, ANY WARRANTIES
  * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, QUIET
  * ENJOYMENT OR NON-INFRINGEMENT.
- *
+ * 
  * Technology Compatibility Kit Test Suite(s) Location:
  *    http://www.helixcommunity.org/content/tck
- *
+ * 
  * Contributor(s):
- *
+ * 
  * ***** END LICENSE BLOCK ***** */
 
 #include "sdptypes.h"
@@ -70,22 +70,21 @@
 #define IP6_HEAD_SZ 320 // 40 bytes
 #define ETH_HEAD_SZ 208 // 26 bytes: 8 preamble, 14 header, 4 CRC
 
-#define SDP_DEFAULT_PACKET_RATE 16
+#define SDP_DEFAULT_PACKET_RATE 16 
 
 #define SDP_CLIENT_HLX  0x00000001
 #define SDP_CLIENT_REL6 0x00000010
 
-#define NADU_REPORT_FREQUENCY_CFG "config.StreamAdaptation.NADUReportFrequency"
-#define REG_RTSP_PREF_TCP "config.MediaDelivery.UserAgentSettings.Default.PreferTCP"
-
+#define NADU_REPORT_FREQUENCY_CFG "config.3GPPStreamAdaptation.NADUReportFreq"
+#define REG_RTSP_PREF_TCP "config.Protocols.RTSP.PreferClientTCP"
 #define SDP_TITLE_CFG "config.SDPDefaultTitle"
 #define SDP_TITLE_LEN_CFG "config.SDPTitleNumCharsOfFilename"
 
 // Helix Rate Adaptation Configuration; default is TRUE
-#define REGISTRY_GL_HRA_CFG "config.StreamAdaptation.AdvertiseHelixAdaptation"
+#define REGISTRY_GL_HRA_CFG "config.MediaDelivery.EnableHelixRateAdaptation"
 BOOL    SDPMediaDescGenerator::g_bHelixRateAdaptationConfigured = TRUE;
 
-// 3GPP adaptation report frequency. Default to 1.
+// 3GPP adaptation report frequency. Default to 3.
 UINT32  SDPMediaDescGenerator::g_ul3GPPNADUReportFreq = 1;
 BOOL    SDPMediaDescGenerator::g_bGot3GPPNADUReportFreq = FALSE;
 
@@ -95,12 +94,12 @@ BOOL    SDPMediaDescGenerator::g_bCheckedHelixRateAdaptationLicense = FALSE;
 
 // Maybe we should also add a config list so more
 // can be added in the field
-const char* SDPMediaDescGenerator::g_pHelixClients[] =
+const char* SDPMediaDescGenerator::g_pHelixClients[] = 
 { "RealMedia", "RealOne", "Helix", NULL };
 
 // SDPData chunk lines to skip when writing to the SDP.
 // All lines that are not a= will be skipped by default.
-const SDPMediaDescGenerator::SDPDataLine
+const SDPMediaDescGenerator::SDPDataLine 
 SDPMediaDescGenerator::g_pSDPDataPullTable[] =
 {
     {"a=control:",                  sizeof("a=control:") - 1},
@@ -150,15 +149,15 @@ HX_RESULT SDPMediaDescGenerator::Init(IUnknown* pContext)
             m_pContext = pContext;
             m_pContext->AddRef();
 
-            res = pContext->QueryInterface(IID_IHXRegistry,
+            res = pContext->QueryInterface(IID_IHXRegistry, 
                 (void**)&m_pRegistry);
         }
         if (!g_bGot3GPPNADUReportFreq && SUCCEEDED(res))
         {
-            // Look up and store the 3GPP Adaptation Report Frequency
+            // Look up and store the 3GPP Adaptation Report Frequency 
             // in the config if we haven't yet
             INT32 lFrequency;
-            if (SUCCEEDED(m_pRegistry->GetIntByName(NADU_REPORT_FREQUENCY_CFG,
+            if (SUCCEEDED(m_pRegistry->GetIntByName(NADU_REPORT_FREQUENCY_CFG, 
                 lFrequency)))
             {
                 g_ul3GPPNADUReportFreq = (UINT32)lFrequency;
@@ -171,7 +170,7 @@ HX_RESULT SDPMediaDescGenerator::Init(IUnknown* pContext)
     return res;
 }
 
-HX_RESULT SDPMediaDescGenerator::Generate(UINT16 nValues,
+HX_RESULT SDPMediaDescGenerator::Generate(UINT16 nValues, 
                                           IHXValues** pValueArray,
                                           REF(IHXBuffer*) pDescription)
 {
@@ -201,7 +200,7 @@ HX_RESULT SDPMediaDescGenerator::Generate(UINT16 nValues,
         pszEOL[2] = '\0';
     }
 
-    // Check for Helix Rate Adaptation license if
+    // Check for Helix Rate Adaptation license if 
     // we haven't already
     if (!g_bCheckedHelixRateAdaptationLicense && m_pRegistry)
     {
@@ -237,23 +236,28 @@ HX_RESULT SDPMediaDescGenerator::Generate(UINT16 nValues,
                 && lTCPPref)
         {
             // If PreferClientTCP is set, we will assume TCP unless
-            // otherwise specified in the optional header
+            // otherwise specified in the optional header 
             // (from UA config)
             bTCP = TRUE;
         }
     }
 
+    rc = SpecComplianceCheck(nValues, pValueArray);    
+    if (HXR_OK != rc)
+    {
+        return rc;
+    }
     // get local host address from registry
 
-    /*  XXX
+    /*  XXX 
      *  Interop:  Our old system is expecting a media type in m= to be either
-     *  "audio", "video", or "data" and anything else will be ignored.
+     *  "audio", "video", or "data" and anything else will be ignored.  
      *  The spec dectates otherwise...It should be whatever the type of mimetype
-     *  is.  So, depending on the setting, we will have to change how we create
+     *  is.  So, depending on the setting, we will have to change how we create 
      *  m= line for interop and backward comp.
      *
      *  by default, we will do the spec complient way.
-     */
+     */    
     BOOL bUseOldSdp = FALSE;
 
 #if 0
@@ -286,49 +290,44 @@ HX_RESULT SDPMediaDescGenerator::Generate(UINT16 nValues,
     // munge current time with IP
     NPTime timeNow;
     //XXXDPL is the hostaddr necessary here?
-    //SafeSprintf(pszSessionID, 40, "%lu", ulHostAddr + timeNow.m_lMicroSecond);
-    SafeSprintf(pszSessionID, 40, "%lu", timeNow.m_lMicroSecond);
-    SafeSprintf(pszVersion, 40, "%lu", timeNow.m_lMicroSecond);
+    //SafeSprintf(pszSessionID, 40, "%lu", ulHostAddr + timeNow.m_lMicroSecond); 
+    SafeSprintf(pszSessionID, 40, "%lu", timeNow.m_lMicroSecond); 
+    SafeSprintf(pszVersion, 40, "%lu", timeNow.m_lMicroSecond); 
 
     IHXBuffer* pReqURL = NULL;
     IHXBuffer* pContentBase = NULL;
     IHXBuffer* pQueryParams = NULL;
     IHXBuffer* pHostname = NULL;
     double dBWMult = 1.0;
-    HXBOOL bUnspecifiedRange = FALSE;
 
-    // pValueArray[1] - optional session properties
     if(pValueArray[1])
     {
-        rc = pValueArray[1]->GetFirstPropertyULONG32(pPropName, propValue);
-        while(rc == HXR_OK)
+        ULONG32 ulLastMod;
+
+        rc = pValueArray[1]->GetPropertyULONG32("LastModified", ulLastMod);
+        if (SUCCEEDED(rc))
         {
-            if (strcasecmp(pPropName, "LastModified") == 0)
-            {
-                SafeSprintf(pszVersion, 40,"%lu", propValue);
-                SafeSprintf(pszSessionID, 40,"%lu", propValue);
-            }
-            else if (strcasecmp(pPropName, "BandwidthMultiplier") == 0)
-            {
-                dBWMult =  (double)propValue / 100.0;
-            }
-            else if (strcasecmp(pPropName, "OpenDuration") == 0)
-            {
-                bUnspecifiedRange = (HXBOOL) propValue;
-            }
-            rc = pValueArray[1]->GetNextPropertyULONG32(pPropName, propValue);
+            SafeSprintf(pszVersion, 40,"%lu", ulLastMod);
+            SafeSprintf(pszSessionID, 40,"%lu", ulLastMod);
+        }
+
+        rc = pValueArray[1]->GetPropertyULONG32("BandwidthMultiplier", 
+                propValue);
+        if (SUCCEEDED(rc) && propValue > 100)
+        {
+            dBWMult =  (double)propValue / 100.0;
         }
 
         rc = pValueArray[1]->GetFirstPropertyCString(pPropName,
             pPropBuffer);
         while(rc == HXR_OK)
         {
-            if (m_bUseAbsoluteURL &&
+            if (m_bUseAbsoluteURL && 
                 strcasecmp(pPropName, "AbsoluteBaseURL") == 0)
             {
                 pContentBase = pPropBuffer;
             }
-            else if (m_bUseAbsoluteURL && strcasecmp(pPropName,
+            else if (m_bUseAbsoluteURL && strcasecmp(pPropName, 
                 "URLQueryParams") == 0)
             {
                 pQueryParams = pPropBuffer;
@@ -352,7 +351,7 @@ HX_RESULT SDPMediaDescGenerator::Generate(UINT16 nValues,
             }
             else if (strcasecmp(pPropName, "SockFamily") == 0)
             {
-                if (pPropBuffer &&
+                if (pPropBuffer && 
                     !strcasecmp((const char*)pPropBuffer->GetBuffer(), "IN6"))
                 {
                     bIsIN6 = TRUE;
@@ -362,14 +361,14 @@ HX_RESULT SDPMediaDescGenerator::Generate(UINT16 nValues,
             }
             else if (strcasecmp(pPropName, "BandwidthProtocol") == 0)
             {
-                if (pPropBuffer &&
+                if (pPropBuffer && 
                     !strcasecmp((const char*)pPropBuffer->GetBuffer(), "TCP"))
                 {
                     bTCP = TRUE;
                 }
                 else
                 {
-                    // If this is present, it overrides any global
+                    // If this is present, it overrides any global 
                     // protocol setting
                     bTCP = FALSE;
                 }
@@ -388,7 +387,7 @@ HX_RESULT SDPMediaDescGenerator::Generate(UINT16 nValues,
         }
     }
 
-    const char* szHostname = NULL;
+    const char* szHostname = NULL; 
     if (pHostname)
     {
         szHostname = (const char*)pHostname->GetBuffer();
@@ -409,13 +408,13 @@ HX_RESULT SDPMediaDescGenerator::Generate(UINT16 nValues,
     ulLen = strlen(pszSessionID) + strlen(pszVersion) + strlen(szHostname) + 64;
     NEW_FAST_TEMP_STR(pszTmpString, 256, ulLen);
 
-    SafeSprintf(pszTmpString, ulLen,
+    SafeSprintf(pszTmpString, ulLen, 
                 "v=0%so=- %s %s IN %s %s%s",
-                pszEOL,
-                pszSessionID,
-                pszVersion,
-                bIsIN6 ? "IP6" : "IP4",
-                szHostname,
+                pszEOL, 
+                pszSessionID, 
+                pszVersion, 
+                bIsIN6 ? "IP6" : "IP4", 
+                szHostname, 
                 pszEOL);
 
 #if 0
@@ -434,7 +433,7 @@ HX_RESULT SDPMediaDescGenerator::Generate(UINT16 nValues,
     headerAttributes.SetMinBufSize(8192);
 
     BOOL   bAddToHeader = 0;
-    UINT32 ulSessionDuration = 0;
+    UINT32 ulDefaultDuration = 0;
     BOOL   bDefaultDurationFound = FALSE;
     BOOL   bIsLive = FALSE;
     BOOL   bIsRealDatatype = FALSE;
@@ -442,6 +441,8 @@ HX_RESULT SDPMediaDescGenerator::Generate(UINT16 nValues,
     BOOL   bFoundStreamGroupCount = FALSE;
     UINT32 ulStreamCount = 0;
     BOOL   bFoundStreamCount = FALSE;
+    BOOL   bSendASMRuleBook = TRUE;
+    BOOL   bOldClient = FALSE;
     UINT32 ulClientType = 0;
     UINT32 ulPktHead = 0;
     UINT32 ulASBitRate = 0;
@@ -465,7 +466,7 @@ HX_RESULT SDPMediaDescGenerator::Generate(UINT16 nValues,
         }
     }
 
-    if(!bUseOldSdp)
+    if(!bUseOldSdp) 
     {
         if (!pControlStringBuff)
         {
@@ -477,7 +478,7 @@ HX_RESULT SDPMediaDescGenerator::Generate(UINT16 nValues,
                 char *pszBaseURL = (char*)pContentBase->GetBuffer();
                 UINT32 ulBaseLen = strlen(pszBaseURL);
                 UINT32 ulBuffLen = strlen(pszFieldPrefix) + ulBaseLen +
-                                   ((pQueryParams) ?
+                                   ((pQueryParams) ? 
                                    pQueryParams->GetSize() : 0);
                 char cPathDelim = '\0';
 
@@ -490,8 +491,8 @@ HX_RESULT SDPMediaDescGenerator::Generate(UINT16 nValues,
                 }
 
                 ulBuffLen += strlen(pszEOL) + 1;
-                NEW_FAST_TEMP_STR(pszSessionCtrl, 512, ulBuffLen);
-                SafeSprintf(pszSessionCtrl, ulBuffLen, "%s%s%s%s",
+                NEW_FAST_TEMP_STR(pszSessionCtrl, 512, ulBuffLen); 
+                SafeSprintf(pszSessionCtrl, ulBuffLen, "%s%s%s%s", 
                          pszFieldPrefix, pszBaseURL,
                          (pQueryParams)?((char*)pQueryParams->GetBuffer()) : "",
                          pszEOL);
@@ -503,10 +504,10 @@ HX_RESULT SDPMediaDescGenerator::Generate(UINT16 nValues,
                 headerAttributes += pszSessionCtrl;
                 DELETE_FAST_TEMP_STR(pszSessionCtrl);
             }
-            else
+            else 
             {
                 ulBuffLen = strlen(pszFieldPrefix) + strlen(pszEOL) + 2;
-                NEW_FAST_TEMP_STR(pszSessionCtrl, 512, ulBuffLen);
+                NEW_FAST_TEMP_STR(pszSessionCtrl, 512, ulBuffLen); 
                 SafeSprintf(pszSessionCtrl, ulBuffLen, "%s*%s", pszFieldPrefix, pszEOL);
                 headerAttributes += pszSessionCtrl;
                 DELETE_FAST_TEMP_STR(pszSessionCtrl);
@@ -519,7 +520,7 @@ HX_RESULT SDPMediaDescGenerator::Generate(UINT16 nValues,
             ulBuffLen += (pQueryParams) ? pQueryParams->GetSize() : 0;
             ulBuffLen += 64;
 
-            NEW_FAST_TEMP_STR(pszControlString, 512, ulBuffLen);
+            NEW_FAST_TEMP_STR(pszControlString, 512, ulBuffLen); 
             SafeSprintf(pszControlString, ulBuffLen, "a=control:%s%s%s%s",
                      (pContentBase ? ((char*)pContentBase->GetBuffer()) : ""),
                      pControlStringBuff->GetBuffer(),
@@ -534,10 +535,9 @@ HX_RESULT SDPMediaDescGenerator::Generate(UINT16 nValues,
     // Find out what type of client we've got
     ulClientType = CheckClient(pUserAgent, pPSSVersion);
 
-    ulSessionDuration = GetSessionDuration(nValues, pValueArray);
-
-
-    HXBOOL bStandardSDP = FALSE;
+    // bOldClient TRUE is it's a helix client and not rel 6.
+    bOldClient = (ulClientType & (SDP_CLIENT_HLX | SDP_CLIENT_REL6)) == 
+                    SDP_CLIENT_HLX;
 
     rc = pValueArray[0]->GetFirstPropertyULONG32(pPropName, propValue);
 
@@ -557,6 +557,9 @@ HX_RESULT SDPMediaDescGenerator::Generate(UINT16 nValues,
         }
         else if(strcasecmp(pPropName, "Duration") == 0)
         {
+            // save this off, so we can add an appropriate a=range depending
+            // on the value in "SdpFileType"
+            ulDefaultDuration = propValue;
             bDefaultDurationFound = TRUE;
         }
         else if(strcasecmp(pPropName, "LiveStream") == 0)
@@ -568,7 +571,11 @@ HX_RESULT SDPMediaDescGenerator::Generate(UINT16 nValues,
         else if(strcasecmp(pPropName, "SdpFileType") == 0)
         {
             // don't add it to attribute.
-            bAddToHeader = FALSE;
+            bAddToHeader = FALSE;    
+        }
+        else if (strcasecmp(pPropName, "ASMRuleBookOptional") == 0)
+        {
+            bSendASMRuleBook = propValue ? FALSE : TRUE;
         }
         else if (strcasecmp(pPropName, "IsRealDatatype") == 0)
         {
@@ -585,22 +592,16 @@ HX_RESULT SDPMediaDescGenerator::Generate(UINT16 nValues,
             ulStreamCount = propValue;
             bFoundStreamCount = TRUE;
         }
-        else if (strcasecmp(pPropName, "StandardSDP") == 0)
-        {
-            bStandardSDP = propValue ? TRUE : FALSE;                    
-        }
         else
         {
-            //If a standard SDP has to be generated then don't
-            //add unknown values to SDP.
-            bAddToHeader =  bStandardSDP ? FALSE : TRUE;
+            bAddToHeader = TRUE;
         }
 
         if(bAddToHeader)
         {
             ulLen = strlen(pPropName) + 64;
             NEW_FAST_TEMP_STR(pszAttBuf, 256, ulLen);
-            SafeSprintf(pszAttBuf, ulLen, "a=%s:integer;%d%s", pPropName,
+            SafeSprintf(pszAttBuf, ulLen, "a=%s:integer;%d%s", pPropName, 
                                                     propValue, pszEOL);
             headerAttributes += pszAttBuf;
             DELETE_FAST_TEMP_STR(pszAttBuf);
@@ -621,36 +622,28 @@ HX_RESULT SDPMediaDescGenerator::Generate(UINT16 nValues,
     {
         INT32 dataSize = pPropBuffer->GetSize();
         char* pString = (char*) pPropBuffer->GetBuffer();
-        bAddToHeader = FALSE;
+        bAddToHeader = TRUE;         // add it to attribute by default
 
         if (dataSize > 0 && pString != NULL && *pString != '\0')
         {
             if(strcasecmp(pPropName, "Title") == 0)
             {
-                bAddToHeader = TRUE;
                 pszTitle = new char [ dataSize + 1 ];
                 memcpy(pszTitle, (const char*)pPropBuffer->GetBuffer(), dataSize); /* Flawfinder: ignore */
                 pszTitle[dataSize] = '\0';
             }
             else if(strcasecmp(pPropName, "Author") == 0)
             {
-                bAddToHeader = TRUE;
                 pszAuthor = new char [ dataSize + 1 ];
                 memcpy(pszAuthor, (const char*)pPropBuffer->GetBuffer(), dataSize); /* Flawfinder: ignore */
                 pszAuthor[dataSize] = '\0';
             }
             else if(strcasecmp(pPropName, "Copyright") == 0)
             {
-                bAddToHeader = TRUE;
                 pszCopyright = new char [ dataSize + 1 ];
                 memcpy(pszCopyright, (const char*)pPropBuffer->GetBuffer(), dataSize); /* Flawfinder: ignore */
                 pszCopyright[dataSize] = '\0';
             }
-            else
-            {
-                bAddToHeader = bStandardSDP ? FALSE : TRUE;
-            }
-
             if (bAddToHeader)
             {
                 ulLen = dataSize * 2 + strlen(pPropName) + 64;
@@ -694,25 +687,25 @@ HX_RESULT SDPMediaDescGenerator::Generate(UINT16 nValues,
                 pszTitle = EscapeBuffer(pString, pPropBuffer->GetSize());
                 pszData = pszTitle;
 
-                bAddToHeader = TRUE;
+                bAddToHeader = TRUE;    
             }
             else if(strcasecmp(pPropName, "Author") == 0)
             {
                 pszAuthor = EscapeBuffer(pString, pPropBuffer->GetSize());
                 pszData = pszAuthor;
 
-                bAddToHeader = TRUE;
+                bAddToHeader = TRUE;    
             }
             else if(strcasecmp(pPropName, "Copyright") == 0)
             {
                 pszCopyright = EscapeBuffer(pString, pPropBuffer->GetSize());
                 pszData = pszCopyright;
 
-                bAddToHeader = TRUE;
+                bAddToHeader = TRUE;    
             }
             else if(strcasecmp(pPropName, "MulticastAddress") == 0)
             {
-                sessionInfo.pszConnAddr =
+                sessionInfo.pszConnAddr = 
                     EscapeBuffer(pString, pPropBuffer->GetSize());
             }
             else if(strcasecmp(pPropName, "SDPData") == 0)
@@ -722,12 +715,16 @@ HX_RESULT SDPMediaDescGenerator::Generate(UINT16 nValues,
             else if(strcasecmp(pPropName, "Information") == 0)
             {
                 // "i="
-                sessionInfo.pszInfo =
+                sessionInfo.pszInfo = 
                     EscapeBuffer(pString, pPropBuffer->GetSize());
             }
             else if (strcasecmp(pPropName, "ASMRuleBook") == 0)
             {
-                bAddToHeader = TRUE;
+                // If ASMRuleBookOptional is set, then only send the
+                // rulebook if this is a known pre-rel6 helix client 
+                // and we have rel-6 multirate
+                bAddToHeader = bSendASMRuleBook || 
+                    (ulStreamGroupCount && bOldClient);
 
                 if (bAddToHeader)
                 {
@@ -737,12 +734,9 @@ HX_RESULT SDPMediaDescGenerator::Generate(UINT16 nValues,
             }
             else
             {
-                bAddToHeader = bStandardSDP ? FALSE : TRUE;
-                if (bAddToHeader)
-                {
                 pszData = EscapeBuffer(pString, pPropBuffer->GetSize());
+                bAddToHeader = TRUE;
                 bDeleteString = TRUE;
-            }
             }
 
             if(bAddToHeader)
@@ -761,14 +755,14 @@ HX_RESULT SDPMediaDescGenerator::Generate(UINT16 nValues,
                 HX_VECTOR_DELETE(pszData);
             }
         }
-
+        
         HX_RELEASE(pPropBuffer);
         rc = pValueArray[0]->GetNextPropertyCString(pPropName,
                                                     pPropBuffer);
     }
 
     // Determine the expected packet overhead size for b=AS
-    ulPktHead = !bTCP ? UDP_HEAD_SZ + ETH_HEAD_SZ :
+    ulPktHead = !bTCP ? UDP_HEAD_SZ + ETH_HEAD_SZ : 
                 TCP_HEAD_SZ + ETH_HEAD_SZ;
 
     ulPktHead += !bIsIN6 ? IP4_HEAD_SZ : IP6_HEAD_SZ;
@@ -778,32 +772,41 @@ HX_RESULT SDPMediaDescGenerator::Generate(UINT16 nValues,
     ulPktHead += (bIsRealDatatype || (ulClientType & SDP_CLIENT_HLX)) ?
                 RDT_HEAD_SZ : RTP_HEAD_SZ;
 
-    if (bIsLive)
-    {
-        bUnspecifiedRange = TRUE;
-    }
-
     /*
-     *  Session level a=range
+     *  Things in headerAttributes that depend on the value in "SdpFileType"
      */
-    headerAttributes += "a=range:npt=0-";
-    if (!bUnspecifiedRange)
+    if (!bIsLive)
     {
-        // Add finite range for normal on-demand content
-        NPTime npTime(ulSessionDuration);
-        const char* pszTime = (const char*)npTime;
-        headerAttributes += pszTime;
+        if (bDefaultDurationFound)
+        {
+            NPTime npTime(ulDefaultDuration);
 
-    }
-    else if (bUseOldSdp)
-    {
-        // 0-0 for ancient clients
-        headerAttributes += "0";
-    }
-    // Leave open-ended 0- range for live or unspecified duration
-    headerAttributes += pszEOL;
-
-
+            const char* pszTime = (const char*)npTime;
+            headerAttributes += "a=range:npt=0-";
+            headerAttributes += pszTime;
+            headerAttributes += pszEOL;
+        }               
+        else
+        {
+            /*
+             * error case - SpecComplianceCheck() should be taking care of it.
+             *
+             * let's just treat it as live.  When file is done, RTCP_BYE
+             * will be sent, and client TEARDOWN
+             */
+                if (bUseOldSdp)
+                {
+                    SafeSprintf(psz256, 256, "a=range:npt=0-0%s", pszEOL); 
+                        headerAttributes += psz256;             
+                }
+                else
+                {
+                    SafeSprintf(psz256, 256,"a=range:npt=0-%s", pszEOL); 
+                        headerAttributes += psz256;             
+                }
+        }
+    }   
+     
     // Add a title in s=
     const char* pActualTitle = pszTitle;
     INT32 lTitleLen = 0;
@@ -818,7 +821,7 @@ HX_RESULT SDPMediaDescGenerator::Generate(UINT16 nValues,
         }
 
         // if no default, look for a file name size limit
-        else if (SUCCEEDED(m_pRegistry->GetIntByName(SDP_TITLE_LEN_CFG,
+        else if (SUCCEEDED(m_pRegistry->GetIntByName(SDP_TITLE_LEN_CFG, 
                 lTitleLen)) && lTitleLen < 0)
         {
             lTitleLen = 0;
@@ -856,7 +859,7 @@ HX_RESULT SDPMediaDescGenerator::Generate(UINT16 nValues,
 
         // Search back for the preceding '/' to find the start
         // of the file name
-        for (pTitleStart = pTitleEnd;
+        for (pTitleStart = pTitleEnd; 
              pTitleStart > pActualTitle && *(pTitleStart-1) != '/';
              --pTitleStart)
         {
@@ -872,8 +875,8 @@ HX_RESULT SDPMediaDescGenerator::Generate(UINT16 nValues,
 
         pActualTitle = pTitleStart;
     }
-
-    // If still no title, we will just use a single space
+    
+    // If still no title, we will just use a single space 
     if (!pActualTitle)
     {
         pActualTitle = (char*)" ";
@@ -890,7 +893,7 @@ HX_RESULT SDPMediaDescGenerator::Generate(UINT16 nValues,
     sprintf(pszTitleStr, "s=%.*s%s", lTitleLen, pActualTitle, pszEOL); /* Flawfinder: ignore */
     mDesc += pszTitleStr;
     DELETE_FAST_TEMP_STR(pszTitleStr);
-
+    
     HX_RELEASE(pDefaultTitle);
 
     if (sessionInfo.pszInfo)
@@ -913,7 +916,7 @@ HX_RESULT SDPMediaDescGenerator::Generate(UINT16 nValues,
         NEW_FAST_TEMP_STR(pszTmpString, 512, ulLen);
 
         SafeSprintf(pszTmpString, ulLen, "i=%s %s%s",
-            pszAuthor ? pszAuthor : pszDefaultAuthor,
+            pszAuthor ? pszAuthor : pszDefaultAuthor, 
             pszCopyright ? pszCopyright : pszDefaultCopyright,
             pszEOL);
 
@@ -933,16 +936,16 @@ HX_RESULT SDPMediaDescGenerator::Generate(UINT16 nValues,
     /* Format the connection line only if MulticastAddress and MulticastTTL
      * exist in the file header
      */
-    if (sessionInfo.pszConnAddr && strlen(sessionInfo.pszConnAddr) &&
+    if (sessionInfo.pszConnAddr && strlen(sessionInfo.pszConnAddr) && 
         sessionInfo.bConnTTLFound)
     {
         ulLen = strlen(sessionInfo.pszConnAddr) + 64;
         NEW_FAST_TEMP_STR(pszTmpString, 256, ulLen);
         if (sessionInfo.bConnRangeFound)
         {
-            SafeSprintf(pszTmpString, ulLen, "c=IN %s %s/%d/%d%s",
+            SafeSprintf(pszTmpString, ulLen, "c=IN %s %s/%d/%d%s", 
                 bIsIN6 ? "IP6" : "IP4",
-                sessionInfo.pszConnAddr, sessionInfo.ulConnTTL,
+                sessionInfo.pszConnAddr, sessionInfo.ulConnTTL, 
                 sessionInfo.ulConnRange, pszEOL);
         }
         else
@@ -957,11 +960,11 @@ HX_RESULT SDPMediaDescGenerator::Generate(UINT16 nValues,
         DELETE_FAST_TEMP_STR(pszTmpString);
     }
     else if (!bUseOldSdp)
-    {
+    {   
         // we still need a c= line with a NULL value (RFC 2326 C.1.7)
         // XXXGo
-        // Since adding this line w/o TTL (i.e. 0.0.0.0/ttl) will cause
-        // older sdpplin to skip the next line (due to a wrong parsing),
+        // Since adding this line w/o TTL (i.e. 0.0.0.0/ttl) will cause 
+        // older sdpplin to skip the next line (due to a wrong parsing), 
         // add this only when we are using new sdp type.
         if (bIsIN6)
         {
@@ -978,9 +981,9 @@ HX_RESULT SDPMediaDescGenerator::Generate(UINT16 nValues,
     mDesc += pszEOL;
 
     /* add sdpplin version */
-    SafeSprintf(psz256, 256, "a=SdpplinVersion:%u%s", m_ulVersion, pszEOL);
+    SafeSprintf(psz256, 256, "a=SdpplinVersion:%u%s", m_ulVersion, pszEOL); 
     mDesc += psz256;
-
+    
     // a=StreamCount needed for legacy splitting
     // should be set to the number of stream groups
     // when in use, otherwise just the number of logical streams
@@ -1018,7 +1021,7 @@ HX_RESULT SDPMediaDescGenerator::Generate(UINT16 nValues,
     // If we have stream groups, pull them and generate alt streams
     if (bFoundStreamGroupCount)
     {
-        rc = GetStreamGroups(nValues, pValueArray, ulStreamGroupCount,
+        rc = GetStreamGroups(nValues, pValueArray, ulStreamGroupCount, 
             pStreamGroups);
 
         if (SUCCEEDED(rc))
@@ -1029,18 +1032,12 @@ HX_RESULT SDPMediaDescGenerator::Generate(UINT16 nValues,
     }
 
 
-    IHXValues* pStreamHeader = NULL;
+    IHXValues* pStreamHeader = NULL;    
     BOOL bDefault = TRUE;
     char szAltPrefix[32]; // "a=alt:<alt-id>:" /* Flawfinder: ignore */
     MediaInfo defaultInfo;
     MediaInfo altInfo;
     MediaInfo* pStreamInfo = NULL;
-
-    UINT32 ulStreamNumber = 0;
-    HXBOOL bFoundStreamNum = FALSE;
-
-    HXBOOL bEndTimeFound = FALSE;
-
     for(UINT32 i = 0; i < ulNumMediaLines; )
     {
         pStreamInfo = &defaultInfo;
@@ -1064,6 +1061,7 @@ HX_RESULT SDPMediaDescGenerator::Generate(UINT16 nValues,
 
             // Initialize everything to 0/FALSE/NULL
             memset(pStreamInfo, 0, sizeof(MediaInfo));
+            bSendASMRuleBook = TRUE;
 
             rc = pStreamHeader->GetFirstPropertyULONG32(pPropName, propValue);
             while(rc == HXR_OK)
@@ -1072,9 +1070,6 @@ HX_RESULT SDPMediaDescGenerator::Generate(UINT16 nValues,
 
                 if(strcasecmp(pPropName, "StreamNumber") == 0)
                 {
-                   bFoundStreamNum = TRUE;
-                   ulStreamNumber = propValue;
-
                     // Do not use StreamNumber as ControlID if we
                     // have found TrackID already
                     if (!pStreamInfo->bControlIDFound)
@@ -1121,22 +1116,22 @@ HX_RESULT SDPMediaDescGenerator::Generate(UINT16 nValues,
                 {
                     pStreamInfo->ulPtime = propValue;
                     pStreamInfo->bPtimeFound = TRUE;
-                }
+                }   
                 else if(strcasecmp(pPropName, "AvgBitRate") == 0)
-                {
+                {   
                     pStreamInfo->ulAvgBitRate = propValue;
                     pStreamInfo->bAvgBitRateFound = TRUE;
 
                     // add it to default description only
-                    bAddToHeader = bDefault;
+                    bAddToHeader = bDefault;    
                 }
                 else if(strcasecmp(pPropName, "MaxBitRate") == 0)
-                {
+                {   
                     pStreamInfo->ulMaxBitRate = propValue;
                     pStreamInfo->bMaxBitRateFound = TRUE;
 
                     // add it to default description only
-                    bAddToHeader = bDefault;
+                    bAddToHeader = bDefault;    
                 }
                 else if (strcasecmp(pPropName, "AvgPacketSize") == 0)
                 {
@@ -1144,7 +1139,7 @@ HX_RESULT SDPMediaDescGenerator::Generate(UINT16 nValues,
                     pStreamInfo->bAvgPacketSizeFound = TRUE;
 
                     // add it to default description only
-                    bAddToHeader = bDefault;
+                    bAddToHeader = bDefault;    
                 }
                 else if(strcasecmp(pPropName, "RtcpRRRate") == 0)
                 {
@@ -1187,20 +1182,9 @@ HX_RESULT SDPMediaDescGenerator::Generate(UINT16 nValues,
                     pStreamInfo->bControlIDFound = TRUE;
 
                 }
-                else if (strcasecmp(pPropName, "FrameHeight") == 0)
+                else if(strcasecmp(pPropName, "ASMRuleBookOptional") == 0)
                 {
-                    pStreamInfo->ulFrameHeight = propValue;
-                    pStreamInfo->bFrameHeightFound = TRUE;
-                }
-                else if (strcasecmp(pPropName, "FrameWidth") == 0)
-                {
-                    pStreamInfo->ulFrameWidth = propValue;
-                    pStreamInfo->bFrameWidthFound = TRUE;
-                }
-                else if (strcasecmp(pPropName, "EndTime") == 0)
-                {
-		    bEndTimeFound = TRUE;
-                    bAddToHeader = FALSE;
+                    bSendASMRuleBook = propValue ? FALSE : TRUE;
                 }
                 else if(strcasecmp(pPropName, "StreamGroupNumber") == 0 ||
                         strcasecmp(pPropName, "SwitchGroupID") == 0 ||
@@ -1212,26 +1196,25 @@ HX_RESULT SDPMediaDescGenerator::Generate(UINT16 nValues,
                 }
 
                 // Unknown header values - only one per m=
-                //Add Unknown values only if it is not a standardSDP
-                else if (bDefault && !bStandardSDP)
+                else if (bDefault)
                 {
-                    bAddToHeader = TRUE;
+                    bAddToHeader = TRUE;    
                 }
 
                 if (bAddToHeader)
                 {
-                    // No alt values allowed here!
+                    // No alt values allowed here! 
                     // If we need to add one, we have to make sure we have
                     // the TrackID first.
                     HX_ASSERT(bDefault);
                     ulLen = strlen(pPropName) + 64;
                     NEW_FAST_TEMP_STR(pszAttBuf, 4096, ulLen);
-                    SafeSprintf(pszAttBuf, ulLen, "a=%s:integer;%d%s",
+                    SafeSprintf(pszAttBuf, ulLen, "a=%s:integer;%d%s",  
                         pPropName, propValue, pszEOL);
                     streamAttributes += pszAttBuf;
                     DELETE_FAST_TEMP_STR(pszAttBuf);
                 }
-
+                
                 /* make sure to reset SdpFileType header */
                 if (strncasecmp(pPropName, "SdpFileType", 11) == 0)
                 {
@@ -1249,36 +1232,15 @@ HX_RESULT SDPMediaDescGenerator::Generate(UINT16 nValues,
             }
             else
             {
-                SafeSprintf(szAltPrefix, 32, "a=alt:%u:",
+                SafeSprintf(szAltPrefix, 32, "a=alt:%u:", 
                             pStreamInfo->ulControlID);
-            }
-
-            /**
-             * Add the StreamNumber for every stream in the SDP.
-             * This is beacuse the streamnumber should be in sync for both
-             * proxy and the server. We are storing the stream numbers 
-             * so that the same stream numbers can be used by the proxy while 
-             * creating headers from SDP. (Part of LRA)
-             **/
-            const char* pBCNGUser = "RealNetworks Broadcast Receiver";
-            if (pUserAgent && !(strncmp((const char*)pUserAgent->GetBuffer(), pBCNGUser, 
-                                                         strlen(pBCNGUser))))
-            {                       
-                HX_ASSERT(bFoundStreamNum);
-                char* pParamName = "X-Hlx-StreamNum";
-                ulLen = strlen(pParamName) + 64;
-                NEW_FAST_TEMP_STR(pszAttBuf, 4096, ulLen);
-                SafeSprintf(pszAttBuf, ulLen, "%sa=%s:integer;%d%s", szAltPrefix, 
-                                                   pParamName, ulStreamNumber, pszEOL);
-                streamAttributes += pszAttBuf;
-                DELETE_FAST_TEMP_STR(pszAttBuf);
             }
 
             rc = pStreamHeader->GetFirstPropertyBuffer(pPropName, pPropBuffer);
             while(rc == HXR_OK)
             {
                 // Unknown header values - only one per m=
-                if (bDefault && !bStandardSDP)
+                if (bDefault)
                 {
                     INT32 dataSize = pPropBuffer->GetSize();
                     ulLen = dataSize * 2 + strlen(pPropName) + 64;
@@ -1288,7 +1250,7 @@ HX_RESULT SDPMediaDescGenerator::Generate(UINT16 nValues,
                     (void)BinTo64((const BYTE*)pPropBuffer->GetBuffer(),
                         dataSize, pszPropString);
 
-                    SafeSprintf(pszAttBuf, ulLen, "%sa=%s:buffer;\"%s\"%s",
+                    SafeSprintf(pszAttBuf, ulLen, "%sa=%s:buffer;\"%s\"%s", 
                                 szAltPrefix, pPropName, pszPropString, pszEOL);
 
                     streamAttributes += pszAttBuf;
@@ -1314,20 +1276,20 @@ HX_RESULT SDPMediaDescGenerator::Generate(UINT16 nValues,
 
                 if(strcasecmp(pPropName, "MimeType") == 0)
                 {
-                    pStreamInfo->pszMimeType =
+                    pStreamInfo->pszMimeType = 
                         EscapeBuffer(pString, pPropBuffer->GetSize());
 
-                    pStreamInfo->pszMimeLast =
+                    pStreamInfo->pszMimeLast = 
                         strchr(pStreamInfo->pszMimeType, '/');
                     if(pStreamInfo->pszMimeLast)
                     {
-                        int MFLen = pStreamInfo->pszMimeLast -
+                        int MFLen = pStreamInfo->pszMimeLast - 
                                     pStreamInfo->pszMimeType;
 
                         pStreamInfo->pszMimeLast++;
                         pStreamInfo->pszMimeFirst = new char [ MFLen + 1 ];
-                        memcpy(pStreamInfo->pszMimeFirst,
-                               pStreamInfo->pszMimeType,
+                        memcpy(pStreamInfo->pszMimeFirst, 
+                               pStreamInfo->pszMimeType, 
                                MFLen); /* Flawfinder: ignore */
                         pStreamInfo->pszMimeFirst[MFLen] = '\0';
                     }
@@ -1338,7 +1300,7 @@ HX_RESULT SDPMediaDescGenerator::Generate(UINT16 nValues,
                 }
                 else if(strcasecmp(pPropName, "MulticastAddress") == 0)
                 {
-                    pStreamInfo->pszConnAddr =
+                    pStreamInfo->pszConnAddr = 
                         EscapeBuffer(pString, pPropBuffer->GetSize());
                 }
                 else if(strcasecmp(pPropName, "Control") == 0)
@@ -1351,12 +1313,12 @@ HX_RESULT SDPMediaDescGenerator::Generate(UINT16 nValues,
                     {
                         HX_RELEASE(pControlStringBuff);
                         pControlStringBuff = pPropBuffer;
-                        pControlStringBuff->AddRef();
+                        pControlStringBuff->AddRef(); 
                     }
                 }
                 else if(strcasecmp(pPropName, "PayloadParameters") == 0)
                 {
-                    pStreamInfo->pszFmtp =
+                    pStreamInfo->pszFmtp = 
                         EscapeBuffer(pString, pPropBuffer->GetSize());
                 }
                 else if(strcasecmp(pPropName, "SDPData") == 0)
@@ -1366,12 +1328,17 @@ HX_RESULT SDPMediaDescGenerator::Generate(UINT16 nValues,
                 else if(strcasecmp(pPropName, "Information") == 0)
                 {
                     // "i="
-                    pStreamInfo->pszInfo =
+                    pStreamInfo->pszInfo = 
                         EscapeBuffer(pString, pPropBuffer->GetSize());
                 }
                 else if (strcasecmp(pPropName, "ASMRuleBook") == 0)
                 {
-                    bAddToHeader = bDefault;
+                    // Only one ASMRuleBook per stream group (default only)
+                    // If ASMRuleBookOptional is set, then only send the
+                    // rulebook if this is a known pre-rel6 helix client 
+                    // and we have rel-6 multirate
+                    bAddToHeader = bDefault && (bSendASMRuleBook || 
+                        (ulStreamGroupCount && bOldClient));
 
                     if (bAddToHeader)
                     {
@@ -1379,12 +1346,12 @@ HX_RESULT SDPMediaDescGenerator::Generate(UINT16 nValues,
                         bDeleteString = TRUE;
                     }
                 }
-                else if (strcasecmp(pPropName, "PayloadWirePacket") == 0 &&
-                         strcasecmp((const char*)pPropBuffer->GetBuffer(),
+                else if (strcasecmp(pPropName, "PayloadWirePacket") == 0 && 
+                         strcasecmp((const char*)pPropBuffer->GetBuffer(), 
                                     "RTP") == 0)
                 {
                     pStreamInfo->bPayloadWirePacket = TRUE;
-                    bAddToHeader = bDefault;
+                    bAddToHeader = bDefault;                
                     if(bAddToHeader)
                     {
                         pszData = EscapeBuffer(pString, pPropBuffer->GetSize());
@@ -1392,18 +1359,18 @@ HX_RESULT SDPMediaDescGenerator::Generate(UINT16 nValues,
                     }
                 }
                 // Unknown header values - only one per m=, no alts
-                else if (bDefault && !bStandardSDP)
+                else if (bDefault)
                 {
                     pszData = EscapeBuffer(pString, pPropBuffer->GetSize());
                     bDeleteString = TRUE;
-                    bAddToHeader = TRUE;
+                    bAddToHeader = TRUE;                
                 }
 
                 if(bAddToHeader)
                 {
                     ulLen = strlen(pszData) + strlen(pPropName) + 64;
                     NEW_FAST_TEMP_STR(pszAttBuf, 4096, ulLen);
-                    SafeSprintf(pszAttBuf, ulLen, "%sa=%s:string;\"%s\"%s",
+                    SafeSprintf(pszAttBuf, ulLen, "%sa=%s:string;\"%s\"%s", 
                         szAltPrefix, pPropName, pszData, pszEOL);
                     streamAttributes += pszAttBuf;
                     DELETE_FAST_TEMP_STR(pszAttBuf);
@@ -1430,10 +1397,10 @@ HX_RESULT SDPMediaDescGenerator::Generate(UINT16 nValues,
             {
                 const char* pszName = (const char*)pStreamInfo->pszMimeFirst;
                 if (bUseOldSdp)
-                {
-                    // our old sdpplin expects m= to have either "audio",
+                {   
+                    // our old sdpplin expects m= to have either "audio", 
                     // "video", or "data", and anything else would be BAD!
-                    if (strcmp(pStreamInfo->pszMimeFirst, "audio") &&
+                    if (strcmp(pStreamInfo->pszMimeFirst, "audio") && 
                         strcmp(pStreamInfo->pszMimeFirst, "video"))
                     {
                         pszName = "data";
@@ -1446,31 +1413,31 @@ HX_RESULT SDPMediaDescGenerator::Generate(UINT16 nValues,
 
                 ulLen = strlen(pszName) + 128;
                 NEW_FAST_TEMP_STR(pszTmpString, 256, ulLen);
-                SafeSprintf(pszTmpString, ulLen, "m=%s %d RTP/AVP %d%s",
+                SafeSprintf(pszTmpString, ulLen, "m=%s %d RTP/AVP %d%s", 
                     pszName, pStreamInfo->ulPort, pStreamInfo->ulPayloadType,
-                    pszEOL);
+                    pszEOL);                    
                 mDesc += pszTmpString;
                 DELETE_FAST_TEMP_STR(pszTmpString);
             }
 
-            // i=
-            if (pStreamInfo->pszInfo &&
+            // i= 
+            if (pStreamInfo->pszInfo && 
                 (bDefault || !defaultInfo.pszInfo ||
                 strcmp(pStreamInfo->pszInfo, defaultInfo.pszInfo) != 0))
             {
                 ulLen = strlen(pStreamInfo->pszInfo) + 64;
                 NEW_FAST_TEMP_STR(pszTmpStr, 256, ulLen);
-                SafeSprintf(pszTmpStr, ulLen, "%si=%s%s",
+                SafeSprintf(pszTmpStr, ulLen, "%si=%s%s", 
                     szAltPrefix, pStreamInfo->pszInfo, pszEOL);
                 mDesc += pszTmpStr;
                 DELETE_FAST_TEMP_STR(pszTmpStr);
             }
 
-            /* Format the connection line only if MulticastAddress and
+            /* Format the connection line only if MulticastAddress and 
              * MulticastTTL exist in the stream header
              */
             // c=
-            if (pStreamInfo->bConnTTLFound && pStreamInfo->pszConnAddr
+            if (pStreamInfo->bConnTTLFound && pStreamInfo->pszConnAddr 
                 && pStreamInfo->pszConnAddr[0])
             {
                 pStreamInfo->pszConnection = new char[256];
@@ -1479,20 +1446,20 @@ HX_RESULT SDPMediaDescGenerator::Generate(UINT16 nValues,
                     if (pStreamInfo->bConnRangeFound)
                     {
                         SafeSprintf(pStreamInfo->pszConnection, 256,
-                            "c=IN IP4 %s/%d/%d%s",
-                            pStreamInfo->pszConnAddr, pStreamInfo->ulConnTTL,
+                            "c=IN IP4 %s/%d/%d%s", 
+                            pStreamInfo->pszConnAddr, pStreamInfo->ulConnTTL, 
                             pStreamInfo->ulConnRange, pszEOL);
                     }
                     else
                     {
-                        SafeSprintf(pszTmpString, 256,"c=IN IP4 %s/%d%s",
-                            pStreamInfo->pszConnAddr, pStreamInfo->ulConnTTL,
+                        SafeSprintf(pszTmpString, 256,"c=IN IP4 %s/%d%s", 
+                            pStreamInfo->pszConnAddr, pStreamInfo->ulConnTTL, 
                             pszEOL);
                     }
                 }
 
                 if (bDefault || !defaultInfo.pszConnection ||
-                    strcmp(pStreamInfo->pszConnection,
+                    strcmp(pStreamInfo->pszConnection, 
                     defaultInfo.pszConnection) != 0)
                 {
                     mDesc += szAltPrefix;
@@ -1500,25 +1467,17 @@ HX_RESULT SDPMediaDescGenerator::Generate(UINT16 nValues,
                 }
             }
 
-            // Packet rate is AvgBitRate/AvgPacketSize packets/sec
-            double dPacketRate = SDP_DEFAULT_PACKET_RATE;
-            if (pStreamInfo->ulAvgPacketSize && 
-                pStreamInfo->bAvgBitRateFound)
-            {
-                dPacketRate = (double)pStreamInfo->ulAvgBitRate / 
-                    ((double)pStreamInfo->ulAvgPacketSize * 8.0);
-            }
-
             // b=AS
             // If using PayloadWirePackets (RTP live), just pass through.
             // Only modify by the multiplier.
+            double dASBitRate;
             if (pStreamInfo->bPayloadWirePacket)
             {
                 pStreamInfo->ulASBitRate = pStreamInfo->ulAvgBitRate;
-                UINT32 ulASRate = (UINT32)(dBWMult *
+                UINT32 ulASRate = (UINT32)(dBWMult * 
                         ((double)pStreamInfo->ulAvgBitRate / 1000.0) + .5);
-                SafeSprintf(psz256, 256,"%sb=AS:%u%s",
-                            szAltPrefix, ulASRate, pszEOL);
+                SafeSprintf(psz256, 256,"%sb=AS:%u%s", 
+                            szAltPrefix, ulASRate, pszEOL); 
                 mDesc += psz256;
             }
 
@@ -1535,24 +1494,28 @@ HX_RESULT SDPMediaDescGenerator::Generate(UINT16 nValues,
                     pStreamInfo->ulASBitRate = pStreamInfo->ulAvgBitRate;
                 }
 
-                if (pStreamInfo->ulASBitRate && (bDefault ||
+                if (pStreamInfo->ulASBitRate && (bDefault || 
                     pStreamInfo->ulASBitRate != defaultInfo.ulASBitRate))
                 {
-                    // Add overhead and multiplier and convert to kbps
-                    UINT32 ulASRate = (UINT32)(dBWMult *
-                        (((double)pStreamInfo->ulASBitRate +
-                        (double)ulPktHead * dPacketRate) / 1000.0) + .5);
+                    // Packet rate is AvgBitRate/AvgPacketSize packets/sec
+                    double dPacketRate = SDP_DEFAULT_PACKET_RATE;
+                    if (pStreamInfo->ulAvgPacketSize && 
+                        pStreamInfo->bAvgBitRateFound)
+                    {
+                        dPacketRate = (double)pStreamInfo->ulAvgBitRate / 
+                            ((double)pStreamInfo->ulAvgPacketSize * 8.0);
+                    }
 
-                    SafeSprintf(psz256, 256,"%sb=AS:%u%s",
-                            szAltPrefix, ulASRate, pszEOL);
+                    // Add overhead and multiplier and convert to kbps
+                    UINT32 ulASRate = (UINT32)(dBWMult * 
+                        (((double)pStreamInfo->ulASBitRate + 
+                        (double)ulPktHead * dPacketRate) / 1000.0) + .5);
+                    
+                    SafeSprintf(psz256, 256,"%sb=AS:%u%s", 
+                            szAltPrefix, ulASRate, pszEOL); 
                     mDesc += psz256;
                 }
             }
-
-            // add TIAS
-            SafeSprintf(psz256, 256, "%sb=TIAS:%u%s", 
-                szAltPrefix, pStreamInfo->ulASBitRate, pszEOL);
-            mDesc += psz256;
 
             // b=RR
             if (!pStreamInfo->bRTCPRRFound)
@@ -1560,7 +1523,7 @@ HX_RESULT SDPMediaDescGenerator::Generate(UINT16 nValues,
                 if (pStreamInfo->bAvgBitRateFound)
                 {
                     // Default to 3.75%
-                    pStreamInfo->ulRTCPRR =
+                    pStreamInfo->ulRTCPRR = 
                         (UINT32)pStreamInfo->ulAvgBitRate * .0375;
                 }
                 else
@@ -1570,8 +1533,8 @@ HX_RESULT SDPMediaDescGenerator::Generate(UINT16 nValues,
             }
             if (bDefault || pStreamInfo->ulRTCPRR != defaultInfo.ulRTCPRR)
             {
-                SafeSprintf(psz256, 256,"%sb=RR:%u%s",
-                    szAltPrefix, pStreamInfo->ulRTCPRR, pszEOL);
+                SafeSprintf(psz256, 256,"%sb=RR:%u%s", 
+                    szAltPrefix, pStreamInfo->ulRTCPRR, pszEOL); 
                 mDesc += psz256;
             }
 
@@ -1590,15 +1553,10 @@ HX_RESULT SDPMediaDescGenerator::Generate(UINT16 nValues,
             }
             if (bDefault || pStreamInfo->ulRTCPRS != defaultInfo.ulRTCPRS)
             {
-                SafeSprintf(psz256, 256,"%sb=RS:%u%s",
-                    szAltPrefix, pStreamInfo->ulRTCPRS, pszEOL);
+                SafeSprintf(psz256, 256,"%sb=RS:%u%s", 
+                    szAltPrefix, pStreamInfo->ulRTCPRS, pszEOL); 
                 mDesc += psz256;
             }
-
-            // add maxprate
-            SafeSprintf(psz256, 256, "%sa=maxprate:%f%s", 
-                szAltPrefix, dPacketRate, pszEOL);
-            mDesc += psz256;
 
             // a=control
             if (pControlStringBuff)
@@ -1612,26 +1570,26 @@ HX_RESULT SDPMediaDescGenerator::Generate(UINT16 nValues,
                     ulBuffLen += pContentBase ? pContentBase->GetSize() : 0;
                     ulBuffLen += (pQueryParams) ? pQueryParams->GetSize() : 0;
 
-                    NEW_FAST_TEMP_STR(pszControlString, 512, ulBuffLen);
-                    SafeSprintf(pszControlString, ulBuffLen,
+                    NEW_FAST_TEMP_STR(pszControlString, 512, ulBuffLen); 
+                    SafeSprintf(pszControlString, ulBuffLen, 
                         "%sa=control:%s%s%s%s", szAltPrefix,
                         pContentBase ? ((char*)pContentBase->GetBuffer()) : "",
                         pControlStringBuff->GetBuffer(),
                         (pQueryParams)?((char*)pQueryParams->GetBuffer()) : "",
                         pszEOL);
-
+                    
                     mDesc += pszControlString;
                     DELETE_FAST_TEMP_STR(pszControlString);
                 }
-                else
+                else 
                 {
-                    char* pszData = EscapeBuffer(pString,
+                    char* pszData = EscapeBuffer(pString, 
                         pControlStringBuff->GetSize());
                     UINT32 ulBuffLen = strlen(pszData) + 64;
-                    NEW_FAST_TEMP_STR(pszControlString, 512, ulBuffLen);
-                    SafeSprintf(pszControlString, ulBuffLen, "%sa=control:%s%s",
+                    NEW_FAST_TEMP_STR(pszControlString, 512, ulBuffLen); 
+                    SafeSprintf(pszControlString, ulBuffLen, "%sa=control:%s%s", 
                         szAltPrefix, pszData, pszEOL);
-
+                
                     mDesc += pszControlString;
                     DELETE_FAST_TEMP_STR(pszControlString);
                     HX_VECTOR_DELETE(pszData);
@@ -1649,10 +1607,10 @@ HX_RESULT SDPMediaDescGenerator::Generate(UINT16 nValues,
                     ulBuffLen += (pQueryParams) ? (pQueryParams->GetSize()) : 0;
 
                     NEW_FAST_TEMP_STR(pszControlField, 256, ulBuffLen);
-                    SafeSprintf(pszControlField, ulBuffLen, "%s%s%s%s%u%s%s",
-                        szAltPrefix, pszFieldPrefix,
+                    SafeSprintf(pszControlField, ulBuffLen, "%s%s%s%s%u%s%s", 
+                        szAltPrefix, pszFieldPrefix, 
                         pContentBase ?((char*)pContentBase->GetBuffer()) : "",
-                        pszStreamLabel, pStreamInfo->ulControlID,
+                        pszStreamLabel, pStreamInfo->ulControlID, 
                         pQueryParams ?((char*)pQueryParams->GetBuffer()) : "",
                         pszEOL);
 
@@ -1661,59 +1619,82 @@ HX_RESULT SDPMediaDescGenerator::Generate(UINT16 nValues,
                 }
                 else
                 {
-                    SafeSprintf(psz256, 256,"%s%s%s%d%s",
+                    SafeSprintf(psz256, 256,"%s%s%s%d%s", 
                         szAltPrefix, pszFieldPrefix, pszStreamLabel,
-                        pStreamInfo->ulControlID, pszEOL);
+                        pStreamInfo->ulControlID, pszEOL); 
                     mDesc += psz256;
                 }
             }
 
             // a=length && a=range
-            // add for default/lone streams always
-            // add for alt streams only if it does not match the default
-            if (bDefault ||
-                (pStreamInfo->bDurationFound && defaultInfo.bDurationFound
-                && pStreamInfo->ulDuration != defaultInfo.ulDuration))
-
-            {
-                NPTime npTime("0");
-                mDesc += "a=range:npt=0-";
-                const char* szLen = (const char*)npTime;
-                if (!bUnspecifiedRange && pStreamInfo->bDurationFound)
+	    if (bIsLive)
+	    {
+                if (bDefault)
                 {
-                    // Add stream's end range
-                    npTime = NPTime(pStreamInfo->ulDuration);
-                    szLen = (const char*)npTime;
-                    mDesc += szLen;
-                }
-                else if(!bUnspecifiedRange && bDefaultDurationFound)
-                {
-                    // Add session's end range
-                    npTime = NPTime(ulSessionDuration);
-                    szLen = (const char*)npTime;
-                    mDesc += szLen;
-                }
-                else if (bUseOldSdp)
-                {
-                    // Really old client needs "0-0"
-                    mDesc += "0";
-                }
+		    if (!bUseOldSdp)
+		    {
+		        mDesc += "a=range:npt=0-";
+		        mDesc += pszEOL;
+		    }
 
-                // Leave open-ended 0-0 range for live or unspecified duration
-                mDesc += pszEOL;
-                mDesc += (const char*) "a=length:npt=";
-                mDesc += szLen;
-                mDesc += pszEOL;
-
-                if (bEndTimeFound)
-                {
-                    INT32 nEndTime = pStreamInfo->ulDuration;
-                    SafeSprintf(psz256, 256,"a=EndTime:integer;%d%s",
-                                                             nEndTime , pszEOL);
-                    mDesc += psz256;
+		    mDesc += "a=length:npt=0";
+		    mDesc += pszEOL;
                 }
-            }
+	    }
 
+	    else
+	    {
+		if (pStreamInfo->bDurationFound)
+		{
+                    if (bDefault || !defaultInfo.bDurationFound ||
+                        pStreamInfo->ulDuration != defaultInfo.ulDuration)
+                    {
+		        NPTime npTime(pStreamInfo->ulDuration);
+
+		        SafeSprintf(psz256,256, "%sa=range:npt=0-%s%s", 
+                            szAltPrefix, (const char*)npTime, pszEOL);
+		        mDesc += psz256;
+                    
+		        SafeSprintf(psz256, 256, "%sa=length:npt=%s%s", 
+                            szAltPrefix, (const char*)npTime, pszEOL);
+		        mDesc += psz256;
+                    }
+		}
+		else if (bDefaultDurationFound && bDefault)
+		{
+		    // take it from file header
+		    NPTime npTime(ulDefaultDuration);
+
+		    SafeSprintf(psz256, 256,"a=range:npt=0-%s%s", 
+                        (const char*)npTime, pszEOL);
+		    mDesc += psz256;
+
+		    SafeSprintf(psz256,256, "a=length:npt=%s%s", 
+                        (const char*)npTime,pszEOL);
+		    mDesc += psz256;
+		}
+		else if (bDefault)
+		{
+		    // if we put ntp=0-, old sdpplin is gonna freak out.
+		    if (bUseOldSdp)
+		    {
+			SafeSprintf(psz256, 256,"a=range:npt=0-0%s", pszEOL); 
+			mDesc += psz256;            
+
+			SafeSprintf(psz256, 256,"a=length:npt=0%s", pszEOL); 
+			mDesc += psz256;        
+		    }
+		    else
+		    {
+			SafeSprintf(psz256, 256,"a=range:npt=0-%s", pszEOL); 
+			mDesc += psz256;            
+
+			SafeSprintf(psz256, 256,"a=length:npt=0%s", pszEOL);
+			mDesc += psz256;        
+		    }
+		}
+	    }
+            
             // a=rtpmap:
             if (pStreamInfo->pszMimeLast)
             {
@@ -1722,7 +1703,7 @@ HX_RESULT SDPMediaDescGenerator::Generate(UINT16 nValues,
                 {
                     if (!pStreamInfo->bSampleRateFound)
                     {
-                        pStreamInfo->ulSampleRate =
+                        pStreamInfo->ulSampleRate = 
                             SDPMapPayloadToSamplesPerSecond(
                             pStreamInfo->ulPayloadType);
                         if (pStreamInfo->ulSampleRate)
@@ -1748,23 +1729,23 @@ HX_RESULT SDPMediaDescGenerator::Generate(UINT16 nValues,
 
             // Need to add rtpmap if default stream or if payload type
             // sample rate, channels, or mime type has changed
-            if (bDefault ||
+            if (bDefault || 
                 pStreamInfo->ulPayloadType != defaultInfo.ulPayloadType ||
                 pStreamInfo->ulSampleRate != defaultInfo.ulSampleRate ||
                 pStreamInfo->bChannelsFound != defaultInfo.bChannelsFound ||
-                (pStreamInfo->bChannelsFound &&
+                (pStreamInfo->bChannelsFound && 
                 pStreamInfo->ulChannels != defaultInfo.ulChannels) ||
                 strcmp(pStreamInfo->pszMimeLast, defaultInfo.pszMimeLast) != 0)
             {
-                SafeSprintf(psz256, 256, "%sa=rtpmap:%d %s/%u",
-                    szAltPrefix, pStreamInfo->ulPayloadType,
+                SafeSprintf(psz256, 256, "%sa=rtpmap:%d %s/%u", 
+                    szAltPrefix, pStreamInfo->ulPayloadType, 
                     pStreamInfo->pszMimeLast, pStreamInfo->ulSampleRate);
                 mDesc += psz256;
 
                 if (pStreamInfo->bChannelsFound)
                 {
                     SafeSprintf(psz256, 256,"/%d%s", pStreamInfo->ulChannels,
-                        pszEOL);
+                        pszEOL); 
                     mDesc += psz256;
                 }
                 else
@@ -1772,42 +1753,42 @@ HX_RESULT SDPMediaDescGenerator::Generate(UINT16 nValues,
                     mDesc += pszEOL;
                 }
             }
-
+            
             // a=fmtp
             if (pStreamInfo->pszFmtp && (bDefault || !defaultInfo.pszFmtp ||
                 strcmp(pStreamInfo->pszFmtp, defaultInfo.pszFmtp) != 0))
             {
-                SafeSprintf(psz256, 256, "%sa=fmtp:%d %s%s", szAltPrefix,
+                SafeSprintf(psz256, 256, "%sa=fmtp:%d %s%s", szAltPrefix, 
                     pStreamInfo->ulPayloadType, pStreamInfo->pszFmtp, pszEOL);
                 mDesc += psz256;
             }
             else if (!bUseOldSdp && bDefault)
-            {
+            {   
                 // 3GPP requires an fmtp field in every SDP file
                 // Include this only if the client supports interop SDP
                 // and SDPData doesn't already contain a=fmtp:
                 pStreamInfo->pszFmtp = new char[32];
                 if (pStreamInfo->pszFmtp)
                 {
-                    SafeSprintf(pStreamInfo->pszFmtp, 32, "a=fmtp:%u ",
-                        pStreamInfo->ulPayloadType);
+                    SafeSprintf(pStreamInfo->pszFmtp, 32, "a=fmtp:%u ", 
+                        pStreamInfo->ulPayloadType); 
                     mDesc += pStreamInfo->pszFmtp;
                     mDesc += pszEOL;
                 }
             }
 
             // a=ptime
-            if (pStreamInfo->bPtimeFound &&
-                (bDefault || !defaultInfo.bPtimeFound ||
+            if (pStreamInfo->bPtimeFound && 
+                (bDefault || !defaultInfo.bPtimeFound || 
                 pStreamInfo->ulPtime != defaultInfo.ulPtime))
             {
-                SafeSprintf(psz256, 256, "%sa=ptime:%u%s",
+                SafeSprintf(psz256, 256, "%sa=ptime:%u%s", 
                     szAltPrefix, pStreamInfo->ulPtime, pszEOL);
                 mDesc += psz256;
             }
 
             // a=mimetype needed for legacy splitting
-            if (pStreamInfo->pszMimeType && (bDefault ||
+            if (pStreamInfo->pszMimeType && (bDefault || 
                 strcmp(pStreamInfo->pszMimeType, defaultInfo.pszMimeType)))
             {
                 ulLen = strlen(pStreamInfo->pszMimeType) + 128;
@@ -1821,64 +1802,53 @@ HX_RESULT SDPMediaDescGenerator::Generate(UINT16 nValues,
             }
 
             // 3GPP AnnexG values
-            // a=X-predecbufsize
-            if (pStreamInfo->bPreDecBufSizeFound &&
-                (bDefault || !defaultInfo.bPreDecBufSizeFound ||
-                pStreamInfo->ulPreDecBufSize !=
-                defaultInfo.ulPreDecBufSize))
+            if (pStreamInfo->bUseAnnexG)
             {
-                SafeSprintf(psz256, 256, "%sa=X-predecbufsize:%u%s",
-                    szAltPrefix, pStreamInfo->ulPreDecBufSize, pszEOL);
-                mDesc += psz256;
-            }
-            // a=X-initpredecbufperiod
-            if (pStreamInfo->bPreDecBufPeriodFound &&
-                (bDefault || !defaultInfo.bPreDecBufPeriodFound ||
-                pStreamInfo->ulPreDecBufPeriod !=
-                defaultInfo.ulPreDecBufPeriod))
-            {
-                SafeSprintf(psz256, 256, "%sa=X-initpredecbufperiod:%u%s",
-                    szAltPrefix, pStreamInfo->ulPreDecBufPeriod, pszEOL);
-                mDesc += psz256;
-            }
-            // a=X-initpostdecbufperiod
-            if (pStreamInfo->bPostDecBufPeriodFound &&
-                (bDefault || !defaultInfo.bPostDecBufPeriodFound ||
-                pStreamInfo->ulPostDecBufPeriod !=
-                defaultInfo.ulPostDecBufPeriod))
+                // a=X-predecbufsize
+                if (pStreamInfo->bPreDecBufSizeFound && 
+                    (bDefault || !defaultInfo.bPreDecBufSizeFound || 
+                    pStreamInfo->ulPreDecBufSize != 
+                    defaultInfo.ulPreDecBufSize))
+                {
+                    SafeSprintf(psz256, 256, "%sa=X-predecbufsize:%u%s",
+                        szAltPrefix, pStreamInfo->ulPreDecBufSize, pszEOL);
+                    mDesc += psz256;
+                }
+                // a=X-initpredecbufperiod
+                if (pStreamInfo->bPreDecBufPeriodFound && 
+                    (bDefault || !defaultInfo.bPreDecBufPeriodFound || 
+                    pStreamInfo->ulPreDecBufPeriod != 
+                    defaultInfo.ulPreDecBufPeriod))
+                {
+                    SafeSprintf(psz256, 256, "%sa=X-initpredecbufperiod:%u%s",
+                        szAltPrefix, pStreamInfo->ulPreDecBufPeriod, pszEOL);
+                    mDesc += psz256;
+                }
+                // a=X-initpostdecbufperiod
+                if (pStreamInfo->bPostDecBufPeriodFound && 
+                    (bDefault || !defaultInfo.bPostDecBufPeriodFound || 
+                    pStreamInfo->ulPostDecBufPeriod != 
+                    defaultInfo.ulPostDecBufPeriod))
 
-            {
-                SafeSprintf(psz256, 256, "%sa=X-initpostdecbufperiod:%u%s",
-                    szAltPrefix, pStreamInfo->ulPostDecBufPeriod, pszEOL);
-                mDesc += psz256;
-            }
-            // a=X-decbyterate
-            if (pStreamInfo->bDecByteRateFound &&
-                (bDefault || !defaultInfo.bDecByteRateFound ||
-                pStreamInfo->ulDecByteRate != defaultInfo.ulDecByteRate))
-            {
-                SafeSprintf(psz256, 256, "%sa=X-decbyterate:%u%s",
-                    szAltPrefix, pStreamInfo->ulDecByteRate, pszEOL);
-                mDesc += psz256;
-            }
-
-            // a=framesize
-            if (pStreamInfo->bFrameHeightFound && pStreamInfo->bFrameWidthFound && 
-                (bDefault || !defaultInfo.bFrameHeightFound || 
-                pStreamInfo->ulFrameHeight != defaultInfo.ulFrameHeight ||
-                !defaultInfo.bFrameWidthFound || 
-                pStreamInfo->ulFrameWidth != defaultInfo.ulFrameWidth) &&
-                pStreamInfo->bPayloadTypeFound)
-            {
-                SafeSprintf(psz256, 256, "%sa=framesize:%u %u-%u%s",
-                    szAltPrefix, pStreamInfo->ulPayloadType, pStreamInfo->ulFrameWidth,
-                    pStreamInfo->ulFrameHeight, pszEOL);
-                mDesc += psz256;
+                {
+                    SafeSprintf(psz256, 256, "%sa=X-initpostdecbufperiod:%u%s", 
+                        szAltPrefix, pStreamInfo->ulPostDecBufPeriod, pszEOL);
+                    mDesc += psz256;
+                }
+                // a=X-decbyterate
+                if (pStreamInfo->bDecByteRateFound && 
+                    (bDefault || !defaultInfo.bDecByteRateFound || 
+                    pStreamInfo->ulDecByteRate != defaultInfo.ulDecByteRate))
+                {
+                    SafeSprintf(psz256, 256, "%sa=X-decbyterate:%u%s", 
+                        szAltPrefix, pStreamInfo->ulDecByteRate, pszEOL);
+                    mDesc += psz256;
+                }
             }
 
             // a=3GPP-Adaptation-Support
             // Do not offer 3GPP-Adaptation-Support for Real Datatypes
-            if (!bIsRealDatatype && g_ul3GPPNADUReportFreq && bDefault)
+            if (!bIsLive && !bIsRealDatatype && g_ul3GPPNADUReportFreq && bDefault)
             {
                 SafeSprintf(psz256, 256, "a=3GPP-Adaptation-Support:%u%s",
                     g_ul3GPPNADUReportFreq, pszEOL);
@@ -1887,10 +1857,10 @@ HX_RESULT SDPMediaDescGenerator::Generate(UINT16 nValues,
 
             // a=Helix-Adaptation-Support
             // always signal
-            if (bDefault && g_bHelixRateAdaptationLicensed
+            if (!bIsLive && bDefault && g_bHelixRateAdaptationLicensed
                 && g_bHelixRateAdaptationConfigured)
             {
-                SafeSprintf(psz256, 256, "a=Helix-Adaptation-Support:1%s",
+                SafeSprintf(psz256, 256, "a=Helix-Adaptation-Support:1%s", 
                     pszEOL);
                 mDesc += psz256;
             }
@@ -1910,7 +1880,7 @@ HX_RESULT SDPMediaDescGenerator::Generate(UINT16 nValues,
                     {
                         szLine = (char*)pLine->GetBuffer();
 
-                        // if this line does not match one in the default
+                        // if this line does not match one in the default 
                         // SDPData then add it
                         if (bDefault || !defaultInfo.pSDPData ||
                             !HasSDPLine(defaultInfo.pSDPData, szLine))
@@ -2001,38 +1971,38 @@ void SDPMediaDescGenerator::SetUseOldEOL(BOOL bUseOldEOL)
 }
 
 /*
- *  If there is no Duration in a file header and all streams have a
- *  duration, take the largest stream duration.
+ *  If there is no Duration in a file header and all streams have a 
+ *  duration, add the largest duration to the file header.
  *  If live, it is left unknown.
  */
-UINT32
-SDPMediaDescGenerator::GetSessionDuration(UINT16 nValues,
-                                          IHXValues** ppValueArray)
+HX_RESULT
+SDPMediaDescGenerator::SpecComplianceCheck(UINT16 nValues, 
+                                        IHXValues** ppValueArray)
 {
     HX_RESULT theErr;
-    UINT32 ulDuration = 0;
+    UINT32    ulDuration;
 
     // sanity check
     if (nValues < 3 || !ppValueArray)
     {
         HX_ASSERT(!"unexpected headers");
-        return 0;
+        return HXR_UNEXPECTED;
     }
 
-    // Get duration from file header
     theErr = ppValueArray[0]->GetPropertyULONG32("Duration", ulDuration);
     if (SUCCEEDED(theErr))
     {
-        return ulDuration;
+        return HXR_OK;
     }
 
     UINT32 ulTmp = 0;
+    ulDuration = 0;
 
     /* find out if this is a live session */
     theErr = ppValueArray[0]->GetPropertyULONG32("LiveStream", ulTmp);
-    if (SUCCEEDED(theErr) && 1 == ulTmp)
+    if (SUCCEEDED(theErr) && 1 == ulTmp) 
     {
-        return MAX_UINT32;
+        return HXR_OK;
     }
 
     BOOL bHasDuration = TRUE;
@@ -2050,12 +2020,17 @@ SDPMediaDescGenerator::GetSessionDuration(UINT16 nValues,
         else
         {
             // If any stream has no duration, leave duration as unknown
-            ulDuration = MAX_UINT32;
+            bHasDuration = FALSE;
             break;
         }
     }
 
-    return ulDuration;
+    if (bHasDuration)
+    {
+        ppValueArray[0]->SetPropertyULONG32("Duration", ulDuration);        
+    }
+
+    return HXR_OK;
 }
 
 char*
@@ -2076,7 +2051,7 @@ SDPMediaDescGenerator::EscapeBuffer(const char* pBuffer, UINT32 len)
     newlen = len;
 
     /*
-     *  We have to do this in two passes.  One to alloc new mem to
+     *  We have to do this in two passes.  One to alloc new mem to 
      *  copy into, and the next to do the escape/ copy.
      *  First, count unescaped quotes and alloc.
      */
@@ -2125,14 +2100,13 @@ SDPMediaDescGenerator::EscapeBuffer(const char* pBuffer, UINT32 len)
 }
 
 void
-SDPMediaDescGenerator::GetSDPData(IHXBuffer* pSDPDataBuf,
+SDPMediaDescGenerator::GetSDPData(IHXBuffer* pSDPDataBuf, 
                                   MediaInfo* pStreamInfo)
 {
     IHXBuffer* pLine = NULL;
     UINT32 ulBufSize = 0;
     UINT32 ulLength = 0;
     char* szSDPData = NULL;
-
     HX_RESULT rc = HXR_OUTOFMEMORY;
 
     pStreamInfo->pSDPData = new CHXSimpleList();
@@ -2147,7 +2121,7 @@ SDPMediaDescGenerator::GetSDPData(IHXBuffer* pSDPDataBuf,
         rc = SDPPullLine(szSDPData, ulBufSize, pLine, m_pCCF);
         if (SUCCEEDED(rc) && pLine)
         {
-            // Add the line to the list if we do not
+            // Add the line to the list if we do not 
             // have any special handling for it
             if (!HandleSDPLine(pLine, pStreamInfo))
             {
@@ -2186,17 +2160,17 @@ SDPMediaDescGenerator::HandleSDPLine(IHXBuffer* pLine, MediaInfo* pStreamInfo)
 
     // Store fmtp to handle separately
     if (strncasecmp(szLine, "a=fmtp:", 7) == 0)
-    {
+    {   
         if (!pStreamInfo->pszFmtp && ulSize > 8)
         {
-            // Look for a=fmtp:<format><space> and skip it.
+            // Look for a=fmtp:<format><space> and skip it. 
             UINT32 ulPos;
-            for (ulPos = 7; ulPos < ulSize && isdigit(szLine[ulPos]);
+            for (ulPos = 7; ulPos < ulSize && isdigit(szLine[ulPos]); 
                     ulPos++);
 
             if (ulPos + 1 < ulSize && szLine[ulPos] == ' ')
             {
-                pStreamInfo->pszFmtp = EscapeBuffer(szLine + ulPos + 1,
+                pStreamInfo->pszFmtp = EscapeBuffer(szLine + ulPos + 1, 
                     ulSize - ulPos - 1);
             }
         }
@@ -2206,7 +2180,7 @@ SDPMediaDescGenerator::HandleSDPLine(IHXBuffer* pLine, MediaInfo* pStreamInfo)
     for (UINT32 i = 0; g_pSDPDataPullTable[i].pName != NULL; i++)
     {
         if (ulSize >= g_pSDPDataPullTable[i].ulLen &&
-            strncasecmp(szLine, g_pSDPDataPullTable[i].pName,
+            strncasecmp(szLine, g_pSDPDataPullTable[i].pName, 
             g_pSDPDataPullTable[i].ulLen) == 0)
         {
             return TRUE;
@@ -2279,13 +2253,13 @@ SDPMediaDescGenerator::GetStreamGroups(UINT16 usNumHeaders,
         }
     }
 
-    // XXXJDG combine this with pulling stream info from the stream
+    // XXXJDG combine this with pulling stream info from the stream 
     // headers
 
-    // Iterate the steam headers to create stream groups and determine
-    // the default stream.
-    // If a stream is set as DefaultStream it is the default, else
-    // lowest TrackID.
+    // Iterate the steam headers to create stream groups and determine 
+    // the default stream. 
+    // If a stream is set as DefaultStream it is the default, else 
+    // lowest TrackID. 
     // The search for lowest TrackID should probably happen
     // before now.
     for(i = 2; i < usNumHeaders; i++)
@@ -2294,8 +2268,8 @@ SDPMediaDescGenerator::GetStreamGroups(UINT16 usNumHeaders,
         HX_ASSERT(pStreamHeader);
         bAdded = FALSE;
 
-        if (pStreamHeader &&
-            SUCCEEDED(pStreamHeader->GetPropertyULONG32("StreamGroupNumber",
+        if (pStreamHeader && 
+            SUCCEEDED(pStreamHeader->GetPropertyULONG32("StreamGroupNumber", 
             ulGroup)) && ulGroup < ulNumStreamGroups)
         {
             if (!pDefaultSet[ulGroup])
@@ -2342,7 +2316,7 @@ SDPMediaDescGenerator::GetStreamGroups(UINT16 usNumHeaders,
 }
 
 UINT32
-SDPMediaDescGenerator::CheckClient(IHXBuffer* pUserAgent,
+SDPMediaDescGenerator::CheckClient(IHXBuffer* pUserAgent, 
                                    IHXBuffer* pPSSVersion)
 {
     if (!pUserAgent)
@@ -2352,10 +2326,10 @@ SDPMediaDescGenerator::CheckClient(IHXBuffer* pUserAgent,
 
     // Check if this is a known Helix client
     UINT32 ulClientType = 0;
-    for (int i = 0; g_pHelixClients[i] && !(ulClientType & SDP_CLIENT_HLX);
+    for (int i = 0; g_pHelixClients[i] && !(ulClientType & SDP_CLIENT_HLX); 
         i++)
     {
-        if (strncasecmp((const char*)pUserAgent->GetBuffer(),
+        if (strncasecmp((const char*)pUserAgent->GetBuffer(), 
             g_pHelixClients[i], strlen(g_pHelixClients[i])) == 0)
         {
             ulClientType |= SDP_CLIENT_HLX;

@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: clientregtree.cpp,v 1.7 2007/05/23 18:52:58 seansmith Exp $ 
+ * Source last modified: $Id: clientregtree.cpp,v 1.6 2005/07/20 21:47:53 dcollins Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -98,7 +98,7 @@ ClientRegTree::RegTreeInit(Client* pClient, IHXBuffer* pStartTime)
     HX_RELEASE(m_pRegistry);
     HX_RELEASE(m_pClassFactory);
 
-    m_pProc = pClient->m_pProc;        // don't addref/release
+    m_pProc = pClient->proc;        // don't addref/release
     m_pProc->pc->server_context->
         QueryInterface(IID_IUnknown, (void**) &m_pContext);
 

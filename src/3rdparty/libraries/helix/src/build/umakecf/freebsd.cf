@@ -1,7 +1,7 @@
 # 
 #  ***** BEGIN LICENSE BLOCK *****  
 #   
-#  Source last modified: $Id: freebsd.cf,v 1.7 2007/06/13 01:12:50 jfinnecy Exp $ 
+#  Source last modified: $Id: freebsd.cf,v 1.6 2006/12/31 17:53:00 dyek Exp $ 
 #   
 #  Copyright Notices: 
 #   
@@ -147,7 +147,7 @@ class FreeBSDLinker(Linker2):
     def LinkDLL(self, target_path, objects, static_libs, dynamic_libs):
         cmd_list = []
 
-        armerge_cmd = os.path.join("$(BUILD_ROOT)", "bin", "armerge.py")
+        armerge_cmd = os.path.join(BUILD_ROOT, "bin", "armerge.py")
         tmp_path = self.armerge_tmp_path()
         libpath = self.armerge_lib_path()
         cmd = "python %s -d %s %s %s" % (
@@ -183,7 +183,7 @@ class FreeBSDLinker(Linker2):
     def LinkEXE(self, target_path, objects, static_libs, dynamic_libs):
         cmd_list = []
 
-        armerge_cmd = os.path.join("$(BUILD_ROOT)", "bin", "armerge.py")
+        armerge_cmd = os.path.join(BUILD_ROOT, "bin", "armerge.py")
         tmp_path = self.armerge_tmp_path()
         libpath = self.armerge_lib_path()
         cmd = "python %s -d %s %s %s" % (armerge_cmd, tmp_path, libpath, static_libs)

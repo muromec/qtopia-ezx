@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxparse.cpp,v 1.11 2007/11/26 21:49:10 ehyche Exp $
+ * Source last modified: $Id: hxparse.cpp,v 1.9 2005/03/14 19:36:39 bobclark Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -593,47 +593,31 @@ HX_RESULT HXParseUINT32(const char* pszStr, REF(UINT32) rulValue)
 
 HX_RESULT HXParseOpacity(const char* pszStr, REF(UINT32) rulValue)
 {
-    HX_RESULT retVal = HXR_FAIL;
+    HX_RESULT retVal = HXR_OK;
 
     if (pszStr)
     {
-        // opacity      := <percentage> | <unitary>
-        // <percentage> := WS* [0-9]+ ('.' [0-9]*)? '%' WS*
-        // <unitary>    := WS* [0-9]* '.' [0-9]+ WS*
-        // WS           := ' ' | '\n' | '\r' | '\t'
-        //
-        char*  pszEndChar = NULL;
-        double dVal = strtod(pszStr, &pszEndChar);
-        if (dVal >= 0.0)
+        // First attempt to parse as a percent
+        INT32  lValue   = 0;
+        double dPercent = 0.0;
+        retVal = HXParsePercent(pszStr, dPercent);
+        if (SUCCEEDED(retVal))
         {
-            // Is there a percent value present in the string?
-            if (pszEndChar &&
-                strlen((const char*) pszEndChar) > 0 &&
-                strchr((const char*) pszEndChar, '%') != NULL)
-            {
-                // We have a percent present at the end of the string, 
-                // so this is a percentage value. Therefore, the range
-                // should be [0.0,100.0]
-                if (dVal <= 100.0)
-                {
-                    // Convert to a byte value in the range [0,255]
-                    rulValue = (UINT32) (dVal * 255.0 / 100.0 + 0.5);
-                    // Clear the return value
-                    retVal = HXR_OK;
-                }
-            }
-            else
-            {
-                // There is NO percent character present at the end
-                // of the string. Therefore, the range must be [0.0,1.0]
-                if (dVal <= 1.0)
-                {
-                    // Convert to a byte value in the range [0,255]
-                    rulValue = (UINT32) (dVal * 255.0 + 0.5);
-                    // Clear the return value
-                    retVal = HXR_OK;
-                }
-            }
+            // Scale from 0-100% to 0-255 with rounding
+            lValue = (INT32) (dPercent * 255.0 / 100.0 + 0.5);
+        }
+        else
+        {
+            // It wasn't a percent, so try and parse as digits
+            retVal = HXParseDigit(pszStr, lValue);
+        }
+        if (SUCCEEDED(retVal))
+        {
+            // Clamp to 0-255
+            if (lValue < 0)   lValue = 0;
+            if (lValue > 255) lValue = 255;
+            // Assign the out parameter
+            rulValue = (UINT32) lValue;
         }
     }
     else

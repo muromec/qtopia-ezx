@@ -1,6 +1,6 @@
 #
 # ***** BEGIN LICENSE BLOCK *****
-# Source last modified: $Id: symbian.pcf,v 1.8 2007/08/08 00:11:57 rrajesh Exp $
+# Source last modified: $Id: symbian.pcf,v 1.5 2005/10/07 16:17:47 rrajesh Exp $
 # 
 # Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
 # 
@@ -19,7 +19,7 @@
 # contents of the file.
 # 
 # Alternatively, the contents of this file may be used under the
-# terms of the GNU General Public License Version 2 (the
+# terms of the GNU General Public License Version 2 or later (the
 # "GPL") in which case the provisions of the GPL are applicable
 # instead of those above. If you wish to allow use of your version of
 # this file only under the terms of the GPL, and not to allow others
@@ -54,8 +54,4 @@ if not project.IsDefined('HELIX_CONFIG_NEVER_UNLOAD_DLLS'):
 
 if project.IsDefined('HELIX_CONFIG_SYMBIAN_PLATFORM_SECURITY'):
     project.AddModuleIncludes("client/common/container/platform/symbian")
-    project.AddModuleIncludes("common/system/pub/platform/symbian")
     project.AddSources("platform/symbian/symbiannameonlyff.cpp")
-
-project.AddSources("platform/symbian/chxsymbianliteprefs.cpp")
-

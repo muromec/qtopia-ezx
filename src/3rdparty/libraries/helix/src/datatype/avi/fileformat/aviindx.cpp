@@ -18,7 +18,7 @@
  * contents of the file. 
  *   
  * Alternatively, the contents of this file may be used under the 
- * terms of the GNU General Public License Version 2 (the 
+ * terms of the GNU General Public License Version 2 or later (the 
  * "GPL") in which case the provisions of the GPL are applicable 
  * instead of those above. If you wish to allow use of your version of 
  * this file only under the terms of the GPL, and not to allow others  
@@ -53,11 +53,10 @@
 #include "ihxpckts.h"
 
 #include "hxheap.h"
-#include "hxtlogutil.h"
 
 #ifdef _DEBUG
 #undef HX_THIS_FILE
-static const char HX_THIS_FILE[] = __FILE__;
+static char HX_THIS_FILE[] = __FILE__;
 #endif
 
 #ifdef NET_ENDIAN
@@ -99,12 +98,12 @@ CAVIIndex::CAVIIndex()
     , m_scanState(eInitial)
 	, m_lRefCount(0)
 {
-    HXLOGL2(HXLOG_AVIX,"CAVIIndex[%p]::CAVIIndex() CTOR", this);
+    //HX_TRACE("CAVIFileFormat::CAVIIndex::CAVIIndex()\n");
 }
 
 CAVIIndex::~CAVIIndex()
 {
-    HXLOGL2(HXLOG_AVIX,"CAVIIndex[%p]::~CAVIIndex() DES", this);
+    //HX_TRACE("CAVIFileFormat::CAVIIndex::~CAVIIndex()\n");
 /*    HX_RELEASE(m_pReader);
 	HX_RELEASE(m_pOuter);
 
@@ -120,7 +119,7 @@ void CAVIIndex::Init(CAVIFileFormat* pOuter, IHXFileObject* pFile,
                 IUnknown* pContext, UINT32 ulFirstMOVIOffset,
                 UINT16 usStreamCount)
 {
-    HXLOGL2(HXLOG_AVIX,"CAVIIndex[%p]::Init()", this);
+    //HX_TRACE("CAVIFileFormat::CAVIIndex::Init()\n");
 
     HX_ASSERT_VALID_PTR(pOuter);
     m_pOuter = pOuter;
@@ -182,11 +181,12 @@ void CAVIIndex::Init(CAVIFileFormat* pOuter, IHXFileObject* pFile,
 void CAVIIndex::AddToIndex(UINT16 usStream, UINT32 ulChunk, UINT32 ulOffset,
                            UINT32 ulSize, BOOL bKeyChunk)   // offset includes header
 {
-    HXLOGL4(HXLOG_AVIX,"CAVIIndex[%p]::AddToIndex()", this);
+    //HX_TRACE("CAVIFileFormat::CAVIIndex::AddToIndex()\n");
     StreamSlice* pStream = (StreamSlice*) m_sliceArray[usStream];
 
     // Do we have an index, or is this chunk already indexed?
-    if (m_pReader || ulChunk < pStream->ulSliceEndChunk)
+    if (m_pReader || ulChunk < pStream->ulNextChunkRequired
+        || ulChunk < pStream->ulSliceEndChunk)
     {
         return;
     }
@@ -210,13 +210,13 @@ void CAVIIndex::AddToIndex(UINT16 usStream, UINT32 ulChunk, UINT32 ulOffset,
 
 void CAVIIndex::FileRead(BOOL bRead)   // All chunks have been indexed; reset on seek
 {
-    HXLOGL4(HXLOG_AVIX,"CAVIIndex[%p]::FileRead()", this);
+    //HX_TRACE("CAVIFileFormat::CAVIIndex::FileRead()\n");
     m_bRead = bRead;
 }
 
 void CAVIIndex::SetMinimumChunkInterest(UINT16 usStream, UINT32 ulChunk)
 {
-    HXLOGL4(HXLOG_AVIX,"CAVIIndex[%p]::SetMinimumChunkInterest()", this);
+    //HX_TRACE("CAVIFileFormat::CAVIIndex::SetMinimumChunkInterest()\n");
     HX_ASSERT(usStream < m_usStreamCount);
 
     StreamSlice* pStream = (StreamSlice*) m_sliceArray[usStream];
@@ -235,7 +235,7 @@ void CAVIIndex::SetMinimumChunkInterest(UINT16 usStream, UINT32 ulChunk)
 
 BOOL CAVIIndex::IsKeyChunk(UINT16 usStream, UINT32 ulChunk)
 {
-    HXLOGL4(HXLOG_AVIX,"CAVIIndex[%p]::IsKeyChunk()", this);
+    //HX_TRACE("CAVIFileFormat::CAVIIndex::IsKeyChunk()\n");
     StreamSlice* pStream = (StreamSlice*) m_sliceArray[usStream];
 
     // in bounds?
@@ -255,7 +255,7 @@ HX_RESULT CAVIIndex::FindClosestChunk(UINT16 usStream, UINT32 ulChunk,
                                       /* out */ UINT32& ulClosestOffset,
                                       /* out */ UINT32& ulClosestStreamChunk)
 {
-    HXLOGL4(HXLOG_AVIX,"CAVIIndex[%p]::FindClosestChunk()", this);
+    //HX_TRACE("CAVIFileFormat::CAVIIndex::FindClosestChunk()\n");
 
     if (ulChunk == 0)
 	{
@@ -306,7 +306,7 @@ HX_RESULT CAVIIndex::FindClosestKeyChunk(UINT16 usStream, UINT32 ulChunk,
                                /* out */ UINT32& ulClosestOffset,
                                /* out */ UINT32& ulClosestStreamChunk)
 {
-    HXLOGL4(HXLOG_AVIX,"CAVIIndex[%p]::FindClosestKeyChunk()", this);
+    //HX_TRACE("CAVIFileFormat::CAVIIndex::FindClosestKeyChunk()\n");
 
     if (ulChunk == 0)
     {    
@@ -355,7 +355,7 @@ HX_RESULT CAVIIndex::FindClosestKeyChunk(UINT16 usStream, UINT32 ulChunk,
 // in bytes, not including header:
 UINT32 CAVIIndex::GetMaxChunkSize(UINT16 usStream)
 {
-    HXLOGL4(HXLOG_AVIX,"CAVIIndex[%p]::GetMaxChunkSize()", this);
+    //HX_TRACE("CAVIFileFormat::CAVIIndex::GetMaxChunkSize()\n");
     StreamSlice* pStream = (StreamSlice*) m_sliceArray[usStream];
     return pStream->ulMaxChunkSize;
 }
@@ -363,7 +363,7 @@ UINT32 CAVIIndex::GetMaxChunkSize(UINT16 usStream)
 // in bytes, not including header:
 double CAVIIndex::GetAverageChunkSize(UINT16 usStream)
 {
-    HXLOGL4(HXLOG_AVIX,"CAVIIndex[%p]::GetAverageChunkSize()", this);
+    //HX_TRACE("CAVIFileFormat::CAVIIndex::GetAverageChunkSize()\n");
     StreamSlice* pStream = (StreamSlice*) m_sliceArray[usStream];
 
     return pStream->ulTotalBytes / (double) pStream->ulTotalChunks;
@@ -372,7 +372,7 @@ double CAVIIndex::GetAverageChunkSize(UINT16 usStream)
 // Returns zero if we have no index; assumes transmission at average rate
 UINT32 CAVIIndex::GetMaxByteDeflict(UINT16 usStream)
 {
-    HXLOGL4(HXLOG_AVIX,"CAVIIndex[%p]::GetMaxByteDeflict()", this);
+    //HX_TRACE("CAVIFileFormat::CAVIIndex::GetMaxByteDeflict()\n");
     StreamSlice* pStream = (StreamSlice*) m_sliceArray[usStream];
 
     return pStream->ulPrerollBytes;
@@ -380,7 +380,7 @@ UINT32 CAVIIndex::GetMaxByteDeflict(UINT16 usStream)
 
 UINT32 CAVIIndex::GetByteTotal(UINT16 usStream)
 {
-    HXLOGL4(HXLOG_AVIX,"CAVIIndex[%p]::GetByteTotal()", this);
+    //HX_TRACE("CAVIFileFormat::CAVIIndex::GetByteTotal()\n");
     StreamSlice* pStream = (StreamSlice*) m_sliceArray[usStream];
 
     return pStream->ulTotalBytes;
@@ -388,7 +388,7 @@ UINT32 CAVIIndex::GetByteTotal(UINT16 usStream)
 
 UINT32 CAVIIndex::GetChunkTotal(UINT16 usStream)
 {
-    HXLOGL4(HXLOG_AVIX,"CAVIIndex[%p]::GetChunkTotal()", this);
+    //HX_TRACE("CAVIFileFormat::CAVIIndex::GetChunkTotal()\n");
     StreamSlice* pStream = (StreamSlice*) m_sliceArray[usStream];
 
     return pStream->ulTotalChunks;
@@ -396,7 +396,7 @@ UINT32 CAVIIndex::GetChunkTotal(UINT16 usStream)
 
 BOOL CAVIIndex::CanLoadSlice()
 {
-    HXLOGL4(HXLOG_AVIX,"CAVIIndex[%p]::CanLoadSlice()", this);
+    //HX_TRACE("CAVIFileFormat::CAVIIndex::CanLoadSlice()\n");
     // We want serialized access:
     HX_ASSERT(m_state == eReady);
 
@@ -418,7 +418,7 @@ BOOL CAVIIndex::CanLoadSlice()
 
 BOOL CAVIIndex::CanPreloadSlice()
 {
-    HXLOGL4(HXLOG_AVIX,"CAVIIndex[%p]::CanPreloadSlice()", this);
+    //HX_TRACE("CAVIFileFormat::CAVIIndex::CanPreloadSlice()\n");
     // We want serialized access:
     HX_ASSERT(m_state == eReady);
 
@@ -441,7 +441,7 @@ BOOL CAVIIndex::CanPreloadSlice()
 
 void CAVIIndex::GetNextSlice()
 {
-    HXLOGL4(HXLOG_AVIX,"CAVIIndex[%p]::GetNextSlice()", this);
+    //HX_TRACE("CAVIFileFormat::CAVIIndex::GetNextSlice()\n");
     HX_ASSERT(CanLoadSlice() || CanPreloadSlice());
 
     // We want serialized access:
@@ -597,7 +597,7 @@ STDMETHODIMP_(ULONG32) CAVIIndex::Release()
 
 STDMETHODIMP CAVIIndex::RIFFOpenDone(HX_RESULT status)
 {
-    HXLOGL4(HXLOG_AVIX,"CAVIIndex[%p]::RIFFOpenDone()", this);
+    //HX_TRACE("CAVIFileFormat::CAVIIndex::RIFFOpenDone()\n");
     HX_ASSERT(m_state == eReaderOpen);
 
     m_state = eInitialDescend;
@@ -607,7 +607,7 @@ STDMETHODIMP CAVIIndex::RIFFOpenDone(HX_RESULT status)
 
 STDMETHODIMP CAVIIndex::RIFFCloseDone(HX_RESULT status)
 {
-    HXLOGL4(HXLOG_AVIX,"CAVIIndex[%p]::RIFFCloseDone()", this);
+    //HX_TRACE("CAVIFileFormat::CAVIIndex::RIFFCloseDone()\n");
     return HXR_NOTIMPL;
 }
 
@@ -617,7 +617,7 @@ STDMETHODIMP CAVIIndex::RIFFCloseDone(HX_RESULT status)
  */
 STDMETHODIMP CAVIIndex::RIFFFindChunkDone(HX_RESULT status, UINT32 len)
 {
-    HXLOGL4(HXLOG_AVIX,"CAVIIndex[%p]::RIFFFindChunkDone() status=%x", this, status);
+    //HX_TRACE("CAVIFileFormat::CAVIIndex::RIFFFindChunkDone()\n");
     HX_ASSERT(m_state == eIdx1Find);
 
     if (FAILED(status) || len == 0)
@@ -652,7 +652,7 @@ STDMETHODIMP CAVIIndex::RIFFFindChunkDone(HX_RESULT status, UINT32 len)
 /* Called after a Descend completes */
 STDMETHODIMP CAVIIndex::RIFFDescendDone(HX_RESULT status)
 {
-    HXLOGL4(HXLOG_AVIX,"CAVIIndex[%p]::RIFFDescendDone()", this);
+    //HX_TRACE("CAVIFileFormat::CAVIIndex::RIFFDescendDone()\n");
     HX_ASSERT(m_state == eInitialDescend || m_state == eIdx1Descend);
 
     switch (m_state)
@@ -698,7 +698,7 @@ STDMETHODIMP CAVIIndex::RIFFDescendDone(HX_RESULT status)
 /* Called after an Ascend completes */
 STDMETHODIMP CAVIIndex::RIFFAscendDone(HX_RESULT status)
 {
-    HXLOGL4(HXLOG_AVIX,"CAVIIndex[%p]::RIFFAscendDone()", this);
+    //HX_TRACE("CAVIFileFormat::CAVIIndex::RIFFAscendDone()\n");
     return HXR_NOTIMPL;
 }
 
@@ -706,7 +706,7 @@ STDMETHODIMP CAVIIndex::RIFFAscendDone(HX_RESULT status)
  */
 STDMETHODIMP CAVIIndex::RIFFReadDone(HX_RESULT status, IHXBuffer *pBuffer)
 {
-    HXLOGL4(HXLOG_AVIX,"CAVIIndex[%p]::RIFFReadDone()", this);
+    //HX_TRACE("CAVIFileFormat::CAVIIndex::RIFFReadDone()\n");
     HX_ASSERT(m_state == eReadSlice);
 
     if (m_bDiscardPendingIO)
@@ -881,13 +881,13 @@ STDMETHODIMP CAVIIndex::RIFFReadDone(HX_RESULT status, IHXBuffer *pBuffer)
                                 LE32_TO_HOST(pEntry->ulChunkOffset) + m_ulFirstRelativeMOVIOffset;
 						    pStream->entryArray[pStream->ulSliceEndChunk % MAX_SLICE_SIZE].ulLength =
 		 					    LE32_TO_HOST(pEntry->ulChunkLength);
-                          //  HXLOGL4(HXLOG_AVIX,"CAVIIndex[%p]::RIFFReadDone stream: %d\toffset: %lu", this,CAVIFileFormat::GetStream(pEntry->ulChunkId),
-                          //           pStream->entryArray[pStream->ulSliceEndChunk % MAX_SLICE_SIZE].ulOffset);
+                            //HX_TRACE("CAVIIndex::RIFFReadDone stream: %d\toffset: %lu\n", CAVIFileFormat::GetStream(pEntry->ulChunkId),
+                            //         pStream->entryArray[pStream->ulSliceEndChunk % MAX_SLICE_SIZE].ulOffset);
 
 #ifdef _DEBUG_KEYCHUNKS
                             if (pStream->entryArray[pStream->ulSliceEndChunk % MAX_SLICE_SIZE].bKeyChunk)
                             {
-                                HXLOGL4(HXLOG_AVIX,"CAVIIndex[%p]::RIFFReadDone keytype: %c%c%c%c",this,
+                                //HX_TRACE("CAVIIndex::RIFFReadDone keytype: %c%c%c%c\n",
                                 pEntry->ulChunkId, pEntry->ulChunkId >> 8,
                                 pEntry->ulChunkId >> 16, pEntry->ulChunkId >> 24);
                             }
@@ -931,7 +931,7 @@ STDMETHODIMP CAVIIndex::RIFFReadDone(HX_RESULT status, IHXBuffer *pBuffer)
 /* Called when a seek completes */
 STDMETHODIMP CAVIIndex::RIFFSeekDone(HX_RESULT status)
 {
-    HXLOGL4(HXLOG_AVIX,"CAVIIndex[%p]::RIFFSeekDone()", this);
+    //HX_TRACE("CAVIFileFormat::CAVIIndex::RIFFSeekDone()\n");
 
     if (m_bDiscardPendingIO)
     {
@@ -977,13 +977,12 @@ STDMETHODIMP CAVIIndex::RIFFSeekDone(HX_RESULT status)
 STDMETHODIMP CAVIIndex::RIFFGetChunkDone(HX_RESULT status, UINT32 chunkType,
                                          IHXBuffer* pBuffer)
 {
-    HXLOGL4(HXLOG_AVIX,"CAVIIndex[%p]::RIFFGetChunkDone()", this);
+    //HX_TRACE("CAVIFileFormat::CAVIIndex::RIFFGetChunkDone()\n");
     return HXR_NOTIMPL;
 }
 
 void CAVIIndex::Close()
 {
-	HXLOGL2(HXLOG_AVIX,"CAVIIndex[%p]::Close()", this);
 	if(m_pFile)
 	{
 		m_pFile->Close();

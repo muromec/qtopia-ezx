@@ -83,23 +83,22 @@ public:
 
 protected:
     HXBOOL UpdateIleavInfo(ULONG32 ulILL, ULONG32 ulILP, ULONG32 ulTime);
-    HXBOOL GetTOCInfo(Bitstream& bs, AMRTOCInfo& tocInfo);
-    HXBOOL SkipCRCInfo(Bitstream& bs, const AMRTOCInfo& tocInfo);
+    void GetTOCInfo(Bitstream& bs, AMRTOCInfo& tocInfo);
+    void SkipCRCInfo(Bitstream& bs, const AMRTOCInfo& tocInfo);
 
     void UpdateBlockCount(ULONG32 ulBlockCount);
 
     // Copies linear frame data to m_blockBuf
-    HXBOOL LinearCopy(Bitstream& bs, ULONG32 ulStartBlock, ULONG32 ulBlockInc,
+    void LinearCopy(Bitstream& bs, ULONG32 ulStartBlock, ULONG32 ulBlockInc,
 		    const AMRTOCInfo& tocInfo);
-    HXBOOL GetFrameBlock(Bitstream& bs,
+    ULONG32 GetFrameBlock(Bitstream& bs,
 			  UINT8* pStart, 
 			  const AMRTOCInfo& tocInfo,
 			  ULONG32 ulStartEntry,
-			  ULONG32 ulChannels,
-			  ULONG32& ulRet);
+			  ULONG32 ulChannels);
 
     // Copies robust sorted frame data to m_blockBuf
-    HXBOOL SortedCopy(Bitstream& bs, ULONG32 ulStartBlock, ULONG32 ulBlockInc,
+    void SortedCopy(Bitstream& bs, ULONG32 ulStartBlock, ULONG32 ulBlockInc,
 		    const AMRTOCInfo& tocInfo);
 
     void DispatchBlocks(ULONG32 ulTimestamp);

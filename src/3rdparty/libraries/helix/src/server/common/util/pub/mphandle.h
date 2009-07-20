@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: mphandle.h,v 1.4 2007/12/27 06:12:26 imakandar Exp $ 
+ * Source last modified: $Id: mphandle.h,v 1.2 2003/01/23 23:42:51 damonlan Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -61,19 +61,7 @@ private:
     int m_NumSegments;
     Segment* m_pSegments;
 };
-
-static const char *arrIgnoreAMP[] = {
-	"pn-ramgen",
-    "pn-asxgen",
-    "pn-sdpgen"
-};
-#define SIZE_IGNORE_AMP	(sizeof(arrIgnoreAMP)/sizeof(const char *))
-
-enum TreeID 
-{
-    MP_TREE_FSMOUNT, 
-    MP_TREE_OTHER
-};
+	
 
 class MountPointHandler
 {
@@ -85,7 +73,6 @@ public:
     void* RemoveMount(const char* pMountPoint);
     void* GetMount(const char* pMountPoint, void* pLast);
     void PrintTree();
-    void SetTreeID(TreeID id);
     
 private:
     class MountPointNode
@@ -99,36 +86,11 @@ private:
     private:
 	CHXSimpleList* m_pNodeList;
 	char* m_pNodeName;
-	CHXSimpleList*  m_pAMPList; // AMP List.
+	void* m_pExtrData;
 	friend class MountPointHandler;
     };
     void print_tree_recurse(MountPointNode* pNode, int level);
-	BOOL IgnoreAMP(void* pExtrData);
-	void CheckAndAddAMP(void* pExtrData, MountPointNode* pMPNode);
-    void *GetNextAMP(CHXSimpleList* pAMPList, void *pLast, BOOL& bBelongsTo);
-    void print_amp(MountPointNode* pMPNode, int level);
-
     MountPointNode* m_pTree;
-    TreeID m_TreeID;
-
-    // Mount point config and description mapping.
-    class MPDescNode
-    {
-    private:
-        char* m_pMPDescription;
-        void* pExtrData;
-
-    public:
-        MPDescNode() {}
-        ~MPDescNode() {}
-        friend class MountPointHandler;
-    };
-
-    void AddMPDescription(void *pExtrData);
-    void* RemoveMPDescription(const char* pMPDescription);
-    void* GetMPDescription(const char* pMPDescription);
-
-    CHXSimpleList* m_pMPDescList;
 };
 
 inline int

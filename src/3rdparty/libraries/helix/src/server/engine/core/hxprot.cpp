@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxprot.cpp,v 1.7 2007/05/10 18:43:05 seansmith Exp $
+ * Source last modified: $Id: hxprot.cpp,v 1.6 2006/06/26 17:21:05 darrick Exp $
  *
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.
  *
@@ -70,14 +70,14 @@ HXProtocol::~HXProtocol(void)
 }
 
 int
-HXProtocol::setupHeader(IHXValues* pHeader, ClientSession* pSession,
+HXProtocol::setupHeader(IHXValues* pHeader, Player::Session* pSession,
     HX_RESULT status)
 {
     return 0;
 }
 
 int
-HXProtocol::setupStreams(CHXSimpleList* headers, ClientSession* pSession,
+HXProtocol::setupStreams(CHXSimpleList* headers, Player::Session* pSession,
     HX_RESULT result)
 {
     return 0;
@@ -116,7 +116,7 @@ HXProtocol::sendRedirect(const char* pSessionID,
 }
 
 Transport*
-HXProtocol::getTransport(ClientSession* pSession,
+HXProtocol::getTransport(Player::Session* pSession,
     UINT16 stream_number, UINT32 reliability)
 {
     return 0;

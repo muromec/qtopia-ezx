@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: qos_prof_mgr.cpp,v 1.15 2007/12/05 10:55:47 vijendrakumara Exp $ 
+ * Source last modified: $Id: qos_prof_mgr.cpp,v 1.7 2003/08/06 19:24:16 damonlan Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -41,12 +41,13 @@
 #include "hxqos.h"
 #include "hxassert.h"
 #include "proc.h"
-#include "server_context.h"
 #include "safestring.h"
 #include "servreg.h"
-#include "hxreg.h"
 #include "qos_prof_mgr.h"
-#include "qos_cfg_names.h"
+
+#define QOS_USER_AGENT_PROFILE_ROOT "config.MediaDelivery.UserAgentProfiles"
+#define DEFAULT_USER_AGENT          "Default"
+#define DEFAULT_USER_AGENT_LEN       7
 
 /* UserAgentProfile */
 UserAgentProfile::UserAgentProfile (const char* pUserAgent, INT32 ulConfigId) :
@@ -57,8 +58,8 @@ UserAgentProfile::UserAgentProfile (const char* pUserAgent, INT32 ulConfigId) :
 
     if (pUserAgent)
     {
-        m_pUserAgent = new_string(pUserAgent);
-        m_ulUserAgentLen = strlen(pUserAgent);
+	m_pUserAgent = new_string(pUserAgent);
+	m_ulUserAgentLen = strlen(pUserAgent);
     }
 }
 
@@ -70,78 +71,126 @@ UserAgentProfile::~UserAgentProfile ()
 /* QoS Profile Selector*/
 QoSProfileSelector::QoSProfileSelector(Process* pProc) :
     m_pProc(pProc),
-    m_pDefaultUAS(NULL),
-    m_lRefCount(0)
+    m_pProfiles (NULL),
+    m_ulNumProfiles (0),
+    m_ulProfileRoot(0),
+    m_ulDefaultProfile (0)
 {
     HX_ASSERT(m_pProc);
-
-    IHXRegistry2* pReg2 = NULL;
-    m_pProc->pc->server_context->QueryInterface(IID_IHXRegistry2, (void**)&pReg2);
-    m_pUASConfigTree = new UASConfigTree(pProc->pc->error_handler, pReg2);
-    HX_RELEASE(pReg2);
-
+    m_ulProfileRoot = m_pProc->pc->registry->GetId((const char*)QOS_USER_AGENT_PROFILE_ROOT,
+						   m_pProc);
     UpdateProfiles();
 }
 
 QoSProfileSelector::~QoSProfileSelector()
 {
-    HX_DELETE(m_pUASConfigTree);
+    for (UINT32 i = 0; i < m_ulNumProfiles; i++)
+    {
+	HX_DELETE(m_pProfiles [i]);
+    }
+    HX_VECTOR_DELETE(m_pProfiles);
 }
 
 void
 QoSProfileSelector::UpdateProfiles()
 {
-    m_pUASConfigTree->Update();
-    m_pDefaultUAS = m_pUASConfigTree->GetUserAgentSettings(DEFAULT_USER_AGENT);
+    if (!m_ulProfileRoot)
+    {
+	return;
+    }
+
+    if (m_ulNumProfiles = m_pProc->pc->registry->Count(m_ulProfileRoot, m_pProc))
+    {
+	UINT32 ulProfIdx = 0;
+	ULONG32 ulConfigID = 0;
+	IHXValues* pList = NULL;
+	const char* pName = NULL;
+	HX_RESULT hResult = HXR_FAIL;
+	
+	m_pProfiles = new UserAgentProfile* [m_ulNumProfiles];
+	memset(m_pProfiles, 0, sizeof(UserAgentProfile*) * m_ulNumProfiles);
+	
+	m_pProc->pc->registry->GetPropList(m_ulProfileRoot, pList, m_pProc);
+	
+	HX_ASSERT(pList);
+	
+	hResult = pList->GetFirstPropertyULONG32(pName, ulConfigID);
+	while (pName && SUCCEEDED(hResult))
+	{
+	    if (PT_COMPOSITE == m_pProc->pc->registry->GetType(ulConfigID, m_pProc))
+	    {
+		IHXBuffer* pPropName = NULL;
+		
+		if (SUCCEEDED(m_pProc->pc->registry->GetPropName(ulConfigID, pPropName, m_pProc)))
+		{
+		    IHXBuffer* pUserAgent = NULL;
+		    char* pUserAgentName = new char [11 + pPropName->GetSize()];
+		    
+		    SafeSprintf(pUserAgentName, 11 + pPropName->GetSize(), "%s.UserAgent", 
+				pPropName->GetBuffer());
+		    
+		    if (SUCCEEDED(m_pProc->pc->registry->GetStr(pUserAgentName, pUserAgent, 
+								m_pProc)))
+		    {
+			if ((!strncmp((const char*)pUserAgent->GetBuffer(), DEFAULT_USER_AGENT,
+				      DEFAULT_USER_AGENT_LEN)))
+			{
+			    m_ulDefaultProfile = ulConfigID;
+			}
+
+			m_pProfiles [ulProfIdx] = 
+			    new UserAgentProfile((const char*)pUserAgent->GetBuffer(), ulConfigID);
+			ulProfIdx++;
+		    }
+		    
+		    HX_RELEASE(pUserAgent);
+		    HX_DELETE(pUserAgentName);
+		}
+	    }
+	    hResult = pList->GetNextPropertyULONG32(pName, ulConfigID);
+	}
+	HX_RELEASE(pList);
+    }
 }
     
 /* IHXQoSProfileSelector */
 STDMETHODIMP
 QoSProfileSelector::SelectProfile(IHXBuffer* pUserAgent,
-                                  IHXBuffer* pTransportMime,
-                                  IHXBuffer* pMediaMime,
-                                  REF(IHXUserAgentSettings*) /*OUT*/ pUAS)
+				  IHXBuffer* pTransportMime,
+				  IHXBuffer* pMediaMime,
+				  REF(INT32) /*OUT*/ ulConfigID)
 {
-    pUAS = NULL;
+    ulConfigID = 0;
 
-    if (!pUserAgent || !(pUserAgent->GetBuffer()))
+    if (!pUserAgent)
     {
-        if (!m_pDefaultUAS)
-        {
-            return HXR_NOT_INITIALIZED;
-        }
-        pUAS = (IHXUserAgentSettings*)m_pDefaultUAS;
-        HX_ADDREF(pUAS);
-        return HXR_OK;
+	return HXR_INVALID_PARAMETER;
     }
 
-    UserAgentSettings* pSelectedUAS = m_pUASConfigTree->SelectUserAgentSettings((char *)pUserAgent->GetBuffer());
-    if(pSelectedUAS)
+    if (!(pUserAgent->GetBuffer()))
     {
-        pUAS = (IHXUserAgentSettings*)pSelectedUAS;
+	return HXR_INVALID_PARAMETER;
     }
-    else
+
+    if (!m_pProfiles)
     {
-        if (!m_pDefaultUAS)
-        {
-            return HXR_NOT_INITIALIZED;
-        }
-        pUAS = (IHXUserAgentSettings*)m_pDefaultUAS; //Return Detault UAS
+	return HXR_NOT_INITIALIZED;
     }
-    HX_ADDREF(pUAS);
-    return HXR_OK;
-}
 
-STDMETHODIMP_(CHXMapStringToOb::Iterator)
-QoSProfileSelector::GetBegin()
-{
-    return m_pUASConfigTree->Begin();
-}
+    for (UINT32 i = 0; i < m_ulNumProfiles; i++)
+    {
+	if ((m_pProfiles [i]) && (!strncmp((const char*)pUserAgent->GetBuffer(), 
+					   m_pProfiles [i]->m_pUserAgent,
+					   m_pProfiles [i]->m_ulUserAgentLen)))
+	{
+	    ulConfigID = m_pProfiles [i]->m_ulConfigId;
+	    return HXR_OK;
+	}
+    }
 
-STDMETHODIMP_(CHXMapStringToOb::Iterator)
-QoSProfileSelector::GetEnd()
-{
-    return m_pUASConfigTree->End();
+    ulConfigID = (ulConfigID) ? ulConfigID : m_ulDefaultProfile;
+    
+    return (ulConfigID) ? HXR_OK : HXR_FAIL;
 }
 
 /* IUnknown */
@@ -150,15 +199,15 @@ QoSProfileSelector::QueryInterface(REFIID riid, void** ppvObj)
 {
     if(IsEqualIID(riid, IID_IUnknown))
     {
-        AddRef();
-        *ppvObj = (IUnknown*)(IHXQoSProfileSelector*)this;
-        return HXR_OK;
+	AddRef();
+	*ppvObj = (IUnknown*)(IHXQoSProfileSelector*)this;
+	return HXR_OK;
     }
     else if(IsEqualIID(riid, IID_IHXQoSProfileSelector))
     {
-        AddRef();
-        *ppvObj = (IHXQoSProfileSelector*)this;
-        return HXR_OK;
+	AddRef();
+	*ppvObj = (IHXQoSProfileSelector*)this;
+	return HXR_OK;
     }
 
     *ppvObj = NULL;
@@ -176,7 +225,7 @@ QoSProfileSelector::Release()
 {
     if(InterlockedDecrement(&m_lRefCount) > 0)
     {
-        return m_lRefCount;
+	return m_lRefCount;
     }
     delete this;
     return 0;

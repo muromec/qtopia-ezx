@@ -64,6 +64,29 @@ typedef LONG LONG_PTR;
 static const char HX_THIS_FILE[] = __FILE__;
 #endif	
 
+HX_RESULT HXThreadMessageSink::Create(HXThreadMessageSink*& pMsgSink, IUnknown* pContext)
+{
+    HX_RESULT hr = HXR_FAIL;
+
+    pMsgSink = new HXWinThreadMessageSink();
+    if( pMsgSink )
+    {
+        pMsgSink->AddRef();
+        hr = pMsgSink->Init(pContext);
+        if(HXR_OK != hr)
+        {
+            HX_ASSERT(false);
+            HX_RELEASE(pMsgSink);
+        }
+    }
+    else 
+    {
+        hr = HXR_OUTOFMEMORY;
+    }
+    return hr;
+}
+
+
 HXWinThreadMessageSink::HXWinThreadMessageSink()
 {
 }

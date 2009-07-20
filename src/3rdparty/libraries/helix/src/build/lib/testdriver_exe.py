@@ -1,7 +1,7 @@
 # 
 #  ***** BEGIN LICENSE BLOCK *****  
 #   
-#  Source last modified: $Id: testdriver_exe.py,v 1.3 2007/07/17 00:17:48 jfinnecy Exp $ 
+#  Source last modified: $Id: testdriver_exe.py,v 1.2 2006/07/06 19:28:05 jfinnecy Exp $ 
 #   
 #  Copyright Notices: 
 #   
@@ -83,5 +83,5 @@ def run():
     
     import test
     results = test.runTest( module )
-
-    sys.exit( len(results.errors) + len(results.failures) )
+    
+    sys.exit( len(results.errors) )

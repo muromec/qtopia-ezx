@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: localrep.h,v 1.6 2008/01/18 04:54:28 vkathuria Exp $
+ * Source last modified: $Id: localrep.h,v 1.4 2004/07/09 18:23:37 hubbe Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -62,7 +62,7 @@
 #define _LOCALREP_H_
 
 // Includes for this file...
-#include "hlxclib/stdlib.h"
+#include <stdlib.h>
 #include "hlxclib/time.h"
 
 #ifdef __cplusplus		

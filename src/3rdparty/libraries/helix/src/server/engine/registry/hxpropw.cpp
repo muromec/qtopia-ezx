@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: hxpropw.cpp,v 1.5 2009/05/30 19:09:56 atin Exp $ 
+ * Source last modified: $Id: hxpropw.cpp,v 1.3 2003/09/04 22:35:35 dcollins Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -107,25 +107,25 @@ HXPropWatch::Release()
 }   
 
 HXPropWatch::HXPropWatch(ServerRegistry* registry, Process* proc)
-       : m_lRefCount(0), m_response(0), m_registry(registry), 
-         m_proc(proc)
+	   : m_lRefCount(0), m_response(0), m_registry(registry), 
+	     m_proc(proc)
 {
     if (proc)
-    m_procnum = proc->procnum();
+	m_procnum = proc->procnum();
 }
 
 HXPropWatch::~HXPropWatch()
 {
     if (m_response)
-    m_response->Release();
+	m_response->Release();
 }
 
 /*
  *  Copyright (c) 1996, 1997 Progressive Networks
  *
- *  Function Name:      HXPropWatch::Init
- *  Input Params:       IHXPropWatchResponse* pResponse, 
- *  Return Value:       STDMETHODIMP
+ *  Function Name:  	HXPropWatch::Init
+ *  Input Params:   	IHXPropWatchResponse* pResponse, 
+ *  Return Value:   	STDMETHODIMP
  *  Description:
  *      Initialize with the response object and the registry so that
  *  Watch notifications can be sent back to the respective plugins.
@@ -135,9 +135,9 @@ HXPropWatch::Init(IHXPropWatchResponse* pResponse)
 {
     if (pResponse)
     {
-    m_response = pResponse;
-    m_response->AddRef();
-    return HXR_OK;
+	m_response = pResponse;
+	m_response->AddRef();
+	return HXR_OK;
     }
 
     return HXR_FAIL;
@@ -146,11 +146,11 @@ HXPropWatch::Init(IHXPropWatchResponse* pResponse)
 /*
  *  Copyright (c) 1996, 1997 Progressive Networks
  *
- *  Function Name:      SetWatchOnRoot
+ *  Function Name:  	SetWatchOnRoot
  *  Input Params:
- *  Return Value:       UINT32
+ *  Return Value:   	UINT32
  *  Description:
- *      set a watch point at the root of the registry hierarchy.
+ *  	set a watch point at the root of the registry hierarchy.
  *  to be notified if any property at this level gets added/modified/deleted.
  */
 STDMETHODIMP_(UINT32)
@@ -163,7 +163,7 @@ HXPropWatch::SetWatchOnRoot()
     cb->procnum = m_procnum;
     UINT32 h;
     if ((h = m_registry->SetWatch(cb)))
-    return h;
+	return h;
     
     delete cb;
     DPRINTF(D_REGISTRY, ("SetWatchOnRoot() failed\n"));
@@ -173,25 +173,25 @@ HXPropWatch::SetWatchOnRoot()
 /*
  *  Copyright (c) 1996, 1997 Progressive Networks
  *
- *  Function Name:      SetWatchByName
- *  Input Params:       const char* prop_name
- *  Return Value:       UINT32
+ *  Function Name:  	SetWatchByName
+ *  Input Params:   	const char* prop_name
+ *  Return Value:   	UINT32
  *  Description:
- *      set a watch point on any Property. if the Property gets
+ *  	set a watch point on any Property. if the Property gets
  *  modified/deleted a notification will be sent by the registry.
  */
 STDMETHODIMP_(UINT32)
 HXPropWatch::SetWatchByName(const char* prop_name)
 {
     DPRINTF(D_REGISTRY&D_ENTRY, ("HXPropWatch::SetWatchByName(prop_name(%s)\n)",
-        prop_name));
+	    prop_name));
     ServerPropWatch* cb = new ServerPropWatch;
     cb->m_pResponse = m_response;
     cb->proc = m_proc;
     cb->procnum = m_procnum;
     UINT32 h;
     if ((h = m_registry->SetWatch(prop_name, cb)))
-    return h;
+	return h;
     
     delete cb;
     DPRINTF(D_REGISTRY, ("SetWatchByName(%s) failed\n", prop_name));
@@ -201,25 +201,25 @@ HXPropWatch::SetWatchByName(const char* prop_name)
 /*
  *  Copyright (c) 1996, 1997 Progressive Networks
  *
- *  Function Name:      SetWatchById
- *  Input Params:       const UINT32 id
- *  Return Value:       UINT32
+ *  Function Name:  	SetWatchById
+ *  Input Params:   	const UINT32 id
+ *  Return Value:   	UINT32
  *  Description:
- *      set a watch point on any Property. if the Property gets
+ *  	set a watch point on any Property. if the Property gets
  *  modified/deleted a notification will be sent by the registry.
  */
 STDMETHODIMP_(UINT32)
 HXPropWatch::SetWatchById(const UINT32 id)
 {
     DPRINTF(D_REGISTRY&D_ENTRY, ("HXPropWatch::SetWatchByName(prop_name(%lu)\n)",
-        id));
+	    id));
     ServerPropWatch* cb = new ServerPropWatch;
     cb->m_pResponse = m_response;
     cb->proc = m_proc;
     cb->procnum = m_procnum;
     UINT32 h;
     if ((h = m_registry->SetWatch(id, cb)))
-    return h;
+	return h;
 
     delete cb;
     DPRINTF(D_REGISTRY, ("SetWatchById(%lu) failed\n", id));
@@ -229,11 +229,11 @@ HXPropWatch::SetWatchById(const UINT32 id)
 /*
  *  Copyright (c) 1996, 1997 Progressive Networks
  *
- *  Function Name:      ClearWatchOnRoot
+ *  Function Name:  	ClearWatchOnRoot
  *  Input Params:
- *  Return Value:       HX_RESULT
+ *  Return Value:   	HX_RESULT
  *  Description:
- *      clear a watch point from the root of the DB hierarchy
+ *  	clear a watch point from the root of the DB hierarchy
  */
 STDMETHODIMP
 HXPropWatch::ClearWatchOnRoot()
@@ -244,11 +244,11 @@ HXPropWatch::ClearWatchOnRoot()
 /*
  *  Copyright (c) 1996, 1997 Progressive Networks
  *
- *  Function Name:      ClearWatchByName
- *  Input Params:       const char* prop_name
- *  Return Value:       HX_RESULT
+ *  Function Name:  	ClearWatchByName
+ *  Input Params:   	const char* prop_name
+ *  Return Value:   	HX_RESULT
  *  Description:
- *      clear a watch point on a property.
+ *  	clear a watch point on a property.
  */
 STDMETHODIMP
 HXPropWatch::ClearWatchByName(const char* prop_name)
@@ -259,11 +259,11 @@ HXPropWatch::ClearWatchByName(const char* prop_name)
 /*
  *  Copyright (c) 1996, 1997 Progressive Networks
  *
- *  Function Name:      ClearWatchById
- *  Input Params:       const UINT32 id
- *  Return Value:       HX_RESULT
+ *  Function Name:  	ClearWatchById
+ *  Input Params:   	const UINT32 id
+ *  Return Value:   	HX_RESULT
  *  Description:
- *      clear a watch point on a property.
+ *  	clear a watch point on a property.
  */
 STDMETHODIMP
 HXPropWatch::ClearWatchById(const UINT32 id)
@@ -274,25 +274,24 @@ HXPropWatch::ClearWatchById(const UINT32 id)
 void
 PropWatchCallback::func(Process* _proc)
 {
-    DPRINTF(0x00800000, ("%d: PropWatchCallback(%p)::func(): from m_proc->procnum(%d))"
-        " --> _proc->procnum(%d), m_pPlugin(%p)\n", Process::get_procnum(),
-        this, m_proc->procnum(), _proc->procnum(), m_pPlugin));
+    DPRINTF(0x00800000, ("PropWatchCallback::func(_proc(%p)) -- m_proc(%p), "
+	    "m_pPlugin(%p)\n", _proc, m_proc, m_pPlugin));
 
     switch(m_event)
     {
-    case DBE_ADDED:
-        m_pPlugin->AddedProp(m_hash, m_type, m_parentHash);
-        DPRINTF(0x00800000, ("PropWatchCallback(%p)::func -- ADD "
-            "m_hash(%lu, %lu)\n", this, m_hash, m_parentHash));
-        break;
+	case DBE_ADDED:
+	    m_pPlugin->AddedProp(m_hash, m_type, m_parentHash);
+	    DPRINTF(0x00800000, ("PropWatchCallback::func -- ADD this(%p), "
+		    "m_hash(%lu, %lu)\n", this, m_hash, m_parentHash));
+	    break;
 
-    case DBE_MODIFIED:
-        m_pPlugin->ModifiedProp(m_hash, m_type, m_parentHash);
-        DPRINTF(0x00800000, ("PropWatchCallback(%p)::func -- MODIFY "
-            "m_hash(%lu, %lu)\n", this, m_hash, m_parentHash));
-        break;
+	case DBE_MODIFIED:
+	    m_pPlugin->ModifiedProp(m_hash, m_type, m_parentHash);
+	    DPRINTF(0x00800000, ("PropWatchCallback::func -- MODIFY this(%p), "
+		    "m_hash(%lu, %lu)\n", this, m_hash, m_parentHash));
+	    break;
 
-    case DBE_DELETED:
+	case DBE_DELETED:
             if (m_pDeletedPropCB)
             {
                 switch (m_type)
@@ -312,31 +311,31 @@ PropWatchCallback::func(Process* _proc)
             {
                 m_pPlugin->DeletedProp(m_hash, m_parentHash);
             }
-        /*
+	    /*
              * Clear the watch so that the registry entry may be deleted.
-         * Clear the watch ONLY when this callback is for the property
+	     * Clear the watch ONLY when this callback is for the property
              * being deleted and NOT for a watch on the parent property,
              * being notified of the child's extermination ;-)
-         */
-        if (!m_bParentBeingNotified)
+	     */
+	    if (!m_bParentBeingNotified)
             {
-                DPRINTF(0x00800000, ("PropWatchCallback(%p)::func -- "
-                        "DELETE m_hash(%lu, %lu)\n", 
+                DPRINTF(0x00800000, ("PropWatchCallback::func -- "
+                        "DELETE this(%p), m_hash(%lu, %lu)\n", 
                         this, m_hash, m_parentHash));
                 m_registry->ClearWatch(m_hash, m_pPlugin, _proc);
             }
             else
-                DPRINTF(0x00800000, ("PropWatchCallback(%p)::func -- "
-                        "PARENT notification -- DELETE "
+                DPRINTF(0x00800000, ("PropWatchCallback::func -- "
+                        "PARENT notification -- DELETE this(%p), "
                         "m_hash(%lu, %lu)\n", this, m_hash, m_parentHash));
 
-        break;
+	    break;
 
-    default:
-        ERRMSG(m_proc->pc->error_handler,
-               "invalid operation(%d) on registry property with key(%lu, %lu)\n",
-           m_event, m_hash, m_parentHash);
-        break;
+	default:
+	    ERRMSG(m_proc->pc->error_handler,
+	           "invalid operation(%d) on registry property with key(%lu, %lu)\n",
+		   m_event, m_hash, m_parentHash);
+	    break;
     }
     delete this;
 }
@@ -364,7 +363,6 @@ PropWatchCallback::~PropWatchCallback()
 
     HX_RELEASE(m_pPlugin);
     HX_RELEASE(m_pDeletedPropCB);
-    HX_RELEASE(m_pKey);
 
     if (bLocked)
     {

@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: preftran.cpp,v 1.43 2007/08/21 20:14:56 ping Exp $
+ * Source last modified: $Id: preftran.cpp,v 1.39 2007/04/27 20:16:13 ping Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -261,9 +261,8 @@ HXPreferredTransport::SetTransport(TransportMode   /* IN  */   prefTransportType
     // selection only applies to that particular URL, so we need to exclude it from
     // preferred transport database which applies to all the URLs from a particular
     // server
-    if (!ValidateTransport(prefTransportType))
+    if (!(ulTransportMask & prefTransportType))
     {
-        m_state = PTS_CREATE;
         goto exit;
     }
 
@@ -717,10 +716,10 @@ HXPreferredTransportManager::ReadPreferences(HXBOOL  bRTSPProtocol, UINT32& ulTr
     {
 	ulTransportMask = ATTEMPT_AUTOTRANSPORT;
 
-        WritePrefUINT32(m_pContext, bRTSPProtocol?"AttemptRTSPvMulticast":"AttemptPNAvMulticast", (HXBOOL)((ulTransportMask & ATTEMPT_MULTICAST) ? TRUE : FALSE));
-        WritePrefUINT32(m_pContext, bRTSPProtocol?"AttemptRTSPvUDP":"AttemptPNAvUDP", (HXBOOL)((ulTransportMask & ATTEMPT_UDP) ? TRUE : FALSE));
-        WritePrefUINT32(m_pContext, bRTSPProtocol?"AttemptRTSPvTCP":"AttemptPNAvTCP", (HXBOOL)((ulTransportMask & ATTEMPT_TCP) ? TRUE : FALSE));
-        WritePrefUINT32(m_pContext, bRTSPProtocol?"AttemptRTSPvHTTP":"AttemptPNAvHTTP", (HXBOOL)((ulTransportMask & ATTEMPT_HTTPCLOAK) ? TRUE : FALSE));
+        WritePrefUINT32(m_pPreferences, bRTSPProtocol?"AttemptRTSPvMulticast":"AttemptPNAvMulticast", (HXBOOL)(ulTransportMask & ATTEMPT_MULTICAST));
+        WritePrefUINT32(m_pPreferences, bRTSPProtocol?"AttemptRTSPvUDP":"AttemptPNAvUDP", (HXBOOL)(ulTransportMask & ATTEMPT_UDP));
+        WritePrefUINT32(m_pPreferences, bRTSPProtocol?"AttemptRTSPvTCP":"AttemptPNAvTCP", (HXBOOL)(ulTransportMask & ATTEMPT_TCP));
+        WritePrefUINT32(m_pPreferences, bRTSPProtocol?"AttemptRTSPvHTTP":"AttemptPNAvHTTP", (HXBOOL)(ulTransportMask & ATTEMPT_HTTPCLOAK));
     }
     else
     {

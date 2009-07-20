@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: ihxostrm.h,v 1.6 2007/07/17 23:27:22 ping Exp $
+ * Source last modified: $Id: ihxostrm.h,v 1.4 2005/03/14 19:27:09 bobclark Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -75,15 +75,17 @@ DECLARE_INTERFACE_(IHXStreamableObj, IUnknown)
     STDMETHOD_(ULONG32, AddRef) (THIS) PURE;
     STDMETHOD_(ULONG32, Release) (THIS) PURE;
 
-    // this method is used to dump a binary
-    // representation of itself to the Encoder Object.
+	// this method is used to dump a binary
+	// representation of itself to the Encoder Object.
     STDMETHOD(WriteObjToBits) (THIS_ IHXObjOutStream* pIOutStream) PURE;
 
-    // this method is used to set the object's internal state
-    // from the data in the Decoder Object.
+	// this method is used to set the object's internal state
+	// from the data in the Decoder Object.
     STDMETHOD(ReadObjFromBits) (THIS_ IHXObjInStream* pIInStream) PURE;
 
 };
+
+
 
 // {B3A156D1-BEDD-11d1-8F0A-0060083BE561}
 DEFINE_GUID(IID_IHXObjOutStream, 0xb3a156d1, 0xbedd, 0x11d1, 0x8f, 0xa, 0x0, 0x60, 0x8, 0x3b, 0xe5, 0x61);
@@ -92,19 +94,17 @@ DEFINE_GUID(IID_IHXObjOutStream, 0xb3a156d1, 0xbedd, 0x11d1, 0x8f, 0xa, 0x0, 0x6
 #undef  INTERFACE
 #define INTERFACE IHXObjOutStream
 
-#define CLSID_IHXObjOutStream IID_IHXObjOutStream
-
 DECLARE_INTERFACE_(IHXObjOutStream, IUnknown)
 {
     STDMETHOD(QueryInterface) (THIS_ REFIID riid, void** ppvObj) PURE;
     STDMETHOD_(UINT32, AddRef) (THIS) PURE;
     STDMETHOD_(UINT32, Release) (THIS) PURE;
 
-    STDMETHOD(Initialize) (THIS) PURE;	// clean out buffers, start fresh!
+	STDMETHOD(Initialize) (THIS) PURE;	// clean out buffers, start fresh!
 	
     STDMETHOD_(UINT32, WriteObj) (THIS_ IHXStreamableObj* pObj) PURE;
     STDMETHOD_(UINT32, WriteObj) (THIS_ IHXStreamableObj& pObj) PURE;
-    STDMETHOD_(UINT32, WriteUCHAR) (THIS_ UCHAR nValue) PURE;
+	STDMETHOD_(UINT32, WriteUCHAR) (THIS_ UCHAR nValue) PURE;
     STDMETHOD_(UINT32, WriteUINT16) (THIS_ UINT16 nValue) PURE;
     STDMETHOD_(UINT32, WriteUINT32) (THIS_ UINT32 nValue) PURE;
     STDMETHOD_(UINT32, WriteString) (THIS_ const char* szValue) PURE;
@@ -112,18 +112,21 @@ DECLARE_INTERFACE_(IHXObjOutStream, IUnknown)
     STDMETHOD_(UINT32, WriteLargeString) (THIS_ const char* szValue) PURE;
     STDMETHOD_(UINT32, WriteBuffer)  (THIS_ const char* szBuffer, UINT32 nSize) PURE;
 
-    // dump at specific positions (earlier positions than current offset)
+	// dump at specific positions (earlier positions than current offset)
     STDMETHOD_(UINT32, WriteUINT16At) (THIS_ UINT32 nOffset, UINT16 nValue) PURE;
     STDMETHOD_(UINT32, WriteUINT32At) (THIS_ UINT32 nOffset, UINT32 nValue) PURE;
 	
-    // get data and length
-    STDMETHOD_(const char*, GetBuffer) (THIS) PURE;
-    STDMETHOD_(UINT32, GetLength) (THIS) PURE;
+	// get data and length
+	STDMETHOD_(const char*, GetBuffer) (THIS) PURE;
+	STDMETHOD_(UINT32, GetLength) (THIS) PURE;
 
-    // get end of raw data buffer - used when dumping bits into the
-    // stream and you want to know the current position in the stream
-    STDMETHOD_(UINT32, GetOffset) (THIS) PURE;
+	// get end of raw data buffer - used when dumping bits into the
+	// stream and you want to know the current position in the stream
+	STDMETHOD_(UINT32, GetOffset) (THIS) PURE;
 };
+
+
+
 
 // {B3A156D1-BEDD-11d1-8F0A-0060083BE561}
 DEFINE_GUID(IID_IHXObjInStream, 0xb3a156d2, 0xbedd, 0x11d1, 0x8f, 0xa, 0x0, 0x60, 0x8, 0x3b, 0xe5, 0x61);
@@ -131,16 +134,15 @@ DEFINE_GUID(IID_IHXObjInStream, 0xb3a156d2, 0xbedd, 0x11d1, 0x8f, 0xa, 0x0, 0x60
 #undef  INTERFACE
 #define INTERFACE IHXObjInStream
 
-#define CLSID_IHXObjInStream IID_IHXObjInStream
-
 DECLARE_INTERFACE_(IHXObjInStream, IUnknown)
 {
     STDMETHOD(QueryInterface) (THIS_ REFIID riid, void** ppvObj) PURE;
     STDMETHOD_(ULONG32, AddRef) (THIS) PURE;
     STDMETHOD_(ULONG32, Release) (THIS) PURE;
+
 	
-    STDMETHOD(Initialize) (THIS) PURE;
-    STDMETHOD(Initialize) (THIS_ UCHAR* buf, UINT32 nLen) PURE;
+	STDMETHOD(Initialize) (THIS) PURE;
+	STDMETHOD(Initialize) (THIS_ UCHAR* buf, UINT32 nLen) PURE;
 	
     STDMETHOD_(UINT32, ReadObj) (THIS_ IHXStreamableObj* pObj) PURE;
     STDMETHOD_(UINT32, ReadObj) (THIS_ IHXStreamableObj& pObj) PURE;
@@ -149,27 +151,26 @@ DECLARE_INTERFACE_(IHXObjInStream, IUnknown)
     STDMETHOD_(UINT32, ReadUINT16) (THIS_ UINT16& nValue) PURE;
     STDMETHOD_(UINT32, ReadUINT32) (THIS_ UINT32& nValue) PURE;
     STDMETHOD_(UINT32, ReadString) (THIS_ CHXString& strValue) PURE;
-    STDMETHOD_(UINT32, ReadAndAllocCString) (THIS_ char*& pszValue) PURE;
+	STDMETHOD_(UINT32, ReadAndAllocCString) (THIS_ char*& pszValue) PURE;
     STDMETHOD_(UINT32, ReadLargeString) (THIS_ CHXString& strValue) PURE;
     STDMETHOD_(UINT32, ReadAndAllocLargeCString) (THIS_ char*& pszValue) PURE;
     STDMETHOD_(UINT32, ReadBuffer)  (THIS_ char* szBuffer, UINT32 nSize) PURE;
 
-    STDMETHOD_(HXBOOL, IsEndOfData) () PURE;
+	STDMETHOD_(HXBOOL, IsEndOfData) () PURE;
 
-    // arbitrarily change offset position.
+	// arbitrarily change offset position.
     STDMETHOD(Seek) 		(UINT32 nPos) PURE;
     STDMETHOD(SkipForward) 	(UINT32 nAmount) PURE;
 	
-    STDMETHOD_(UINT32, GetOffset) (THIS) PURE;
+	STDMETHOD_(UINT32, GetOffset) (THIS) PURE;
 
-    // get data and length
-    STDMETHOD_(const char*, GetBuffer) (THIS) PURE;
-    STDMETHOD_(UINT32, GetLength) (THIS) PURE;
+	// get data and length
+	STDMETHOD_(const char*, GetBuffer) (THIS) PURE;
+	STDMETHOD_(UINT32, GetLength) (THIS) PURE;
 };
 
-#include "hxcomptr.h"
-DEFINE_SMART_PTR(IHXStreamableObj)
-DEFINE_SMART_PTR(IHXObjOutStream)
-DEFINE_SMART_PTR(IHXObjInStream)
+
 
 #endif
+
+

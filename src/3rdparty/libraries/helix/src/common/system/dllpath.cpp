@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: dllpath.cpp,v 1.13 2008/01/18 07:35:17 vkathuria Exp $
+ * Source last modified: $Id: dllpath.cpp,v 1.11 2005/05/05 18:23:24 rggammon Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -237,7 +237,7 @@ DLLAccessPath::AddPathToEnvironment(const char* szPath)
 {
     HX_RESULT theError = HXR_OK;
 
-#if !defined(_MACINTOSH) && !defined(WIN32_PLATFORM_PSPC) && !defined(_BREW)
+#if !defined(_MACINTOSH) && !defined(WIN32_PLATFORM_PSPC)
     if(szPath)
     {
 	char* pPathEnvVar = getenv("PATH");
@@ -281,7 +281,7 @@ DLLAccessPath::RestoreEnvironment()
 {
     HX_RESULT theError = HXR_OK;
 
-#if !defined(_MACINTOSH) && !defined(WIN32_PLATFORM_PSPC) && !defined(_BREW)
+#if !defined(_MACINTOSH) && !defined(WIN32_PLATFORM_PSPC)
     if(!m_strPathEnvVar.IsEmpty())
     {
 #if defined(_AIX) || defined(_LINUX) || defined(_FREEBSD)

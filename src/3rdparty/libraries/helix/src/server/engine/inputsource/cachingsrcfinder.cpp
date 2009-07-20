@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
-* Source last modified: $Id: cachingsrcfinder.cpp,v 1.2 2007/05/10 18:44:13 seansmith Exp $ 
+* Source last modified: $Id: cachingsrcfinder.cpp,v 1.1 2004/06/14 14:41:58 lyoung Exp $ 
 * 
 * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved. 
 * 
@@ -85,8 +85,8 @@ UINT32 CachingSourceFinder::zm_uCachePruneFreq = DEFAULT_CACHE_PRUNEFREQ;
 UINT32 CachingSourceFinder::zm_uCacheMaxAge = DEFAULT_CACHE_MAXAGE;
 
 CachingSourceFinder::CachingSourceFinder(Process* pProc,
-        ClientSession* pSession) :
-    BasicSourceFinder(pProc, pSession)
+        Player::Session* pPlayerSession) :
+    BasicSourceFinder(pProc, pPlayerSession)
 {
 }
 

@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxflsrc.h,v 1.38 2008/09/15 06:04:01 vtyagi Exp $
+ * Source last modified: $Id: hxflsrc.h,v 1.34 2007/01/11 19:53:31 milko Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -162,8 +162,6 @@ public:
 #if defined(HELIX_FEATURE_ASM)
     virtual HXBOOL	IsSimulatedNetworkPlayback()  {return (m_pSimulatedSourceBandwidth != NULL);};
 #endif /* HELIX_FEATURE_ASM */
-
-    virtual HXBOOL     IsNetworkAccess();
 
 	    HXBOOL	IsSourceDone(void);
 
@@ -378,6 +376,8 @@ protected:
 
     UINT32		    m_ulLastBufferingReturned;
     UINT32		    m_ulInitialTime;
+    UINT32		    m_ulFillEndTime;
+    UINT32		    m_ulMaxPreRoll;  
     UINT16		    m_uNumStreamsToBeFilled : 16;
     HX_BITFIELD		    m_bInFillMode : 1;
     HX_BITFIELD		    m_bInitialPacket : 1;
@@ -386,7 +386,6 @@ protected:
     HX_BITFIELD		    m_bCurrentFileFormatUnkInUse: 1;
     HX_BITFIELD		    m_bValidateMetaDone: 1;
     HX_BITFIELD             m_bPacketlessSource : 1;
-    HXBOOL                  m_bSeparateFragment;	
     char*		    m_pDefaultUpgradeString;
 
     IHXFileSystemObject*   m_pFSObject;

@@ -3,7 +3,7 @@
 # 
 #  ***** BEGIN LICENSE BLOCK *****  
 #   
-#  Source last modified: $Id: rebase_exe.py,v 1.3 2007/07/17 00:17:48 jfinnecy Exp $ 
+#  Source last modified: $Id: rebase_exe.py,v 1.2 2006/07/06 19:28:05 jfinnecy Exp $ 
 #   
 #  Copyright Notices: 
 #   
@@ -74,7 +74,6 @@ import re
 import shell
 import dll
 import basefile
-import log
 
 class App:
     """Class to implement rebase and resign behavior.
@@ -94,10 +93,10 @@ class App:
         self.__base           = eval(base) # Converts hex string to number.
         self.__targetDir      = targetDir
         self.__outputFile     = os.path.join( outputDir, outputFile )
-        self.__signVerifyTool = os.path.join( os.environ.get('BUILD_ROOT') , 'bin' , 'gethash.exe' )
-        self.__signTool       = os.path.join( os.environ.get('BUILD_ROOT') , 'bin' , 'sign.py' )
+        self.__signVerifyTool = os.path.join( buildRoot , 'bin' , 'gethash.exe' )
+        self.__signTool       = os.path.join( buildRoot , 'bin' , 'sign' )
         # MS tool, we need to let the environment provide the pathing.
-        self.__rebaseTool     = 'rebase.exe'
+        self.__rebaseTool     = 'rebase'
 
         # Set up the basefile object.        
         if os.path.exists( self.__outputFile ):

@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: float.h,v 1.7 2008/10/08 06:28:27 gbajaj Exp $
+ * Source last modified: $Id: float.h,v 1.4 2004/07/09 18:21:09 hubbe Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -60,30 +60,11 @@
 #define LIMITS_UNDEF_WIN32
 #endif /* _WIN32 */
 #endif /* _OPENWAVE_SIMULATOR */
-#if !defined (_BREW) 
 #include <float.h>
-#endif
 #ifdef LIMITS_UNDEF_WIN32
 #undef _WIN32
 #undef LIMITS_UNDEF_WIN32
 #endif /* LIMITS_UNDEF_WIN32 */
-#if defined(_UNIX)
-//taken form float.h of windows
-#define _EM_DENORMAL    0x00080000              /* denormal exception mask (_control87 only) */
-#define _EM_UNDERFLOW   0x00000002              /*   underflow */
-#define _EM_INEXACT     0x00000001              /*   inexact (precision) */
-#define _EM_INVALID     0x00000010              /*   invalid */
-#define _EM_DENORMAL    0x00080000              /* denormal exception mask (_control87 only) */
-#define _EM_ZERODIVIDE  0x00000008              /*   zero divide */
-#define EM_OVERFLOW             _EM_OVERFLOW
-#define EM_UNDERFLOW            _EM_UNDERFLOW
-#define EM_INEXACT              _EM_INEXACT
-#define _EM_OVERFLOW    0x00000004              /*   overflow */
-#endif
-#endif
-
-#if defined (_BREW)
-#define DBL_EPSILON     2.2204460492503131e-016 /* smallest such that 1.0+DBL_EPSILON != 1.0 */
 #endif
 
 #endif /* HLXSYS_FLOAT_H */

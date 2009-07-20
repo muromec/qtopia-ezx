@@ -70,34 +70,6 @@ x2n(char c)
     return 0;
 }
 
-// The n2x routine is equivalent to this:
-// tp += sprintf(tp, "%x", words[i]);
-// However, this code is in the server's packet path, so using sprintf()
-// here is a severe CPU penalty for the server.
-// Note that pBuf needs to be at least 5 bytes to allow room for the ending null byte.
-static inline int
-n2x(UINT32 ulNum, char* pBuf)
-{
-    for (int j=3; j >= 0; --j)
-    {
-        unsigned int uNibble;
-        if (j)
-        {
-            uNibble = (ulNum >> (4*j)) & 0xf;
-        }
-        else
-        {
-            uNibble = ulNum & 0xf;
-        }
-        unsigned char ch = (unsigned char)uNibble;
-        HX_ASSERT((UINT32)ch <= 15);
-        ch += (ch < 10 ? '0' : ('a' - 10));
-        *pBuf++ = ch;
-    }
-    *pBuf = '\0';
-    return 4;
-}
-
 static int
 hx_inet_pton4(const char* s, UINT8* d)
 {
@@ -361,7 +333,7 @@ hx_inet_ntop6(const void* s, char* d, UINT32 len)
                 *tp++ = ':';
             }
 
-            tp += n2x(words[i], tp);
+            tp += sprintf(tp, "%x", words[i]);
         }
 
         // Was it a trailing run of 0x00's?

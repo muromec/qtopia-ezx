@@ -91,7 +91,6 @@ const char* const CMP4AudioRenderer::zm_pStreamMimeTypes[] =
     "audio/x-ralf-mpeg4-generic",
 #endif /* #if defined(HELIX_FEATURE_AUDIO_RALF) */
 #if defined(HELIX_FEATURE_AUDIO_CODEC_AAC) || defined(HELIX_FEATURE_AUDIO_CODEC_RAAC)
-    "audio/X-RN-QT-RAWAU",
     "audio/X-RN-MP4-RAWAU",
     "audio/MP4A-LATM",
     "audio/mpeg4-simple-A2",
@@ -110,7 +109,6 @@ const char* const CMP4AudioRenderer::zm_pStreamMimeTypes[] =
     "audio/X-MP3-draft-00",
     "audio/X-MP3-draft-00-RN",
     "audio/MPEG-ELEMENTARY",
-    "audio/rn-mpeg",    
 #endif /* #if defined(HELIX_FEATURE_AUDIO_CODEC_MP3) */
     NULL
 };

@@ -18,7 +18,7 @@
  * contents of the file. 
  *   
  * Alternatively, the contents of this file may be used under the 
- * terms of the GNU General Public License Version 2 (the 
+ * terms of the GNU General Public License Version 2 or later (the 
  * "GPL") in which case the provisions of the GPL are applicable 
  * instead of those above. If you wish to allow use of your version of 
  * this file only under the terms of the GPL, and not to allow others  
@@ -124,6 +124,7 @@ class CAVIFileFormat : public IHXPlugin
 
 public:
     static HX_RESULT STDAPICALLTYPE HXCreateInstance(IUnknown** ppIUnknown);
+    static HX_RESULT CanUnload();
 
     CAVIFileFormat();
     static BOOL   IsAVChunk(UINT32 ulChunkId);
@@ -378,7 +379,7 @@ protected:
     AVIState;
     AVIState    m_state;
 
-    HXBOOL m_bSeekPriming;
+    BOOL m_bSeekPriming;
     BOOL m_bLocalPlayback;
 
     CHXPtrArray m_streamArray;
@@ -399,13 +400,13 @@ protected:
     IUnknown*           m_pContext;
     IHXCommonClassFactory* m_pCommonClassFactory;
 
-    static const char* const     zm_pDescription;
-    static const char* const     zm_pCopyright;
-    static const char* const     zm_pMoreInfoURL;
-    static const char* const     zm_pFileMimeTypes[];
-    static const char* const     zm_pFileExtensions[];
-    static const char* const     zm_pFileOpenNames[];
-    static const char* const     zm_pPacketFormats[];
+    static const char*      zm_pDescription;
+    static const char*      zm_pCopyright;
+    static const char*      zm_pMoreInfoURL;
+    static const char*      zm_pFileMimeTypes[];
+    static const char*      zm_pFileExtensions[];
+    static const char*      zm_pFileOpenNames[];
+    static const char*      zm_pPacketFormats[];
 };
 
 #endif // _AVIFFPLIN_H_

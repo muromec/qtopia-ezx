@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxprefutil.cpp,v 1.17 2007/09/13 18:50:51 ping Exp $
+ * Source last modified: $Id: hxprefutil.cpp,v 1.15 2006/08/16 15:46:16 ehyche Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -379,22 +379,5 @@ HX_RESULT WritePrefCSTRING(IUnknown* pUnk, const char* pszName,
     return res;
 }
 
-HX_RESULT DeletePref(IUnknown* pUnk, const char* pszName)
-{
-    HX_RESULT res = HXR_INVALID_PARAMETER;
 
-    if (pUnk && pszName)
-    {
-        IHXPreferences3* pPrefs3 = NULL;
 
-        res = pUnk->QueryInterface(IID_IHXPreferences3, (void**)&pPrefs3);
-        if (SUCCEEDED(res))
-        {
-            res = pPrefs3->DeletePref(pszName);
-        }
-
-        HX_RELEASE(pPrefs3);
-    }
-
-    return res;
-}

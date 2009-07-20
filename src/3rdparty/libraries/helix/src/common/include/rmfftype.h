@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: rmfftype.h,v 1.15 2008/01/17 14:17:48 vkathuria Exp $
+ * Source last modified: $Id: rmfftype.h,v 1.13 2006/06/16 09:40:37 jaiswal Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -69,7 +69,7 @@ struct buffer {
 #include "machdep.h"
 #include "types.h"
 #endif /* !(defined REAL_MEDIA_FILE_SERVER_PORT) */
-#include "hlxclib/string.h"		// for memcpy's
+#include <string.h>		// for memcpy's
 
 #include "rule2flg.h" // /For class RuleToFlagMap
 

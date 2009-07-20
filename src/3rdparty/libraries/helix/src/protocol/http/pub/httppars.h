@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: httppars.h,v 1.7 2007/07/13 17:56:03 gwright Exp $
+ * Source last modified: $Id: httppars.h,v 1.5 2006/05/19 18:06:16 atin Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -82,7 +82,7 @@ public:
       virtual HTTPMessage* parse(const char* pMsg, UINT32& nMsgLen);
 #else
     virtual HTTPMessage* parse(const char* pMsg, UINT32& nMsgLen,
-	HXBOOL& bMessageTooLarge);
+	BOOL& bMessageTooLarge);
 #endif /* !HELIX_FEATURE_SERVER */
 
 protected:
@@ -107,7 +107,7 @@ protected:
     CHXSimpleList m_msglines;
     IUnknown* m_pContext;
 #if defined HELIX_FEATURE_SERVER
-    HXBOOL m_bMessageLimitExceeded;
+    BOOL m_bMessageLimitExceeded;
 #endif /* HELIX_FEATURE_SERVER */
 };
 

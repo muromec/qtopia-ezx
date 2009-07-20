@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: ff_source.h,v 1.4 2007/08/18 00:21:13 dcollins Exp $ 
+ * Source last modified: $Id: ff_source.h,v 1.3 2003/09/04 22:39:08 dcollins Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -110,6 +110,8 @@ public:
     STDMETHOD(GetPacket)        (THIS_
                                 UINT16 unStreamNumber);
 
+    STDMETHOD_(UINT32, IsThreadSafe)     (THIS);
+
     /* IHXFormatResponse Interfaces */
 
     STDMETHOD(InitDone)		(THIS_
@@ -150,6 +152,7 @@ private:
     IHXRequest*		m_pRequest;
     IHXValues*                 m_bwe_values;
     char*			m_pURL;
+    UINT32			m_ulThreadSafeFlags;
 
     void                        FixHeaderForLive(IHXValues*& pHeader);
 };

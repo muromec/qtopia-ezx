@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: timeline.h,v 1.16 2009/04/15 16:58:22 anuj_dhamija Exp $
+ * Source last modified: $Id: timeline.h,v 1.13 2006/08/16 17:29:34 gwright Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -74,7 +74,7 @@ typedef struct TMInfo
 
 #endif
 
-#if defined(_UNIX) || defined(_SYMBIAN) || defined(__TCS__) || defined(_BREW)
+#if defined(_UNIX) || defined(_SYMBIAN) || defined(__TCS__)
 #define CALLBACK
 #endif
 
@@ -91,12 +91,6 @@ public:
 			 IHXScheduler* pScheduler = NULL, 
 			 HXBOOL bUseDeferredTask = TRUE);
     HX_RESULT	    Pause(void);
-
-	HXBOOL IsPaused()
-	{
-	    return m_bPaused;
-	}
-	
     HX_RESULT	    Resume(void);
     HX_RESULT	    Seek(ULONG32 ulSeekTime);
     HX_RESULT	    SetStartTime(ULONG32 ulTime);
@@ -106,7 +100,7 @@ public:
 
     void	    Done(void);
 
-#if defined(_WINDOWS) || defined(_SYMBIAN) || defined(_BREW)
+#if defined(_WINDOWS) || defined(_SYMBIAN)
 public:
     static void CALLBACK
 		    NonMMTimerProc( 

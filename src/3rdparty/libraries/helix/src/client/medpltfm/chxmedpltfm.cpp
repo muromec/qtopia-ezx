@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: chxmedpltfm.cpp,v 1.77 2009/04/30 14:29:22 sfu Exp $
+ * Source last modified: $Id: chxmedpltfm.cpp,v 1.46 2007/04/14 04:38:50 ping Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -73,7 +73,6 @@
 #include "hxfiles.h"
 #include "hxlistp.h"
 #include "dllaccesserver.h"
-#include "threngin.h"
 #include "cachobj.h"
 #include "chxfgbuf.h"
 #include "hxfsmgr.h"
@@ -88,37 +87,15 @@
 #include "recognizer.h"
 #include "hxxml.h"
 #include "hxxmlprs.h"
-#ifdef HELIX_FEATURE_HTTP_SERVICE
-#include "chxhttp.h"
-#include "hxhttp.h"
-#endif
-#include "hxinfcod.h"
+
 #include "hxver.h"
 #include "hxstrutl.h"
 #include "dbcs.h"
-#include "thrdutil.h"
-
-#include "hxtlogutil.h"
-
-#if !defined(HELIX_FEATURE_LOGLEVEL_NONE)
-#include "hxlogsystemmanager.h"
-#endif
-
-#if defined HELIX_FEATURE_SECURE_SOCKET
-#include "hxcertmng.h"
-#endif
-#include "hxformt.h"
-#include "hxrendr.h"
 
 //------------------------------- CHXMediaPlatform
-const char* const MIMETYPE = "MimeType";
-const char* const MIMETYPEPURID = "MimeTypePurposeId";
-const char* const PROTOCOLTYPE = "Protocol";
-const char* const PROTOCOLPURID = "ProtocolPurposeId";
 
 BEGIN_INTERFACE_LIST( CHXMediaPlatform )
-    INTERFACE_LIST_ENTRY_SIMPLE( IHXMediaPlatform )
-    INTERFACE_LIST_ENTRY_SIMPLE( IHXMediaPlatformQuery)
+    INTERFACE_LIST_ENTRY_SIMPLE( IHXMediaPlatform ) 
     INTERFACE_LIST_ENTRY_SIMPLE( IHXCommonClassFactory ) 
     INTERFACE_LIST_ENTRY_SIMPLE( IHXObjectManagerPrivate )
     INTERFACE_LIST_ENTRY_DELEGATE_BLIND( _InternalQI )
@@ -148,17 +125,7 @@ CHXMediaPlatform::CHXMediaPlatform(CHXMediaPlatform* pParent, CHXMediaPlatform* 
     ,m_pOptimizedScheduler2(NULL)
     ,m_pMutex(NULL)
     ,m_pNetServices(NULL)
-#ifdef HELIX_FEATURE_PROGDOWN
-    ,m_pDownloadMgr(NULL)
-#endif
-#if defined(HELIX_FEATURE_AUTOUPGRADE)
-    ,m_pAutoUpgdMgr(NULL)
-#endif
-#ifdef HELIX_FEATURE_NETINTERFACES
     ,m_pNetInterfaces(NULL)
-#endif
-    ,m_pCookies(NULL)
-    ,m_pCookiesHelper(NULL)
     ,m_pKicker(NULL)
     ,m_pRegistry(NULL)
     ,m_pExtScheduler(NULL)
@@ -166,8 +133,8 @@ CHXMediaPlatform::CHXMediaPlatform(CHXMediaPlatform* pParent, CHXMediaPlatform* 
     ,m_pPluginHandlerUnkown(NULL)
     ,m_pPluginPaths(NULL)
     ,m_pParent(pParent)
-    ,m_pChildren(NULL)
     ,m_pRoot(pRoot)
+    ,m_pChildren(NULL)
     ,m_pSingleLoadPlugins(NULL)
     ,m_pLoadAtStartupPlugins(NULL)
 #if defined(HELIX_FEATURE_HYPER_NAVIGATE)
@@ -180,9 +147,6 @@ CHXMediaPlatform::CHXMediaPlatform(CHXMediaPlatform* pParent, CHXMediaPlatform* 
 #if defined(HELIX_FEATURE_VIDEO)    
     ,m_pSiteEventHandler(NULL)
 #endif /* HELIX_FEATURE_VIDEO */
-#if !defined(HELIX_FEATURE_LOGLEVEL_NONE)
-    ,m_pLogSystemManager(NULL)
-#endif /* #if !defined(HELIX_FEATURE_LOGLEVEL_NONE) */
 {
     HX_ADDREF(m_pParent);
     if (!m_pRoot)
@@ -332,20 +296,16 @@ CHXMediaPlatform::Init(IUnknown* pContext)
     HX_ADDREF(m_pExtContext);
 
     rc = InitExtendableServices();
-    if (FAILED(rc))
-    {
-        goto exit;
-    }
-
-    // prepare preferences, scheduler etc
-    rc = InitBasicServices();
-    if (FAILED(rc))
-    {
-        goto exit;
-    }
 
     if (SUCCEEDED(rc) && !m_pParent)
     {
+        // prepare preferences, scheduler etc
+        rc = InitBasicServices();
+        if (HXR_OK != rc)
+        {
+            goto exit;
+        }
+
         // create, aggregate and initialize the plugin handler
         if (!m_pPluginHandlerUnkown)
         {
@@ -412,12 +372,8 @@ CHXMediaPlatform::Init(IUnknown* pContext)
 #endif /* _STATICALLY_LINKED */	
     }
 
-    // InitLogging may fail if there are no logging dlls present,
-    // so ignore the return value.
-    InitLogging();
-
-exit:
-
+  exit:
+    
     if (HXR_OK == rc)
     {
         m_bInitialized = TRUE;
@@ -429,43 +385,6 @@ exit:
 STDMETHODIMP
 CHXMediaPlatform::Close(void)
 {
-#if defined(HELIX_FEATURE_AUTOUPGRADE)
-    if (m_pAutoUpgdMgr)
-    {
-        m_pAutoUpgdMgr->Close();
-        HX_RELEASE(m_pAutoUpgdMgr);
-    }
-#endif
-
-#ifdef HELIX_FEATURE_PROGDOWN
-    if (m_pDownloadMgr)
-    {
-        m_pDownloadMgr->Close();
-        HX_RELEASE(m_pDownloadMgr);
-    }
-#endif
-
-    if (m_pChildren)
-    {
-        CHXSimpleList::Iterator i;
-        for (i = m_pChildren->Begin(); i != m_pChildren->End(); ++i)
-        {
-            CHXMediaPlatform* pChild = (CHXMediaPlatform*)*i;
-            pChild->Close();
-            pChild->Release();
-        }
-        HX_DELETE(m_pChildren);
-    }
-
-#if defined(HELIX_FEATURE_NETSERVICES)&& defined(HELIX_FEATURE_NETSERVICES_SHIM)
-#ifdef THREADS_SUPPORTED
-    if (!m_pParent)
-    {    
-        ThreadEngine::DestroyThreadEngine();
-    }
-#endif /* THREADS_SUPPORTED */
-#endif /* HELIX_FEATURE_NETSERVICES && HELIX_FEATURE_NETSERVICES_SHIM*/
-
 #if defined(HELIX_FEATURE_HYPER_NAVIGATE)
     HX_RELEASE(m_pHyperNavigate);
 
@@ -494,15 +413,6 @@ CHXMediaPlatform::Close(void)
         }
         HX_RELEASE(m_pNetServices);
     }
-
-#if defined (HELIX_FEATURE_COOKIES)
-    HX_RELEASE(m_pCookiesHelper);
-    if (m_pCookies)
-    {
-        m_pCookies->Close();
-        HX_RELEASE(m_pCookies);
-    }
-#endif /* defined(HELIX_FEATURE_COOKIES) */
 
     HX_RELEASE(m_pRegistry);
 
@@ -543,18 +453,6 @@ CHXMediaPlatform::Close(void)
     }
 
 #endif // HELIX_FEATURE_FILEPREFS
-
-#if !defined(HELIX_FEATURE_LOGLEVEL_NONE)
-    if (m_pLogSystemManager)
-    {
-        // Now tell the log system manager to terminate the log observers
-        m_pLogSystemManager->TerminateLogObservers();
-        m_pLogSystemManager->TerminateLogSystem();
-        HX_DISABLE_LOGGING();
-    }
-    // Now we can release teh log system manager
-    HX_RELEASE(m_pLogSystemManager);
-#endif /* #if !defined(HELIX_FEATURE_LOGLEVEL_NONE) */
 
     if (m_pSingleLoadPlugins)
     {
@@ -747,179 +645,112 @@ HX_RESULT
 CHXMediaPlatform::InitBasicServices(void)
 {
     HX_RESULT               rc = HXR_OK;
-    HXBOOL                  bNewScheduler = TRUE;
 
-    if (m_pParent && m_pRoot)
+    if (!m_pMutex)
     {
-        IHXScheduler2* pScheduler2 = NULL;
-        if (SUCCEEDED(m_pRoot->QueryInterface(IID_IHXScheduler2, (void**)&pScheduler2)))
-        {            
-            UINT32 ulCurrentThreadID = HXGetCurrentThreadID();
-            UINT32 ulRootSchedulerThreadID = pScheduler2->GetThreadID();
-
-            // Scheduler is driven by the thread which it's created 
-            //
-            // We can use the same scheduler as the root's if new MediaPlatform
-            // is created on the same thread as the root's.
-            //
-            // Otherwise, new scheduler needs to be created.
-            if (ulCurrentThreadID == ulRootSchedulerThreadID)
-            {
-                bNewScheduler = FALSE;
-            }
+        rc = CreateInstance(CLSID_IHXMutex, (void**)&m_pMutex);
+        if (HXR_OK != rc)
+        {
+            goto exit;
         }
-        HX_RELEASE(pScheduler2);
     }
 
-    if (bNewScheduler)
+    if (!m_pScheduler)
     {
-        if (!m_pMutex)
+        rc = CreateInstance(CLSID_IHXScheduler, (void**)&m_pScheduler);
+        if (HXR_OK != rc)
         {
-            rc = CreateInstance(CLSID_IHXMutex, (void**)&m_pMutex);
-            if (FAILED(rc))
-            {
-                goto exit;
-            }
+            goto exit;
         }
 
-        if (!m_pScheduler)
+        if (HXR_OK == m_pScheduler->QueryInterface(IID_IHXScheduler2, (void**)&m_pScheduler2))
         {
-            rc = CreateInstance(CLSID_IHXScheduler, (void**)&m_pScheduler);
-            if (FAILED(rc))
-            {
-                goto exit;
-            }
-
-            rc = m_pScheduler->QueryInterface(IID_IHXScheduler2, (void**)&m_pScheduler2);
-            if (FAILED(rc))
-            {
-                goto exit;
-            }
-
             m_pScheduler2->SetMutex(m_pMutex);
-#if defined(THREADS_SUPPORTED) && defined(HELIX_FEATURE_CORETHREAD)
             m_pScheduler2->SetInterrupt(TRUE);
-#endif
             m_pScheduler2->StartScheduler();
         }
+    }
 
-    #ifdef HELIX_FEATURE_OPTIMIZED_SCHEDULER
-        if (!m_pOptimizedScheduler)
+#ifdef HELIX_FEATURE_OPTIMIZED_SCHEDULER
+    if (!m_pOptimizedScheduler)
+    {
+        rc = CreateInstance(CLSID_IHXOptimizedScheduler, (void**)&m_pOptimizedScheduler);
+        if (HXR_OK != rc)
         {
-            rc = CreateInstance(CLSID_IHXOptimizedScheduler, (void**)&m_pOptimizedScheduler);
-            if (FAILED(rc))
-            {
-                goto exit;
-            }
+            goto exit;
+        }
 
-            rc = m_pOptimizedScheduler->QueryInterface(IID_IHXOptimizedScheduler2, (void**)&m_pOptimizedScheduler2);
-            if (FAILED(rc))
-            {
-                goto exit;
-            }
-
+        if (HXR_OK == m_pOptimizedScheduler->QueryInterface(IID_IHXOptimizedScheduler2, 
+                                                            (void**)&m_pOptimizedScheduler2))
+        {
             m_pOptimizedScheduler2->StartScheduler();
         }
-    #endif /* HELIX_FEATURE_OPTIMIZED_SCHEDULER */
     }
+#endif /* HELIX_FEATURE_OPTIMIZED_SCHEDULER */
 
-    // the remaining services will be the same as the root's 
-    if (!m_pParent)
+    if (!m_pPreferences)
     {
-        if (!m_pPreferences)
+        rc = InitDefaultPreferences();
+        if (HXR_OK != rc)
         {
-            rc = InitDefaultPreferences();
-            if (HXR_OK != rc)
-            {
-                goto exit;
-            }
+            goto exit;
         }
+    }
 
 #if defined(HELIX_FEATURE_REGISTRY)
-        if (!m_pRegistry)
+    if (!m_pRegistry)
+    {
+        m_pClientRegistry = new HXClientRegistry();
+        if (!m_pClientRegistry)
         {
-            m_pClientRegistry = new HXClientRegistry();
-            if (!m_pClientRegistry)
-            {
-                rc = HXR_OUTOFMEMORY;
-                goto exit;
-            }
-
-            m_pClientRegistry->AddRef();
-            m_pClientRegistry->Init((IUnknown*)(IHXMediaPlatform*)this);
-            m_pRegistry = m_pClientRegistry;
-            m_pRegistry->AddRef();
+            rc = HXR_OUTOFMEMORY;
+            goto exit;
         }
+
+        m_pClientRegistry->AddRef();
+        m_pClientRegistry->Init((IUnknown*)(IHXMediaPlatform*)this);
+        m_pRegistry = m_pClientRegistry;
+        m_pRegistry->AddRef();
+    }
 #endif /* HELIX_FEATURE_REGISTRY */
 
-#if defined(HELIX_FEATURE_NETSERVICES)&& defined(HELIX_FEATURE_NETSERVICES_SHIM)
-#ifdef THREADS_SUPPORTED
-        ThreadEngine::GetThreadEngine((IUnknown*)(IHXMediaPlatform*)this);
-#endif /* THREADS_SUPPORTED */
-#endif /* HELIX_FEATURE_NETSERVICES && HELIX_FEATURE_NETSERVICES_SHIM*/
-
 #if defined(HELIX_FEATURE_NETINTERFACES)
+    if (!m_pNetInterfaces)
+    {
+        m_pNetInterfaces = new HXNetInterface((IUnknown*)(IHXMediaPlatform*)this);
         if (!m_pNetInterfaces)
         {
-            m_pNetInterfaces = new HXNetInterface((IUnknown*)(IHXMediaPlatform*)this);
-            if (!m_pNetInterfaces)
-            {
-                rc = HXR_OUTOFMEMORY;
-                goto exit;
-            }
-
-            m_pNetInterfaces->AddRef();
-            m_pNetInterfaces->UpdateNetInterfaces(); 
+            rc = HXR_OUTOFMEMORY;
+            goto exit;
         }
+
+        m_pNetInterfaces->AddRef();
+        m_pNetInterfaces->UpdateNetInterfaces(); 
+    }
 #endif /* HELIX_FEATURE_NETINTERFACES */
 
-#if defined(HELIX_FEATURE_COOKIES)
-	if (!m_pCookiesHelper)
-	{        
-	    m_pCookiesHelper = new HXCookiesHelper((IUnknown*)(IHXMediaPlatform*)this);
-            if (!m_pCookiesHelper)
-            {
-                rc = HXR_OUTOFMEMORY;
-                goto exit;
-            }
-	    HX_ADDREF(m_pCookiesHelper);
-	}
-	if (!m_pCookies)
-	{
-	    m_pCookies = new HXCookies((IUnknown*)(IHXMediaPlatform*)this);
-            if (!m_pCookies)
-            {
-                rc = HXR_OUTOFMEMORY;
-                goto exit;
-            }
-	    HX_ADDREF(m_pCookies);
-	}
-#endif /* defined (HELIX_FEATURE_COOKIES) */
-
 #if defined(HELIX_FEATURE_HYPER_NAVIGATE)
-        if (!m_pHyperNavigate)
+    if (!m_pHyperNavigate)
+    {
+        m_pDefaultHyperNavigate = new HXThreadHyperNavigate(); 
+        if (!m_pDefaultHyperNavigate)
         {
-            m_pDefaultHyperNavigate = new HXThreadHyperNavigate(); 
-            if (!m_pDefaultHyperNavigate)
-            {
-                rc = HXR_OUTOFMEMORY;
-                goto exit;
-            }
-
-            m_pDefaultHyperNavigate->AddRef();
-            m_pDefaultHyperNavigate->Init((IUnknown*)(IHXMediaPlatform*)this);
-#if !defined(_UNIX)
-            //XXXgfw Right now UNIX uses forks to get threaded hypernave done. It
-            //also allows programs to be executed that way which is not supported
-            //by our threaded hypernav class. We need to look at extending that
-            //class or maybe the UNIX TLC does not need that any more???
-            m_pDefaultHyperNavigate->UseThread(TRUE);
-#endif /* _UNIX */
-            m_pDefaultHyperNavigate->QueryInterface(IID_IHXHyperNavigate, (void**)&m_pHyperNavigate);
+            rc = HXR_OUTOFMEMORY;
+            goto exit;
         }
-#endif /* HELIX_FEATURE_HYPER_NAVIGATE */
 
+        m_pDefaultHyperNavigate->AddRef();
+        m_pDefaultHyperNavigate->Init((IUnknown*)(IHXMediaPlatform*)this);
+#if !defined(_UNIX)
+        //XXXgfw Right now UNIX uses forks to get threaded hypernave done. It
+        //also allows programs to be executed that way which is not supported
+        //by our threaded hypernav class. We need to look at extending that
+        //class or maybe the UNIX TLC does not need that any more???
+        m_pDefaultHyperNavigate->UseThread(TRUE);
+#endif /* _UNIX */
+        m_pDefaultHyperNavigate->QueryInterface(IID_IHXHyperNavigate, (void**)&m_pHyperNavigate);
     }
+#endif /* HELIX_FEATURE_HYPER_NAVIGATE */
 
 exit:
 
@@ -1070,13 +901,6 @@ CHXMediaPlatform::InitExtendableServices(void)
         {
             HX_RELEASE(m_pHyperNavigate);
         }
-        
-#if !defined(HELIX_FEATURE_LOGLEVEL_NONE)
-        if (HXR_OK != m_pExtContext->QueryInterface(IID_IHXLogSystemManager, (void **) &m_pLogSystemManager))
-        {
-            HX_RELEASE(m_pLogSystemManager);
-        }
-#endif /* #if !defined(HELIX_FEATURE_LOGLEVEL_NONE) */
     }
     
     return retVal;
@@ -1119,39 +943,6 @@ CHXMediaPlatform::InitDefaultPreferences(void)
 #endif
 
     return rc;
-}
-
-HX_RESULT
-CHXMediaPlatform::InitLogging()
-{
-    HX_RESULT retVal = HXR_OK;
-
-#if !defined(HELIX_FEATURE_LOGLEVEL_NONE)
-    // Do we have a logsystem manager?
-    if (!m_pLogSystemManager)
-    {
-        // The external context did not provide us a log system manager,
-        // so we must create a default log system manager
-        retVal = CHXLogSystemManager::CreateLogSystemManager(&m_pLogSystemManager);
-    }
-    if (SUCCEEDED(retVal))
-    {
-        // First we tell the log system manager to init the log system
-        retVal = m_pLogSystemManager->InitializeLogSystem((IUnknown*)(IHXMediaPlatform*) this);
-        if (SUCCEEDED(retVal))
-        {
-            // Next we tell it to init the log observers
-            retVal = m_pLogSystemManager->InitializeLogObservers();
-            if (SUCCEEDED(retVal))
-            {
-                // Enable logging in the media platform dll
-                HX_ENABLE_LOGGING((IUnknown*) (IHXMediaPlatform*) this);
-            }
-        }
-    }
-#endif /* #if !defined(HELIX_FEATURE_LOGLEVEL_NONE) */
-
-    return retVal;
 }
 
 HX_RESULT
@@ -1210,26 +1001,6 @@ CHXMediaPlatform::CheckAndQueryInterface(HX_MP_COM_TYPE type, REFIID riid, void*
             rc = m_pNetInterfaces ? m_pNetInterfaces->QueryInterface(riid, ppvObj) : HXR_NOTIMPL;
 #endif /* HELIX_FEATURE_NETINTERFACES */
         }
-        else if (IsEqualIID(riid, IID_IHXCookiesHelper))
-        {
-#if defined(HELIX_FEATURE_COOKIES)
-            rc = m_pCookiesHelper ? m_pCookiesHelper->QueryInterface(riid, ppvObj) : HXR_NOTIMPL;
-#endif /* HELIX_FEATURE_COOKIES */
-        }
-        else if (IsEqualIID(riid, IID_IHXCookies) ||
-        	 IsEqualIID(riid, IID_IHXCookies2) ||
-        	 IsEqualIID(riid, IID_IHXCookies3))
-        {
-#if defined(HELIX_FEATURE_COOKIES)
-            rc = m_pCookies ? m_pCookies->QueryInterface(riid, ppvObj) : HXR_NOTIMPL;
-#endif /* HELIX_FEATURE_COOKIES */
-        }
-        else if (IsEqualIID(riid, IID_IHXLogSystemManager))
-        {
-#if !defined(HELIX_FEATURE_LOGLEVEL_NONE)
-            rc = m_pLogSystemManager ? m_pLogSystemManager->QueryInterface(riid, ppvObj) : HXR_NOTIMPL;
-#endif /* #if !defined(HELIX_FEATURE_LOGLEVEL_NONE) */
-        }
         else
         {
             rc = HXR_NOT_SUPPORTED;
@@ -1278,48 +1049,6 @@ CHXMediaPlatform::CheckAndQueryInterface(HX_MP_COM_TYPE type, REFIID riid, void*
                 }
             }
 #endif	// HELIX_FEATURE_VIDEO
-
-#ifdef HELIX_FEATURE_PROGDOWN
-            if (IsEqualIID(riid, IID_IHXDownloadManager))
-            {
-                if (!m_pDownloadMgr)
-                {
-                    IUnknown* pInstance = NULL;
-                    rc = CreateInstance(CLSID_IHXDownloadManager, (void**)&pInstance);                    
-                    if (SUCCEEDED(rc))
-                    {
-                        rc = pInstance->QueryInterface(IID_IHXDownloadManager, (void**)&m_pDownloadMgr);
-                    }
-                    HX_RELEASE(pInstance);
-                }
-
-                if (m_pDownloadMgr)
-                {
-                    rc = m_pDownloadMgr->QueryInterface(riid, ppvObj);
-                }
-            }
-#endif
-
-#if defined(HELIX_FEATURE_AUTOUPGRADE)
-            if (IsEqualIID(riid, IID_IHXAutoUpgradeManager))
-            {
-                if (!m_pAutoUpgdMgr)
-                {
-                    IUnknown* pInstance = NULL;
-                    rc = CreateInstance(CLSID_IHXAutoUpgradeManager, (void**)&pInstance);                    
-                    if (SUCCEEDED(rc))
-                    {
-                        rc = pInstance->QueryInterface(IID_IHXAutoUpgradeManager, (void**)&m_pAutoUpgdMgr);
-                    }
-                    HX_RELEASE(pInstance);
-                }
-
-                if (m_pAutoUpgdMgr)
-                {
-                    rc = m_pAutoUpgdMgr->QueryInterface(riid, ppvObj);
-                }
-            }
-#endif /* HELIX_FEATURE_AUTOUPGRADE */
         }
     }
 
@@ -1378,10 +1107,6 @@ CHXMediaPlatform::CreateIntrinsicType( REFCLSID rclsid, REF(IUnknown*) pUnknown,
     else if (IsEqualCLSID(rclsid, CLSID_IHXValues2))
     {
         pUnknown = (IUnknown*)(IHXValues2*)(new CHXHeader());
-    }
-    else if (IsEqualCLSID(rclsid, CLSID_IHXValuesRemove))
-    {
-        pUnknown = (IUnknown*)(IHXValuesRemove*)(new CHXUniquelyKeyedList());
     }
     else if (IsEqualCLSID(rclsid, CLSID_IHXList))
     {
@@ -1536,52 +1261,14 @@ CHXMediaPlatform::CreateIntrinsicType( REFCLSID rclsid, REF(IUnknown*) pUnknown,
     {
         pUnknown = (IUnknown*)(IHXPaceMaker*)(new CVideoPaceMaker((IUnknown*)(IHXMediaPlatform*)this));
     }
-    else if (IsEqualCLSID(rclsid, CLSID_IHXPluginGroupEnumerator))
+///////////////////////////////////////////////////////////////////////////////
+#if !defined(_STATICALLY_LINKED)
+    else if(IsEqualCLSID(rclsid, CLSID_IHXPluginGroupEnumerator))
     {
-        IUnknown* pPluginHandlerUnk = NULL;
-        if (m_pPluginHandlerUnkown)
-        {
-            // plugin handler is available from current context
-            pPluginHandlerUnk = m_pPluginHandlerUnkown;
-            pPluginHandlerUnk->AddRef();
-        }
-        else
-        {
-            // try obtaining plugin handler from parent context
-            IHXPlugin2Handler* pPlugin2Handler = NULL;
-            QueryInterface(IID_IHXPlugin2Handler, (void**)&pPlugin2Handler);
-            if (pPlugin2Handler)
-            {
-                pPluginHandlerUnk = (IUnknown*)pPlugin2Handler;
-            }
-        }
-        if (pPluginHandlerUnk)
-        {
-            pUnknown = (IUnknown*)(IHXPluginGroupEnumerator*)
-                (new CHXPlugin2GroupEnumerator((IHXPlugin2Handler*) pPluginHandlerUnk));
-        }
-        HX_RELEASE(pPluginHandlerUnk);
+        pUnknown = (IUnknown*)(IHXPluginGroupEnumerator*)
+            (new CHXPlugin2GroupEnumerator((IHXPlugin2Handler*)m_pPluginHandlerUnkown));
     }
-#if defined (HELIX_FEATURE_SECURE_SOCKET)
-    else if (IsEqualCLSID(rclsid, CLSID_IHXCertificateManager))
-    {
-        pUnknown = (IUnknown*)(IHXCertificateManager*)(new HXCertificateManager((IUnknown*)(IHXMediaPlatform*)this));
-    }
-#endif
-#if defined(HELIX_FEATURE_AUTOUPGRADE)
-    else if (IsEqualCLSID(rclsid, CLSID_IHXUpgradeCollection))
-    {
-        pUnknown = (IUnknown*)(IHXUpgradeCollection*)(new HXUpgradeCollection((IUnknown*)(IHXMediaPlatform*)this));
-    }
-    else if (IsEqualCLSID(rclsid, CLSID_IHXObjOutStream))
-    {
-        pUnknown = (IUnknown*)(IHXObjOutStream*)(new CHXInfoEncoder());
-    }
-    else if (IsEqualCLSID(rclsid, CLSID_IHXObjInStream))
-    {
-        pUnknown = (IUnknown*)(IHXObjInStream*)(new CHXInfoDecoder());
-    }
-#endif /* HELIX_FEATURE_AUTOUPGRADE */
+#endif /* _STATICALLY_LINKED */
     else
     {
         rc = HXR_NOT_SUPPORTED;
@@ -1699,132 +1386,4 @@ CHXMediaPlatform::UnloadPluginPrivate(REFCLSID clsid)
     }
 
     return rc;
-}
-
-
-STDMETHODIMP
-CHXMediaPlatform::GetSupportedMIMETypes(UINT32 ulMimeTypePurposeMask, REF(IHXList*) rpMimeTypeList)
-{
-    HX_RESULT rc= HXR_OK;
-    IHXPluginHandler3* pPluginHandler3 = NULL;
-    IHXPluginSearchEnumerator* pPluginEnumerator = NULL;
-    UINT32 mimeTypeMask= ulMimeTypePurposeMask & 0x0ff;
-   
-    rc= QueryInterface(IID_IHXPluginHandler3, (void**)&pPluginHandler3);
-    if (FAILED(rc))
-    {
-        return rc;
-    }
-    
-    IUnknown* pUnknown = NULL;
-    rpMimeTypeList= NULL;
-    rc= CreateInstance(CLSID_IHXList, (void**)&rpMimeTypeList);
-    if (SUCCEEDED(rc))
-    {
-        if ( mimeTypeMask & HX_MEDIA_PLATFORM_QUERY_FILE_PLAYBACK)
-        {
-            rc = pPluginHandler3->FindGroupOfPluginsUsingStrings(PLUGIN_CLASS, PLUGIN_FILEFORMAT_TYPE, NULL, NULL, NULL, NULL, pPluginEnumerator);
-            if (SUCCEEDED(rc))
-            {
-                while (SUCCEEDED(pPluginEnumerator->GetNextPlugin(pUnknown, NULL)))
-                {
-                    IHXFileFormatObject* pObject = NULL;
-                    rc = pUnknown->QueryInterface(IID_IHXFileFormatObject, (void**)&pObject);
-                    if (SUCCEEDED(rc))
-                    {
-                        const char** ppszMimeTypes = NULL;
-                        const char** ppszExtensions = NULL;
-                        const char** ppszOpenNames = NULL;
-                        rc = pObject->GetFileFormatInfo(ppszMimeTypes, ppszExtensions, ppszOpenNames);
-                        while(SUCCEEDED(rc) && ppszMimeTypes && *ppszMimeTypes)
-                        {
-                            rc= InsertValuesToList(*ppszMimeTypes, HX_MEDIA_PLATFORM_QUERY_FILE_PLAYBACK, MIMETYPE, MIMETYPEPURID, rpMimeTypeList);
-                            ppszMimeTypes++;
-                        }
-                        HX_RELEASE(pObject);
-                    }
-                    HX_RELEASE(pUnknown);
-                }
-                HX_RELEASE(pPluginEnumerator);
-           }
-       }
-          
-       if (SUCCEEDED(rc) && (mimeTypeMask & HX_MEDIA_PLATFORM_QUERY_STREAM_PLAYBACK))
-       {
-           rc = pPluginHandler3->FindGroupOfPluginsUsingStrings(PLUGIN_CLASS, PLUGIN_RENDERER_TYPE, NULL, NULL, NULL, NULL, pPluginEnumerator);
-           if (SUCCEEDED(rc))
-           {
-               while (SUCCEEDED(pPluginEnumerator->GetNextPlugin(pUnknown, NULL)))
-               {
-                   IHXRenderer* pRenderer = NULL;
-                   rc = pUnknown->QueryInterface(IID_IHXRenderer, (void**)&pRenderer);
-                   if (SUCCEEDED(rc))
-                   {
-                       const char** ppszMimeTypes = NULL;
-                       UINT32 ulInitialGranularity = 0;
-                       rc= pRenderer->GetRendererInfo(ppszMimeTypes, ulInitialGranularity);
-                       while(SUCCEEDED(rc) && ppszMimeTypes && *ppszMimeTypes)
-                       {
-                           rc= InsertValuesToList(*ppszMimeTypes, HX_MEDIA_PLATFORM_QUERY_STREAM_PLAYBACK, MIMETYPE, MIMETYPEPURID, rpMimeTypeList);
-                           ppszMimeTypes++;
-                       }
-                       HX_RELEASE(pRenderer);
-                   }
-                   HX_RELEASE(pUnknown);
-               }
-               HX_RELEASE(pPluginEnumerator);
-           }
-      }
-            
-      if (FAILED(rc))
-      {
-           HX_RELEASE(rpMimeTypeList);
-      }
-   }
-   HX_RELEASE(pPluginHandler3);
-    
-   return rc;
-}
-
-STDMETHODIMP
-CHXMediaPlatform::GetSupportedProtocols(UINT32 ulProtocolPurposeMask, REF(IHXList*) rpProtocolList)
-{
-    return HXR_NOTIMPL;
-}
-
-STDMETHODIMP
-CHXMediaPlatform::GetSupportedDevices(UINT32 ulDeviceTypeMask, REF(IHXList*) rpDeviceList)
-{
-	return HXR_NOTIMPL;
-}
-
-STDMETHODIMP
-CHXMediaPlatform::GetDeviceInfo(const char* szDeviceId, REF(IHXValues*) rpPropertiesValue)
-{
-	return HXR_NOTIMPL;
-}
-
-HX_RESULT
-CHXMediaPlatform::InsertValuesToList(const char* pszTypeValue, UINT32 ulPropertyValue, const char* pszTypeId, const char* pszPropertyId, IHXList* pTypeList)
-{
-	HX_RESULT rc= HXR_OK;
-	
-	IHXValues* pTypeValue= NULL;
-
-    rc= CreateInstance(CLSID_IHXValues, (void**)&pTypeValue);
-    if (SUCCEEDED(rc))
-    {
-        rc= SetCStringPropertyCCF(pTypeValue, pszTypeId, pszTypeValue, (IUnknown*)(IHXMediaPlatform*)this, FALSE);
-        if (SUCCEEDED(rc))
-        {
-            rc= pTypeValue->SetPropertyULONG32(pszPropertyId, ulPropertyValue);
-            if (SUCCEEDED(rc))
-            {
-                rc= pTypeList->InsertTail(pTypeValue);
-            }
-        }
-        HX_RELEASE(pTypeValue);
-    }
-	
-	return rc;
 }

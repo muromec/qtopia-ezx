@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: sdpplin.cpp,v 1.21 2008/08/20 21:11:31 ehyche Exp $
+ * Source last modified: $Id: sdpplin.cpp,v 1.19 2006/11/30 17:38:49 ping Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -96,10 +96,7 @@ static const char HX_THIS_FILE[] = __FILE__;
 #include "hxtbuf.h"
 #include "dllpath.h"
 ENABLE_MULTILOAD_DLLACCESS_PATHS(Sdpplin);
-#elif !defined(HELIX_FEATURE_DLLACCESS_CLIENT)
-#include "dllpath.h"
-ENABLE_DLLACCESS_PATHS(Sdpplin);
-#endif	// HELIX_FEATURE_DLLACCESS_CLIENT
+#endif
 
 #if defined(HELIX_FEATURE_SERVER)
 #define SDP_MAJOR   6L

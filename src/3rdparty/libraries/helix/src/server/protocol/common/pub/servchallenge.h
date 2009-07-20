@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: servchallenge.h,v 1.3 2007/05/25 18:57:51 dcollins Exp $ 
+ * Source last modified: $Id: servchallenge.h,v 1.2 2003/01/24 01:00:29 damonlan Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -34,8 +34,8 @@
  * Contributor(s):  
  *   
  * ***** END LICENSE BLOCK ***** */  
-#ifndef	_SERVCHALLENGE_H_
-#define	_SERVCHALLENGE_H_
+#ifndef	_CHALLENGE_H_
+#define	_CHALLENGE_H_
 
 #define HX_SERV_COMPANY_ID_KEY_SIZE 16
 
@@ -46,29 +46,24 @@ void ServCalcCompanyIDKey(const char* starttime,
 			  const char* challenge,
 			  UCHAR* outputKey);
 
+struct Challenge {
+			Challenge(Byte* ch, int len);
+			Challenge(long k1, long k2, Byte* k3, Byte* k4);
+
+static	long 		get_time_key(void);
+
+	Byte*		response1(Byte* k1, Byte* k2, long k3, long k4);
+	Byte*		response2(Byte* k1, Byte* k2, long k3, long k4);
+        Byte*           response3(Byte* k1);
+        Byte*           response4(Byte* k1);
+
+	Byte		text[33];
+	Byte		response[33];
+};
+
 struct RealChallenge
 {
     RealChallenge();
-
-    Byte* response1(Byte* k1, Byte* k2, long k3, long k4);
-    Byte* response2(Byte* k1, Byte* k2, long k3, long k4);
-
-#ifdef HELIX_FEATURE_SERVER
-    Byte* response1(Byte* k1);
-    Byte* response2(Byte* k1);
-#endif
-
-    Byte                challenge[33];
-    Byte                response[41];
-    Byte                trap[9];
-};
-
-struct MidBoxChallenge
-{
-    MidBoxChallenge();
-
-    Byte* response1(Byte* k1, Byte* k2, long k3, long k4);
-    Byte* response2(Byte* k1, Byte* k2, long k3, long k4);
 
     Byte* response1(Byte* k1);
     Byte* response2(Byte* k1);
@@ -78,4 +73,15 @@ struct MidBoxChallenge
     Byte		trap[9];
 };
 
-#endif/*_SERVCHALLENGE_H_*/
+struct MidBoxChallenge
+{
+    MidBoxChallenge();
+
+    Byte* response1(Byte* k1);
+    Byte* response2(Byte* k1);
+
+    Byte		challenge[33];
+    Byte		response[41];
+    Byte		trap[9];
+};
+#endif/*_CHALLENGE_H_*/

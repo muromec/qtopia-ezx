@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: rdt_base.cpp,v 1.11 2008/11/07 21:43:34 jzeng Exp $
+ * Source last modified: $Id: rdt_base.cpp,v 1.9 2007/02/06 22:20:03 tknox Exp $
  *
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.
  *
@@ -396,11 +396,6 @@ RDTBaseTransport::sendStreamEndPacket(UINT16 streamNumber,
         pkt.ext_flag = 0;
     }
     pkt.pack(packet, packetLen);
-    if(packetLen < pkt.static_size())
-    {
-        pSendBuffer->SetSize(packetLen);
-    }
-
     // writePacket will call pSendBuffer->Release()
     hresult = writePacket(pSendBuffer);
 
@@ -781,7 +776,7 @@ RDTBaseTransport::handleTransportInfoRespPacket(IHXBuffer* pBuffer, UINT32* pPos
 
             for (UINT16 i = 0; i < pkt.buffer_info_count; i++)
             {
-                pTmpBuf = new ServerBuffer(TRUE);
+                pTmpBuf = new ServerBuffer(FALSE);
                 pTmpBuf->SetSize(sizeof(BufferMetricsSignal));
                 BufferMetricsSignal* pbufSig = (BufferMetricsSignal*)pTmpBuf->GetBuffer();
 
@@ -802,14 +797,6 @@ RDTBaseTransport::handleTransportInfoRespPacket(IHXBuffer* pBuffer, UINT32* pPos
                 //             pkt.buffer_info [i].lowest_timestamp),
                 //            pkt.buffer_info [i].bytes_buffered));
 
-                RTSPStreamData *pStreamData = m_pStreamHandler->getStreamData(pbufSig->m_ulStreamNumber);
-                // should not send signal for event stream.
-                if (pStreamData->m_eMediaType == RTSPMEDIA_TYPE_EVENT )
-                {
-                    HX_RELEASE(pTmpBuf);
-                    continue;
-                }               
-
                 pSignal = new QoSSignal(TRUE, (IHXBuffer*)pTmpBuf,
                     MAKE_HX_QOS_SIGNAL_ID(HX_QOS_SIGNAL_LAYER_FRAMING_TRANSPORT,
                                           HX_QOS_SIGNAL_RELEVANCE_METRIC,
@@ -819,7 +806,6 @@ RDTBaseTransport::handleTransportInfoRespPacket(IHXBuffer* pBuffer, UINT32* pPos
 
                 //do not release pTmpBuf since pSignal now owns it
                 pSignal->Release();
-                HX_RELEASE(pTmpBuf);
             }
 
             HX_VECTOR_DELETE(pkt.buffer_info);

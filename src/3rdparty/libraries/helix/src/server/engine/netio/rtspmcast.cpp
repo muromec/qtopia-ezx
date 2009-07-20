@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: rtspmcast.cpp,v 1.16 2008/09/03 20:45:32 atin Exp $
+ * Source last modified: $Id: rtspmcast.cpp,v 1.13 2007/03/08 00:17:42 tknox Exp $
  *
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.
  *
@@ -57,6 +57,8 @@
 #include "url.h"
 #include "netdrv.h"
 #include "hxtypes.h"
+#include "servchallenge.h"
+#include "player.h"
 #include "hxdeque.h"
 #include "hxstring.h"
 #include "chxpckts.h"
@@ -74,7 +76,6 @@
 #include "rtspservtran.h"
 #include "server_request.h"
 #include "base_errmsg.h"
-#include "errmsg_macros.h"
 #include "hxpiids.h"
 #include "hxreg.h"
 #include "multicast_mgr.h"
@@ -194,52 +195,27 @@ RTSPServerMulticastTransport::~RTSPServerMulticastTransport()
 
 void RTSPServerMulticastTransport::SetupMulticastSocket(UINT32 ulTTL)
 {
-    IHXErrorMessages* pErrorHandler = NULL;
-    if (HXR_OK != m_pContext->QueryInterface(IID_IHXErrorMessages, (void**)&pErrorHandler))
-    {
-        fprintf(stderr, "E: Could not Instantiate IHXErrorMessages for Multicast Session!");
-	return;
-    }
-
     //Create a upd/multicast socket using networkservices.
     IHXNetServices *pNetSvc = NULL;
-    if (HXR_OK != m_pContext->QueryInterface(IID_IHXNetServices, (void**)&pNetSvc))
+    m_pContext->QueryInterface(IID_IHXNetServices, (void**)&pNetSvc);
+    if ( pNetSvc )
     {
-        ERRMSG(pErrorHandler, "Could not Instantiate IHXNetServices for Multicast Session!");
-	HX_RELEASE(pErrorHandler);
-	return;
+	pNetSvc->CreateSocket(&m_pUDPMcastSocket);
     }
 
-    if (HXR_OK != pNetSvc->CreateSocket(&m_pUDPMcastSocket))
+    if ( m_pUDPMcastSocket )
     {
-	ERRMSG(pErrorHandler, "Could not Create UDP Socket for Multicast Session!");
-	HX_RELEASE(pErrorHandler);
-	return;
-    }
-
 	HX_RESULT hxsocketerror = 0;
 	
 	//currently only do multicasting to ipv4 address.
 	hxsocketerror = m_pUDPMcastSocket->Init(HX_SOCK_FAMILY_IN4, HX_SOCK_TYPE_MCAST, HX_SOCK_PROTO_ANY);
 	HX_ASSERT(SUCCEEDED(hxsocketerror));
 
-    HX_RESULT ret = HXR_OK;
-
 	//Set TTL value.
-    ret = m_pUDPMcastSocket->SetOption(HX_SOCKOPT_IN4_MULTICAST_TTL, ulTTL);
-    if (ret != HXR_OK)
-    {
-	LOGMSG(pErrorHandler, HXLOG_WARNING,
-	    "Could not set socket option Multicast TTL(%d) for UDP socket!", ulTTL);
-    }
+	m_pUDPMcastSocket->SetOption(HX_SOCKOPT_IN4_MULTICAST_TTL, ulTTL);
 
 	//Set re-use address option.
-    ret = m_pUDPMcastSocket->SetOption(HX_SOCKOPT_REUSEADDR, TRUE);
-    if (ret != HXR_OK)
-    {
-	LOGMSG(pErrorHandler, HXLOG_WARNING,
-	    "Could not set socket option REUSEADDR for Multicast UDP Socket!");
-    }
+	m_pUDPMcastSocket->SetOption(HX_SOCKOPT_REUSEADDR, TRUE);
 
 	//Create a IPV4 SockAddr object using networkservices.
 	IHXSockAddr *pIAddress = 0;
@@ -259,8 +235,8 @@ void RTSPServerMulticastTransport::SetupMulticastSocket(UINT32 ulTTL)
 	}
 	HX_RELEASE(pILocalAddress);
 	HX_RELEASE(pIAddress);
+    }
 
-    HX_RELEASE(pErrorHandler);
     HX_RELEASE(pNetSvc);
 
     return;

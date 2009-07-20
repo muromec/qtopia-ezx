@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: property.h,v 1.11 2008/01/18 04:54:28 vkathuria Exp $
+ * Source last modified: $Id: property.h,v 1.9 2006/09/29 01:17:29 gwright Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -50,7 +50,7 @@
 #ifndef _PROPERTY_H
 #define _PROPERTY_H
 
-#include "hlxclib/string.h"
+#include <string.h>
 #include "hxtypes.h"
 #include "hxcom.h"
 #include "ihxpckts.h"

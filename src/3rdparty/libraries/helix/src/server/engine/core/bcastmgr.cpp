@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: bcastmgr.cpp,v 1.89 2009/05/21 15:11:01 svaidhya Exp $ 
+ * Source last modified: $Id: bcastmgr.cpp,v 1.59 2007/02/21 17:45:35 srao Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -56,7 +56,6 @@
 #include "hxformt.h"
 #include "hxstats.h"
 #include "servlist.h"
-#include "bcastfilter.h"
 #include "bcastmgr.h"
 #include "hxmap.h"
 #include "simple_callback.h"
@@ -77,8 +76,6 @@
 #include "hxmime.h"
 #include "livekeyframe.h"
 #include "server_context.h"
-#include "header_helper.h"
-#include "pckunpck.h" 	/* CloneHeader() */
 
 #include "errdbg.h"
 #include "hxtick.h"
@@ -92,25 +89,14 @@
 #define RSD_MINIMUM_PREROLL "config.LiveReducedStartupDelay.MinimumPreroll"
 #define RSD_EXTRA_PREROLL_PERCENTAGE "config.LiveReducedStartupDelay.ExtraPrerollPercentage"
 #define RSD_DEFAULT_MINIMUM_PREROLL 1000
-#define RSD_DEFAULT_EXTRA_PREROLL_PER 20
+#define RSD_DEFAULT_EXTRA_PREROLL_PER 0
 #define DEFAULT_PACKET_BUFFER_QUEUE_SIZE 8096
 #define MAX_PACKET_BUFFER_QUEUE_SIZE 65536
-#define DEFAULT_PACKET_BUFFER_QUEUE_DURATION 2500
+#define DEFAULT_PACKET_BUFFER_QUEUE_DURATION 1000
 #define RSD_MAX_DURATION_PACKET_BUFFER_QUEUE "config.LiveReducedStartupDelay.MaxDurationOfRSDPacketBufferQueue"
-#define DEFAULT_MAX_DURATION_OF_RSD_PACKET_BUFFER_QUEUE 120
+#define DEFAULT_MAX_DURATION_OF_RSD_PACKET_BUFFER_QUEUE 70
 //#define RSD_LIVE_DEBUG
-#define BROADCAST_GATEWAY_STATE_BUG_FIXED
 
-#ifdef _WIN32
-extern __declspec(thread) Process* g_pTLSProc;
-extern __declspec(thread) int g_nTLSProcnum;
-#elif ((defined _LINUX && LINUX_EPOLL_SUPPORT) || (defined _SOLARIS && defined DEV_POLL_SUPPORT)) && defined PTHREADS_SUPPORTED
-extern __thread Process* g_pTLSProc;
-extern __thread int g_nTLSProcnum;
-#else
-extern Process* g_pTLSProc;
-extern int g_nTLSProcnum;
-#endif // _WIN32
 
 BroadcastManager::BroadcastManager()
 {
@@ -134,7 +120,7 @@ BroadcastManager::Register(IUnknown* pPluginInstance,
     HX_RESULT ulResult;
 
     ulResult = pPluginInstance->QueryInterface(IID_IHXBroadcastFormatObject,
-            (void**)&pBroadcastObject);
+                    (void**)&pBroadcastObject);
 
     ASSERT (HXR_OK == ulResult);
 
@@ -155,6 +141,7 @@ BroadcastManager::GetStream(const char*             pType,
                             const char*             pFilename,
                             REF(IHXPSourceControl*) pControl,
                             Process*                pStreamerProc,
+                            BOOL                    bBlocking,
                             IHXSessionStats*        pSessionStats /* =NULL */)
 {
     void* pVoid = NULL;
@@ -164,48 +151,57 @@ BroadcastManager::GetStream(const char*             pType,
 
     if (pVoid == NULL)
     {
-        PANIC(("How the hell did that happen??\n"));
+    PANIC(("How the hell did that happen??\n"));
     }
     else
     {
-        pInfo = (BroadcastInfo*)pVoid;
+    pInfo = (BroadcastInfo*)pVoid;
     }
 
-    BroadcastStreamer* pBroadcastStreamer = 
-        new BroadcastStreamer(pInfo, pFilename, pStreamerProc, 
-                    pSessionStats);
+    BroadcastStreamer_Base* pBroadcastStreamer = NULL;
+    if (bBlocking)
+    {
+    pBroadcastStreamer = 
+        new BroadcastStreamer_Blocking (pInfo, pFilename, pStreamerProc, 
+                                            pSessionStats);
+    }
+    else
+    {
+    pBroadcastStreamer = 
+        new BroadcastStreamer_Nonblocking (pInfo, pFilename, pStreamerProc,
+                                               pSessionStats);
+    }
 
     HX_ASSERT(pBroadcastStreamer);
 
     pBroadcastStreamer->
-        QueryInterface(IID_IHXPSourceControl, (void**)&pControl);
+    QueryInterface(IID_IHXPSourceControl, (void**)&pControl);
 
     return HXR_OK;
 }
 
-BroadcastStreamer::BroadcastStreamer(BroadcastInfo*   pInfo,
-                                     const char*      pFilename,
-                                     Process*         pStreamerProc,
-                                     IHXSessionStats* pSessionStats)
+
+BroadcastStreamer_Base::BroadcastStreamer_Base(BroadcastInfo*   pInfo,
+                                               const char*      pFilename,
+                                               Process*         pStreamerProc,
+                                               IHXSessionStats* pSessionStats)
     : m_lRefCount(0)
     , m_pSessionStats(pSessionStats)
-    , m_pSinkControl(0)
-    , m_pInfo(pInfo)
-    , m_bGatewayReady(FALSE)
-    , m_pInitPending(FALSE)
-    , m_GatewayStatus(HXR_FAIL)
-    , m_bSourceAborted(FALSE)
-    , m_ulGatewayCheckCBHandle(0)
-    , m_ulStreamDoneCBHandle(0)
-    , m_pProc(pStreamerProc)
-    , m_nRegEntryIndex(-1)
-    , m_pbPacketsStarted(NULL)
-    , m_bNeedXmit(FALSE)
-    , m_pSinkPackets(NULL)
-    , m_pServerPacketSink(NULL)
-    , m_pPacketFilter(NULL)
-    , m_bIsMDPSink(TRUE)
 {
+    m_pSinkControl                      = 0;
+    m_pInfo                             = pInfo;
+    m_bGatewayReady                     = FALSE;
+    m_pInitPending                      = FALSE;
+    m_GatewayStatus                     = HXR_FAIL;
+    m_bSourceAborted                    = FALSE;
+    m_ulGatewayCheckCBHandle            = 0;
+    m_ulStreamDoneCBHandle              = 0;
+    m_pProc                             = pStreamerProc;
+    m_nRegEntryIndex                    = -1;
+    m_pbPacketsStarted                  = NULL;
+
+    m_bNeedXmit = FALSE;
+
     m_pGatewayCheckCallback             = new GatewayCheckCallback;
     m_pGatewayCheckCallback->m_pBS      = this;
     m_pGatewayCheckCallback->AddRef();
@@ -251,13 +247,13 @@ BroadcastStreamer::BroadcastStreamer(BroadcastInfo*   pInfo,
         if (m_nRegEntryIndex >= 0)
         {
             sprintf(szBuffer, "LiveConnections.Entry%d.NumPlayers",
-                    m_nRegEntryIndex);
+                m_nRegEntryIndex);
 
             // make sure prop already exists...
             if (HXR_OK == m_pProc->pc->registry->GetInt(szBuffer, &nNumPlayers, m_pProc))
             {
-                nNumPlayers = m_pGateway->m_ulPlayerCount;
-                m_pProc->pc->registry->SetInt(szBuffer, nNumPlayers, m_pProc);
+            nNumPlayers = m_pGateway->m_ulPlayerCount;
+            m_pProc->pc->registry->SetInt(szBuffer, nNumPlayers, m_pProc);
             }
         }
     }
@@ -292,24 +288,75 @@ BroadcastStreamer::BroadcastStreamer(BroadcastInfo*   pInfo,
         {
             INT32 val;
             snprintf(szBuffer, 128, "LiveConnections.Entry%d.ClientRequests", 
-                    m_nRegEntryIndex);
+                     m_nRegEntryIndex);
             m_pProc->pc->registry->ModifyInt(szBuffer, 1, &val, m_pProc);
         }
         HX_RELEASE(pCheckRetainEntityForSetup);
     }
 
     m_pGateway->AddBroadcastStreamer(m_pProc, this);
-
-    GatewayCheck();
 }
 
-BroadcastStreamer::~BroadcastStreamer()
+BroadcastStreamer_Base::~BroadcastStreamer_Base()
 {
+    HX_ASSERT(!m_pSessionStats);
 }
 
-// IUnknown methods
+STDMETHODIMP        
+BroadcastStreamer_Base::GatewayCheckCallback::Func()
+{
+    m_pBS->GatewayCheck();
+    return HXR_OK;
+}
+
+void BroadcastStreamer_Base::GatewayCheck()
+{
+    m_ulGatewayCheckCBHandle = 0;
+
+    HXMutexLock(m_pGateway->m_StateLock, TRUE);
+    if (m_pGateway->m_State == BroadcastGateway::INIT)
+    {
+        HXMutexUnlock(m_pGateway->m_StateLock);
+        m_ulGatewayCheckCBHandle = 
+            m_pProc->pc->engine->schedule.enter(
+                m_pProc->pc->engine->now + Timeval(0.50),
+                m_pGatewayCheckCallback);
+    }
+    else if (m_pGateway->m_State == BroadcastGateway::STREAMING)
+    {
+        HXMutexUnlock(m_pGateway->m_StateLock);
+        m_GatewayStatus = HXR_OK;
+        m_pbPacketsStarted = new UINT8[m_pGateway->m_ulStreamCount];
+        memset(m_pbPacketsStarted, 0, sizeof(UINT8) *
+           m_pGateway->m_ulStreamCount);
+
+        if (m_pGateway->m_bUseLatencyRequirements)
+        {
+
+        }
+          
+        goto ContinueInit;
+    }
+    else
+    {
+        HXMutexUnlock(m_pGateway->m_StateLock);
+        m_GatewayStatus = HXR_FAIL;
+        goto ContinueInit;
+    }
+
+   
+    return;
+
+ContinueInit:
+    m_bGatewayReady = TRUE;
+
+    if (m_pInitPending)
+        m_pSinkControl->InitDone(m_GatewayStatus);
+}
+
+
 HX_RESULT
-BroadcastStreamer::QueryInterface(REFIID riid, void** ppvObj)
+BroadcastStreamer_Base::QueryInterface(REFIID riid, void** ppvObj)
 {
     if (IsEqualIID(riid, IID_IUnknown))
     {
@@ -325,53 +372,31 @@ BroadcastStreamer::QueryInterface(REFIID riid, void** ppvObj)
     }
     else if (IsEqualIID(riid, IID_IHXASMSource))
     {
-        AddRef();
+    AddRef();
         *ppvObj = (IHXASMSource*)this;
         return HXR_OK;
     }
     else if (IsEqualIID(riid, IID_IHXLivePacketBufferProvider))
     {
-        AddRef();
+    AddRef();
         *ppvObj = (IHXLivePacketBufferProvider*)this;
         return HXR_OK;
     }
-    else if (IsEqualIID(riid, IID_IHXPSourceLivePackets))
-    {
-        AddRef();
-        *ppvObj = (IHXPSourceLivePackets*)this;
-        return HXR_OK;
-    }
-    else if (IsEqualIID(riid, IID_IHXPSourceLiveResync))
-    {
-        AddRef();
-        *ppvObj = (IHXPSourceLiveResync*)this;
-        return HXR_OK;
-    }
-    else if (IsEqualIID(riid, IID_IHXServerPacketSource))
-    {
-        AddRef();
-        *ppvObj = (IHXServerPacketSource*)this;
-        return HXR_OK;
-    }
-    else if(IsEqualIID(riid, IID_IHXSyncHeaderSource))
-    {
-        AddRef();
-        *ppvObj = (IHXSyncHeaderSource*)this;
-        return HXR_OK;
-    }
-
+    
     *ppvObj = NULL;
     return HXR_NOINTERFACE;
 }
 
+
 ULONG32
-BroadcastStreamer::AddRef()
+BroadcastStreamer_Base::AddRef()
 {
     return InterlockedIncrement(&m_lRefCount);
 }
 
+
 ULONG32
-BroadcastStreamer::Release()
+BroadcastStreamer_Base::Release()
 {
     if (InterlockedDecrement(&m_lRefCount) > 0)
     {
@@ -382,9 +407,8 @@ BroadcastStreamer::Release()
     return 0;
 }
 
-// IHXPSourceControl methods
 HX_RESULT
-BroadcastStreamer::Init(IHXPSinkControl* pSink)
+BroadcastStreamer_Base::Init(IHXPSinkControl* pSink)
 {
     pSink->AddRef();
     m_pSinkControl = pSink;
@@ -402,18 +426,8 @@ BroadcastStreamer::Init(IHXPSinkControl* pSink)
 }
 
 HX_RESULT
-BroadcastStreamer::Done()
+BroadcastStreamer_Base::Done()
 {
-    HX_RELEASE(m_pSinkPackets);
-
-    if (m_pServerPacketSink)
-    {
-        m_pServerPacketSink->SourceDone();
-        HX_RELEASE(m_pServerPacketSink);
-    }
-
-    HX_DELETE(m_pPacketFilter);
-
     if (m_ulGatewayCheckCBHandle)
     {
         m_pProc->pc->engine->schedule.remove(m_ulGatewayCheckCBHandle);
@@ -434,7 +448,7 @@ BroadcastStreamer::Done()
     HXAtomicDecUINT32(&m_pGateway->m_ulPlayerCount);
     m_pGateway->RemoveBroadcastStreamer(m_pProc, this);
     m_bSourceAborted = TRUE;
-
+    
     // update registry's count of active players for the stream assoc. with this gateway
     if (m_nRegEntryIndex >= 0)
     {
@@ -464,20 +478,66 @@ BroadcastStreamer::Done()
 }
 
 HX_RESULT
-BroadcastStreamer::GetFileHeader(IHXPSinkControl* pSink)
+BroadcastStreamer_Base::UpdateRegClientsLeaving()
 {
-    HX_ASSERT(pSink == m_pSinkControl);
+    if (m_pSessionStats)
+    {
+        INT32 val;
+    char szBuffer[128];
+
+        snprintf(szBuffer, 128, 
+                 "LiveConnections.Entry%d.ClientsLeaving", m_nRegEntryIndex);
+        m_pProc->pc->registry->ModifyInt(szBuffer, 1, &val, m_pProc);
+
+        // check the error code
+
+        SessionStatsEndStatus ulEndStatus = m_pSessionStats->GetEndStatus();
+        if (ulEndStatus == SSES_NOT_ENDED || SSES_SUCCESS(ulEndStatus))
+        {
+
+            snprintf(szBuffer, 128, 
+                     "LiveConnections.Entry%d.SuccessfulClientRequests", 
+                     m_nRegEntryIndex);
+            m_pProc->pc->registry->ModifyInt(szBuffer, 1, &val, m_pProc);
+        }
+        else
+        {
+            snprintf(szBuffer, 128, 
+                     "LiveConnections.Entry%d.UnsuccessfulClientRequests", 
+                     m_nRegEntryIndex);
+            m_pProc->pc->registry->ModifyInt(szBuffer, 1, &val, m_pProc);
+
+            if (SSES_FAILURE_SERVER(ulEndStatus))
+            {
+                snprintf(szBuffer, 128, 
+                         "LiveConnections.Entry%d.ClientsLeavingDueToServerError", 
+                         m_nRegEntryIndex);
+                m_pProc->pc->registry->ModifyInt(szBuffer, 1, &val, m_pProc);
+            }
+            else
+            {
+                snprintf(szBuffer, 128, 
+                         "LiveConnections.Entry%d.ClientsLeavingDueToClientError", 
+                         m_nRegEntryIndex);
+                m_pProc->pc->registry->ModifyInt(szBuffer, 1, &val, m_pProc);
+            }
+        }
+    }
+    return HXR_OK;
+}
+
+HX_RESULT
+BroadcastStreamer_Base::GetFileHeader(IHXPSinkControl* pSink)
+{
+    ASSERT(pSink == m_pSinkControl);
 
     if (m_pGateway->m_pFileHeader)
     {
-        IHXValues* pHeader = CloneHeader(m_pGateway->GetFileHeader(),
-                                         g_pTLSProc->pc->server_context);
-        m_pSinkControl->FileHeaderReady(HXR_OK, pHeader);
-        HX_RELEASE(pHeader);
+        m_pSinkControl->FileHeaderReady(HXR_OK, m_pGateway->m_pFileHeader);
     }
     else
     {
-        HX_ASSERT(0);
+        ASSERT(0);
         m_pSinkControl->FileHeaderReady(HXR_FAIL, NULL);
         return HXR_FAIL;
     }
@@ -486,22 +546,20 @@ BroadcastStreamer::GetFileHeader(IHXPSinkControl* pSink)
 }
 
 HX_RESULT
-BroadcastStreamer::GetStreamHeader(IHXPSinkControl* pSink,
+BroadcastStreamer_Base::GetStreamHeader(IHXPSinkControl* pSink,
                     UINT16 unStreamNumber)
 {
-    HX_ASSERT(pSink == m_pSinkControl);
+    ASSERT(pSink == m_pSinkControl);
 
     if (m_pGateway->m_pStreamHeaders && 
         m_pGateway->m_pStreamHeaders[unStreamNumber])
     {
-        IHXValues* pHeader = CloneHeader(m_pGateway->GetStreamHeaders(unStreamNumber),
-                                         g_pTLSProc->pc->server_context);
-        m_pSinkControl->StreamHeaderReady(HXR_OK, pHeader);
-        HX_RELEASE(pHeader);
+        m_pSinkControl->StreamHeaderReady(HXR_OK,
+        m_pGateway->m_pStreamHeaders[unStreamNumber]);
     }
     else
     {
-        HX_ASSERT(0);
+        ASSERT(0);
         m_pSinkControl->StreamHeaderReady(HXR_FAIL, NULL);
         return HXR_FAIL;
     }
@@ -510,19 +568,19 @@ BroadcastStreamer::GetStreamHeader(IHXPSinkControl* pSink,
 }
 
 HX_RESULT
-BroadcastStreamer::Seek(UINT32          ulSeekTime)
+BroadcastStreamer_Base::Seek(UINT32          ulSeekTime)
 {
     return HXR_FAIL;
 }
 
 BOOL
-BroadcastStreamer::IsLive()
+BroadcastStreamer_Base::IsLive()
 {
     return TRUE;
 }
 
 HX_RESULT
-BroadcastStreamer::SetLatencyParams(UINT32 ulLatency,
+BroadcastStreamer_Base::SetLatencyParams(UINT32 ulLatency,
                     BOOL bStartAtTail,
                     BOOL bStartAtHead)
 {
@@ -530,9 +588,10 @@ BroadcastStreamer::SetLatencyParams(UINT32 ulLatency,
     return HXR_OK;
 }
 
-// IHXASMSource methods
+
+/* IHXASMSource */  
 STDMETHODIMP
-BroadcastStreamer::Subscribe(UINT16 uStreamNumber, UINT16 uRuleNumber) 
+BroadcastStreamer_Base::Subscribe(UINT16 uStreamNumber, UINT16 uRuleNumber) 
 {
     HX_ASSERT(m_pGateway != NULL);
     HX_ASSERT(m_pGateway->m_ppRuleData != NULL);
@@ -558,14 +617,16 @@ BroadcastStreamer::Subscribe(UINT16 uStreamNumber, UINT16 uRuleNumber)
 
     if (bASMupdate)
     {
-        m_pGateway->m_bIsSubscribed = TRUE;
-    }
+        if ( m_pGateway->m_ppRuleData[uStreamNumber] && 
+            (uStreamNumber == m_pGateway->m_unKeyframeStream) && 
+                m_pGateway->m_pbIsSubscribed)
+        {
+            m_pGateway->m_pbIsSubscribed[uRuleNumber] = TRUE;
+        }
 
-    HXMutexUnlock(m_pGateway->m_RuleDataLock);
-    
-    if (bASMupdate)
-    {
+        HXMutexUnlock(m_pGateway->m_RuleDataLock);
         ASMUpdateCallback* pCB = new ASMUpdateCallback;
+        
         if (m_pGateway->m_pASMSource)
         {
             pCB->m_pASMSource = m_pGateway->m_pASMSource;
@@ -575,31 +636,25 @@ BroadcastStreamer::Subscribe(UINT16 uStreamNumber, UINT16 uRuleNumber)
         {
             pCB->m_pASMSource = NULL;
         }
-
+        
         pCB->m_cAction         = ASM_SUBSCRIBE;
         pCB->m_unRuleNumber    = uRuleNumber;
         pCB->m_unStreamNumber  = uStreamNumber; 
-
+        
         /* pass control from the Streamer to the Live Process */
         m_pProc->pc->dispatchq->send(m_pProc, pCB, 
-                m_pGateway->m_pInfo->m_ulProcnum);
+            m_pGateway->m_pInfo->m_ulProcnum);
     }
     else
     {
         HXMutexUnlock(m_pGateway->m_RuleDataLock);
     }
-
-    if (m_bIsMDPSink && m_pPacketFilter)
-    {
-        //MDP handling
-        m_pPacketFilter->HandleSubscribe(uStreamNumber, uRuleNumber);
-    }
-
+    
     return HXR_OK;
 }
     
 STDMETHODIMP
-BroadcastStreamer::Unsubscribe(UINT16 uStreamNumber, UINT16 uRuleNumber) 
+BroadcastStreamer_Base::Unsubscribe(UINT16 uStreamNumber, UINT16 uRuleNumber) 
 {
     HX_ASSERT(m_pGateway != NULL);
     HX_ASSERT(m_pGateway->m_ppRuleData != NULL);
@@ -625,35 +680,18 @@ BroadcastStreamer::Unsubscribe(UINT16 uStreamNumber, UINT16 uRuleNumber)
         bASMupdate = TRUE;
     }
 
-    // Mark the feed as unsubscribed when all the active rules for the feed
-    // are unsubscribed
-    if (bASMupdate && m_pGateway->m_ppRuleData)
-    {
-        m_pGateway->m_bIsSubscribed = FALSE;
-        for (UINT16 i = 0; i < m_pGateway->m_ulStreamCount && m_pGateway->m_ppRuleData[i]; i++)
-        {
-            for (UINT j = 0; j < m_pGateway->m_ppRuleData[i]->m_unNumRules; j++)
-            {
-                if (m_pGateway->m_ppRuleData[i]->m_pActiveRules[j] != 0)
-                {
-                    m_pGateway->m_bIsSubscribed = TRUE;
-                    break;
-                }
-            }
-
-            if (m_pGateway->m_bIsSubscribed)
-            {
-                break;
-            }
-        }
-    }
-
-    HXMutexUnlock(m_pGateway->m_RuleDataLock);    
     
     if (bASMupdate)
     {
+        if (m_pGateway->m_ppRuleData[uStreamNumber] && 
+            (uStreamNumber == m_pGateway->m_unKeyframeStream) && 
+            m_pGateway->m_pbIsSubscribed )
+        {
+            m_pGateway->m_pbIsSubscribed[uRuleNumber] = FALSE;
+        }
+        HXMutexUnlock(m_pGateway->m_RuleDataLock);    
         ASMUpdateCallback* pCB = new ASMUpdateCallback;
-
+        
         if (m_pGateway->m_pASMSource)
         {
             pCB->m_pASMSource = m_pGateway->m_pASMSource;
@@ -663,11 +701,11 @@ BroadcastStreamer::Unsubscribe(UINT16 uStreamNumber, UINT16 uRuleNumber)
         {
             pCB->m_pASMSource = NULL;
         }
-
+        
         pCB->m_cAction         = ASM_UNSUBSCRIBE;
         pCB->m_unRuleNumber    = uRuleNumber;
         pCB->m_unStreamNumber  = uStreamNumber; 
-
+        
         /* pass control from the Streamer to the Live Process */
         m_pProc->pc->dispatchq->send(m_pProc, pCB, m_pGateway->m_pInfo->m_ulProcnum);
     }
@@ -675,54 +713,119 @@ BroadcastStreamer::Unsubscribe(UINT16 uStreamNumber, UINT16 uRuleNumber)
     {
         HXMutexUnlock(m_pGateway->m_RuleDataLock);
     }
+    
+    return HXR_OK;
+}
 
-    if (m_bIsMDPSink && m_pPacketFilter)
+STDMETHODIMP
+BroadcastStreamer_Base::GetPacketBufferQueue(UINT16 strmNum,
+                                             UINT16 ruleNum,
+                                             IHXLivePacketBufferQueue*& pQueue)
+{
+    pQueue = m_pGateway->GetPacketBufferQueue(strmNum, ruleNum);
+    if (pQueue)
     {
-        //MDP handling
-        m_pPacketFilter->HandleUnsubscribe(uStreamNumber, uRuleNumber);
+        return HXR_OK;
+    }
+    return HXR_FAIL;
+}
+STDMETHODIMP        
+BroadcastStreamer_Base::StreamDoneCallback::Func()
+{
+    m_pBS->m_ulStreamDoneCBHandle = 0;
+
+    UINT32 ulStreamCount = m_pBS->m_pGateway->m_ulStreamCount;
+    for (UINT16 i = 0; i < ulStreamCount; i++)
+    {
+        m_pBS->m_pSinkControl->StreamDone(i);
     }
 
     return HXR_OK;
 }
 
- // IHXLivePacketBufferProvider methods
-STDMETHODIMP
-BroadcastStreamer::GetPacketBufferQueue(IHXLivePacketBufferQueue*& pQueue)
+HX_RESULT
+BroadcastStreamer_Base::CreateRegEntries()
 {
-    pQueue = m_pGateway->GetPacketBufferQueue();
-    if (pQueue)
-    {
-        return HXR_OK;
-    }
-    return HXR_FAIL;
+    HX_ASSERT(m_pGateway);
+
+    if (m_nRegEntryIndex < 0) return HXR_FAIL;
+
+    char szBuffer[128];
+    INT32 nNumPlayers = m_pGateway->m_ulPlayerCount;
+
+    snprintf(szBuffer, 128, "LiveConnections.Entry%d.NumPlayers", m_nRegEntryIndex);
+    m_pProc->pc->registry->AddInt(szBuffer, nNumPlayers, m_pProc);
+
+    snprintf(szBuffer, 128, "LiveConnections.Entry%d.ClientRequests", 
+             m_nRegEntryIndex);
+    m_pProc->pc->registry->AddInt(szBuffer, 0, m_pProc);
+
+    snprintf(szBuffer, 128, "LiveConnections.Entry%d.SuccessfulClientRequests", 
+             m_nRegEntryIndex);
+    m_pProc->pc->registry->AddInt(szBuffer, 0, m_pProc);
+
+    snprintf(szBuffer, 128, "LiveConnections.Entry%d.UnsuccessfulClientRequests", 
+             m_nRegEntryIndex);
+    m_pProc->pc->registry->AddInt(szBuffer, 0, m_pProc);
+
+    snprintf(szBuffer, 128, "LiveConnections.Entry%d.ClientsLeaving", 
+             m_nRegEntryIndex);
+    m_pProc->pc->registry->AddInt(szBuffer, 0, m_pProc);
+
+    snprintf(szBuffer, 128, "LiveConnections.Entry%d.ClientsLeavingDueToServerError", 
+             m_nRegEntryIndex);
+    m_pProc->pc->registry->AddInt(szBuffer, 0, m_pProc);
+
+    snprintf(szBuffer, 128, "LiveConnections.Entry%d.ClientsLeavingDueToClientError", 
+             m_nRegEntryIndex);
+    m_pProc->pc->registry->AddInt(szBuffer, 0, m_pProc);
+
+
+    return HXR_OK;
+}
+
+/* Nonblocking Broadcast Streamer implementation: */
+BroadcastStreamer_Nonblocking::BroadcastStreamer_Nonblocking(
+                                                BroadcastInfo*   pInfo, 
+                                                const char*      pFilename,
+                                                Process*         pStreamerProc,
+                                                IHXSessionStats* pSessionStats)
+    : BroadcastStreamer_Base(pInfo, pFilename, pStreamerProc, pSessionStats)
+    , m_pSinkPackets (NULL)
+{
+    BroadcastStreamer_Base::GatewayCheck();
+}
+
+BroadcastStreamer_Nonblocking::~BroadcastStreamer_Nonblocking()
+{
 }
 
 STDMETHODIMP
-BroadcastStreamer::GetLongPacketBufferQueue(IHXLivePacketBufferQueue*& pQueue)
+BroadcastStreamer_Nonblocking::Done()
 {
-    pQueue = m_pGateway->GetLongPacketBufferQueue();
-    if (pQueue)
-    {
-        return HXR_OK;
-    }
-    return HXR_FAIL;
+    HX_RELEASE(m_pSinkPackets);
+    return BroadcastStreamer_Base::Done();
+}    
+
+HX_RESULT 
+BroadcastStreamer_Nonblocking::SendPacket(IHXPacket* pPacket)
+{
+    return (m_pSinkPackets) ?
+        m_pSinkPackets->PacketReady(HXR_OK, pPacket) : HXR_FAIL;
 }
 
-// IHXPSourceLivePackets methods
 STDMETHODIMP
-BroadcastStreamer::Init(IHXPSinkPackets*       pSinkPackets)
+BroadcastStreamer_Nonblocking::Init(IHXPSinkPackets*       pSinkPackets)
 {
     HX_RELEASE(m_pSinkPackets);
     pSinkPackets->AddRef();
     m_pSinkPackets = pSinkPackets;
 
-    m_bIsMDPSink = FALSE;
-
     return HXR_OK;
 }
 
 STDMETHODIMP
-BroadcastStreamer::StartPackets(UINT16 unStreamNumber)
+BroadcastStreamer_Nonblocking::StartPackets(UINT16 unStreamNumber)
 {
     HX_ASSERT(unStreamNumber <= m_pGateway->m_ulStreamCount);
 
@@ -735,7 +838,7 @@ BroadcastStreamer::StartPackets(UINT16 unStreamNumber)
 }
 
 STDMETHODIMP
-BroadcastStreamer::StopPackets(UINT16 unStreamNumber)
+BroadcastStreamer_Nonblocking::StopPackets(UINT16 unStreamNumber)
 {
     HX_ASSERT(unStreamNumber <= m_pGateway->m_ulStreamCount);
 
@@ -747,16 +850,307 @@ BroadcastStreamer::StopPackets(UINT16 unStreamNumber)
     return HXR_OK;
 }
 
-// IHXPSourceLiveResync methods
 STDMETHODIMP
-BroadcastStreamer::Resync()
+BroadcastStreamer_Nonblocking::Resync()
 {
     return HXR_OK;
 }
 
-// IHXServerPacketSource methods
 STDMETHODIMP
-BroadcastStreamer::SetSink (IHXServerPacketSink* pSink)
+BroadcastStreamer_Nonblocking::QueryInterface (THIS_ REFIID riid, void** ppvObj)
+{
+    if (IsEqualIID(riid, IID_IHXPSourceLivePackets))
+    {
+        AddRef();
+        *ppvObj = (IHXPSourceLivePackets*)this;
+        return HXR_OK;
+    }
+    else if (IsEqualIID(riid, IID_IHXPSourceLiveResync))
+    {
+        AddRef();
+        *ppvObj = (IHXPSourceLiveResync*)this;
+        return HXR_OK;
+    }
+
+    return BroadcastStreamer_Base::QueryInterface(riid, ppvObj);
+}
+
+ULONG32
+BroadcastStreamer_Nonblocking::AddRef()
+{
+    return InterlockedIncrement(&m_lRefCount);
+}
+
+
+ULONG32
+BroadcastStreamer_Nonblocking::Release()
+{
+    if (InterlockedDecrement(&m_lRefCount) > 0)
+    {
+        return m_lRefCount;
+    }
+
+    delete this;
+    return 0;
+}
+
+/* Blocking Broadcast Streamer implementation: */
+BroadcastStreamer_Blocking::BroadcastStreamer_Blocking (
+                                                BroadcastInfo*   pInfo, 
+                                                const char*      pFilename,
+                                                Process*         pStreamerProc,
+                                                IHXSessionStats* pSessionStats)
+    : m_pSink (NULL)
+    , m_ppQueue (NULL)
+    , m_ulSyncTime (0)
+    , m_bBlockSync (FALSE)
+    , BroadcastStreamer_Base (pInfo, pFilename, pStreamerProc, pSessionStats)
+{
+    m_QueueLock = HXCreateMutex();
+    m_SyncLock = HXCreateMutex();
+    HX_ASSERT(m_pGatewayCheckCallback);
+
+    m_pGatewayCheckCallback->m_pBS = this;
+    GatewayCheck();
+}
+
+BroadcastStreamer_Blocking::~BroadcastStreamer_Blocking()
+{
+    HXDestroyMutex(m_QueueLock);
+    HXDestroyMutex(m_SyncLock);
+}
+
+void 
+BroadcastStreamer_Blocking::GatewayCheck()
+{
+    m_ulGatewayCheckCBHandle = 0;
+
+    HXMutexLock(m_pGateway->m_StateLock, TRUE);
+
+    if (m_pGateway->m_State == BroadcastGateway::STREAMING)
+    {
+        HXMutexUnlock(m_pGateway->m_StateLock);
+
+    m_GatewayStatus = HXR_OK;
+
+    UINT32 ulQueueSize = BCAST_DEFAULT_MAX_CC_QUEUE;
+    INT32 lTemp = 0;
+    
+    if (SUCCEEDED(m_pProc->pc->registry->
+              GetInt("config.BroadcastCongestionQueueSize", &lTemp, m_pProc)))
+    {
+        ulQueueSize = (UINT32)lTemp;
+    }
+
+    HXMutexLock(m_QueueLock, TRUE);
+    
+    HX_ASSERT(m_pGateway);
+    HX_ASSERT(m_pGateway->m_ulStreamCount);
+
+    m_ppQueue = new CongestionQueue*[m_pGateway->m_ulStreamCount];
+    
+    for (UINT16 i = 0; i < m_pGateway->m_ulStreamCount; i++)
+    {
+        m_ppQueue[i] = new CongestionQueue(ulQueueSize);
+    }
+    
+    HXMutexUnlock(m_QueueLock);
+    }
+
+    HXMutexUnlock(m_pGateway->m_StateLock);
+
+    BroadcastStreamer_Base::GatewayCheck();
+}
+
+
+STDMETHODIMP
+BroadcastStreamer_Blocking::Done()
+{
+    if (m_pSink)
+    {
+    m_pSink->SourceDone();
+    m_pSink->Release();
+    m_pSink = NULL;
+    }
+
+    HXMutexLock(m_QueueLock, TRUE);
+
+    HX_ASSERT(m_ppQueue);
+    HX_ASSERT(m_pGateway->m_ulStreamCount);
+
+    if (m_ppQueue && m_pGateway->m_ulStreamCount)
+    {
+    for (UINT16 i = 0; i < m_pGateway->m_ulStreamCount; i++)
+    {
+        HX_DELETE(m_ppQueue[i]);
+    }
+    }
+
+    HX_VECTOR_DELETE(m_ppQueue);
+    HXMutexUnlock(m_QueueLock);
+
+    return BroadcastStreamer_Base::Done();
+}    
+
+HX_RESULT 
+BroadcastStreamer_Blocking::SendPacket(IHXPacket* pPacket)
+{
+    HX_ASSERT(SUCCEEDED(pPacket->QueryInterface(IID_ServerPacket, (void **)0xffffd00d)));
+    
+    UINT16 unStream = pPacket->GetStreamNumber();
+    
+    /* make a unique wrapper for this packet: */
+    ServerPacket* pServerPacket = new ServerPacket(TRUE);
+    pServerPacket->SetPacket(pPacket);
+    
+    HXMutexLock(m_QueueLock, TRUE);
+    
+    HX_ASSERT(m_ppQueue);
+    if ((m_ppQueue == NULL) ||
+        (m_ppQueue[unStream] == NULL))
+    {
+        HXMutexUnlock(m_QueueLock);
+        return HXR_FAIL;
+    }
+    
+    /* Queue this packet for transmission: */
+    m_ppQueue[unStream]->Enqueue(pServerPacket);
+    
+    HXMutexUnlock(m_QueueLock);
+    
+    HX_RELEASE(pServerPacket);
+    
+    SendPacketFromQueue (unStream);
+
+    return HXR_OK;
+}
+
+STDMETHODIMP
+BroadcastStreamer_Blocking::SinkBlockCleared (UINT32 ulStream)
+{
+    while (SUCCEEDED(SendPacketFromQueue ((UINT16)ulStream)))
+    {
+    }    
+
+    return HXR_OK;
+}
+
+HX_RESULT
+BroadcastStreamer_Blocking::SendPacketFromQueue(UINT16 unStream)
+{
+    ServerPacket* pPacket = NULL;
+    HX_RESULT     hRes    = HXR_OK;
+
+    HX_ASSERT(m_pSink);
+    HX_ASSERT(m_pGateway);
+
+    if ((!m_pSink) || (!m_pGateway))
+    {
+        return HXR_FAIL;
+    }
+
+    HXMutexLock(m_QueueLock, TRUE);
+
+    if ((m_ppQueue == NULL) ||
+        (m_ppQueue[unStream] == NULL))
+    {
+        HXMutexUnlock(m_QueueLock);
+        return HXR_FAIL;
+    }
+
+    /* Get the next packet from the queue: */
+    if (SUCCEEDED(m_ppQueue[unStream]->Peek(pPacket)))
+    {
+        pPacket->AddRef();
+    
+        if ((HXR_BLOCKED == SyncPacket(pPacket)) ||
+            (HXR_BLOCKED == m_pSink->PacketReady(pPacket)))
+        {
+            HX_RELEASE(pPacket);
+            HXMutexUnlock(m_QueueLock);
+            return HXR_BLOCKED;
+        }
+    
+        if (unStream == m_pGateway->m_unSyncStream)
+        {
+            HXMutexLock(m_SyncLock);
+            m_ulSyncTime = pPacket->GetTime();
+            HXMutexUnlock(m_SyncLock);
+        }
+    
+        if (m_ppQueue)
+        {
+            m_ppQueue[unStream]->ReleaseHead();
+        }
+
+        HX_RELEASE(pPacket);
+        hRes = HXR_OK;
+    }
+    else
+    {
+        hRes = HXR_FAIL;
+    }
+    
+    HXMutexUnlock(m_QueueLock);
+    return hRes;
+}
+
+HX_RESULT
+BroadcastStreamer_Blocking::SyncPacket(ServerPacket* pPacket)
+{
+    if ((!pPacket) || (!m_pGateway))
+    {
+        HX_ASSERT(0);
+        return HXR_FAIL;
+    }
+    
+    UINT16 unStream          = pPacket->GetStreamNumber();
+
+    if ((m_pGateway->m_pbTimeStampDelivery[unStream]) &&
+    (!m_pGateway->m_pbTimeStampDelivery[unStream][pPacket->GetASMRuleNumber()]))
+    {
+        return HXR_OK;
+    }
+
+    UINT32 ulms              = pPacket->GetTime();
+    HX_RESULT hRes           = HXR_OK;
+    
+    HXMutexLock(m_SyncLock);
+    if (unStream == m_pGateway->m_unSyncStream)
+    {
+        if (m_bBlockSync)
+        {
+            hRes = HXR_BLOCKED;
+        }
+    }
+    else 
+    {
+        if (m_ulSyncTime)
+        {
+            if (ulms > (m_ulSyncTime + 1000))
+            {
+                m_bBlockSync = FALSE;
+                hRes = HXR_BLOCKED;
+            }
+            else if ((ulms + 1000) < m_ulSyncTime)
+            {
+                m_bBlockSync = TRUE;
+            }
+        }
+    }
+
+    HXMutexUnlock(m_SyncLock);
+    return hRes;
+}
+
+STDMETHODIMP
+BroadcastStreamer_Blocking::EnableTCPMode ()
+{
+    return HXR_OK;
+}
+  
+STDMETHODIMP
+BroadcastStreamer_Blocking::SetSink (IHXServerPacketSink* pSink)
 {
     HX_ASSERT(pSink);
 
@@ -765,16 +1159,16 @@ BroadcastStreamer::SetSink (IHXServerPacketSink* pSink)
         return HXR_INVALID_PARAMETER;
     }
 
-    HX_RELEASE(m_pServerPacketSink);
+    HX_RELEASE(m_pSink);
 
-    m_pServerPacketSink = pSink;
-    m_pServerPacketSink->AddRef();
+    m_pSink = pSink;
+    m_pSink->AddRef();
 
     return HXR_OK;
 }
 
 STDMETHODIMP
-BroadcastStreamer::StartPackets ()
+BroadcastStreamer_Blocking::StartPackets ()
 {
     HX_ASSERT(m_pbPacketsStarted);
     if (m_pbPacketsStarted)
@@ -789,267 +1183,42 @@ BroadcastStreamer::StartPackets ()
 }
 
 STDMETHODIMP
-BroadcastStreamer::GetPacket ()
+BroadcastStreamer_Blocking::GetPacket ()
 {
     HX_ASSERT(0);
     return HXR_NOTIMPL;
 }
 
 STDMETHODIMP
-BroadcastStreamer::SinkBlockCleared (UINT32 ulStream)
+BroadcastStreamer_Blocking::QueryInterface (THIS_ REFIID riid, void** ppvObj)
 {
-    HX_ASSERT(m_pPacketFilter);
-    HX_ASSERT(m_pServerPacketSink);
-
-    if (m_pPacketFilter && m_pServerPacketSink)
+    if (IsEqualIID(riid, IID_IHXServerPacketSource))
     {
-        m_pPacketFilter->SetStreamBlocked(ulStream, FALSE);
-        PushPacketsFromQueue();
-    }
-
-    return HXR_OK;
-}
-
-STDMETHODIMP
-BroadcastStreamer::EnableTCPMode ()
-{
-    return HXR_OK;
-}
-
-// IHXSyncHeaderSource methods
-STDMETHODIMP
-BroadcastStreamer::GetFileHeader(REF(IHXValues*)pHeader)
-{
-    if (m_pGateway->m_pFileHeader)
-    {
-        pHeader = CloneHeader(m_pGateway->GetFileHeader(),
-                              g_pTLSProc->pc->server_context);
+        AddRef();
+        *ppvObj = (IHXServerPacketSource*)this;
         return HXR_OK;
     }
 
-    HX_ASSERT(FALSE);
-    return HXR_FAIL;
-}
-STDMETHODIMP
-BroadcastStreamer::GetStreamHeader(UINT32 ulStreamNo, REF(IHXValues*)pHeader)
-{
-     if (m_pGateway->m_pStreamHeaders && m_pGateway->m_pStreamHeaders[ulStreamNo])
-    {
-        pHeader = CloneHeader(m_pGateway->GetStreamHeaders(ulStreamNo),
-                              g_pTLSProc->pc->server_context);
-        return HXR_OK;
-    }
-
-    HX_ASSERT(FALSE);
-    return HXR_FAIL;
+    return BroadcastStreamer_Base::QueryInterface(riid, ppvObj);
 }
 
-// Helper functions
-STDMETHODIMP        
-BroadcastStreamer::GatewayCheckCallback::Func()
+ULONG32
+BroadcastStreamer_Blocking::AddRef()
 {
-    m_pBS->GatewayCheck();
-    return HXR_OK;
+    return InterlockedIncrement(&m_lRefCount);
 }
 
-void BroadcastStreamer::GatewayCheck()
+
+ULONG32
+BroadcastStreamer_Blocking::Release()
 {
-    m_ulGatewayCheckCBHandle = 0;
-
-    HXMutexLock(m_pGateway->m_StateLock, TRUE);
-    if (m_pGateway->m_State == BroadcastGateway::INIT)
+    if (InterlockedDecrement(&m_lRefCount) > 0)
     {
-        HXMutexUnlock(m_pGateway->m_StateLock);
-        m_ulGatewayCheckCBHandle = 
-            m_pProc->pc->engine->schedule.enter(
-                    m_pProc->pc->engine->now + Timeval(0.50),
-                    m_pGatewayCheckCallback);
-    }
-    else if (m_pGateway->m_State == BroadcastGateway::STREAMING)
-    {
-        HXMutexUnlock(m_pGateway->m_StateLock);
-        m_GatewayStatus = HXR_OK;
-        m_pbPacketsStarted = new UINT8[m_pGateway->m_ulStreamCount];
-        memset(m_pbPacketsStarted, 0, sizeof(UINT8) *
-                m_pGateway->m_ulStreamCount);
-
-        if (m_pGateway->m_bUseLatencyRequirements)
-        {
-
-        }
-
-        if (NULL == m_pPacketFilter)
-        {
-            m_pPacketFilter = new BroadcastPacketFilter();
-            m_pPacketFilter->Init((IHXSyncHeaderSource*)this, m_pProc);
-        }
-
-        goto ContinueInit;
-    }
-    else
-    {
-        HXMutexUnlock(m_pGateway->m_StateLock);
-        m_GatewayStatus = HXR_FAIL;
-        goto ContinueInit;
+        return m_lRefCount;
     }
 
-    return;
-
-ContinueInit:
-    m_bGatewayReady = TRUE;
-
-    if (m_pInitPending)
-        m_pSinkControl->InitDone(m_GatewayStatus);
-}
-
-STDMETHODIMP        
-BroadcastStreamer::StreamDoneCallback::Func()
-{
-    m_pBS->m_ulStreamDoneCBHandle = 0;
-
-    UINT32 ulStreamCount = m_pBS->m_pGateway->m_ulStreamCount;
-    for (UINT16 i = 0; i < ulStreamCount; i++)
-    {
-        m_pBS->m_pSinkControl->StreamDone(i);
-    }
-
-    return HXR_OK;
-}
-
-HX_RESULT 
-BroadcastStreamer::SendPacket(IHXPacket* pPacket)
-{
-    // PPM
-    if (m_pSinkPackets)
-    {
-        return m_pSinkPackets->PacketReady(HXR_OK, pPacket);
-    }
-    
-    // MDP
-    if (m_pPacketFilter && m_pServerPacketSink)
-    {
-        m_pPacketFilter->OnPacket(pPacket);
-        PushPacketsFromQueue();
-    }
-
-    return HXR_OK;
-}
-
-// Pushes packets to packet sink until there are no more packets 
-// in the queue or if the next packet's stream is blocked.
-HX_RESULT
-BroadcastStreamer::PushPacketsFromQueue()
-{
-    ServerPacket* pServerPacket = NULL;
-    HX_RESULT     hRes    = HXR_OK;
-
-    HX_ASSERT(m_pServerPacketSink);
-    HX_ASSERT(m_pPacketFilter);
-
-    //Checking for m_pPacketFilter in every iteration because, When Switching(SSPL/FCS) from one stream to another
-    //the m_pServerPacketSink->PacketReady calls BroadcastStreamer::Done (down the stack) which in turn destroys
-    //m_pPacketFilter
-    while (m_pPacketFilter && HXR_OK == m_pPacketFilter->GetNextPacket(pServerPacket) && pServerPacket)
-    {
-        if (HXR_BLOCKED == m_pServerPacketSink->PacketReady(pServerPacket))
-        {
-            m_pPacketFilter->SetStreamBlocked(pServerPacket->GetStreamNumber(), TRUE);
-        }
-
-        HX_RELEASE(pServerPacket);
-    }
-
-    return hRes;
-}
-
-HX_RESULT
-BroadcastStreamer::CreateRegEntries()
-{
-    HX_ASSERT(m_pGateway);
-
-    if (m_nRegEntryIndex < 0) return HXR_FAIL;
-
-    char szBuffer[128];
-    INT32 nNumPlayers = m_pGateway->m_ulPlayerCount;
-
-    snprintf(szBuffer, 128, "LiveConnections.Entry%d.NumPlayers", m_nRegEntryIndex);
-    m_pProc->pc->registry->AddInt(szBuffer, nNumPlayers, m_pProc);
-
-    snprintf(szBuffer, 128, "LiveConnections.Entry%d.ClientRequests", 
-            m_nRegEntryIndex);
-    m_pProc->pc->registry->AddInt(szBuffer, 0, m_pProc);
-
-    snprintf(szBuffer, 128, "LiveConnections.Entry%d.SuccessfulClientRequests", 
-            m_nRegEntryIndex);
-    m_pProc->pc->registry->AddInt(szBuffer, 0, m_pProc);
-
-    snprintf(szBuffer, 128, "LiveConnections.Entry%d.UnsuccessfulClientRequests", 
-            m_nRegEntryIndex);
-    m_pProc->pc->registry->AddInt(szBuffer, 0, m_pProc);
-
-    snprintf(szBuffer, 128, "LiveConnections.Entry%d.ClientsLeaving", 
-            m_nRegEntryIndex);
-    m_pProc->pc->registry->AddInt(szBuffer, 0, m_pProc);
-
-    snprintf(szBuffer, 128, "LiveConnections.Entry%d.ClientsLeavingDueToServerError", 
-            m_nRegEntryIndex);
-    m_pProc->pc->registry->AddInt(szBuffer, 0, m_pProc);
-
-    snprintf(szBuffer, 128, "LiveConnections.Entry%d.ClientsLeavingDueToClientError", 
-            m_nRegEntryIndex);
-    m_pProc->pc->registry->AddInt(szBuffer, 0, m_pProc);
-
-
-    return HXR_OK;
-}
-
-HX_RESULT
-BroadcastStreamer::UpdateRegClientsLeaving()
-{
-    if (m_pSessionStats)
-    {
-        INT32 val;
-        char szBuffer[128];
-
-        snprintf(szBuffer, 128, 
-                "LiveConnections.Entry%d.ClientsLeaving", m_nRegEntryIndex);
-        m_pProc->pc->registry->ModifyInt(szBuffer, 1, &val, m_pProc);
-
-        // check the error code
-
-        SessionStatsEndStatus ulEndStatus = m_pSessionStats->GetEndStatus();
-        if (ulEndStatus == SSES_NOT_ENDED || SSES_SUCCESS(ulEndStatus))
-        {
-
-            snprintf(szBuffer, 128, 
-                    "LiveConnections.Entry%d.SuccessfulClientRequests", 
-                    m_nRegEntryIndex);
-            m_pProc->pc->registry->ModifyInt(szBuffer, 1, &val, m_pProc);
-        }
-        else
-        {
-            snprintf(szBuffer, 128, 
-                    "LiveConnections.Entry%d.UnsuccessfulClientRequests", 
-                    m_nRegEntryIndex);
-            m_pProc->pc->registry->ModifyInt(szBuffer, 1, &val, m_pProc);
-
-            if (SSES_FAILURE_SERVER(ulEndStatus))
-            {
-                snprintf(szBuffer, 128, 
-                        "LiveConnections.Entry%d.ClientsLeavingDueToServerError", 
-                        m_nRegEntryIndex);
-                m_pProc->pc->registry->ModifyInt(szBuffer, 1, &val, m_pProc);
-            }
-            else
-            {
-                snprintf(szBuffer, 128, 
-                        "LiveConnections.Entry%d.ClientsLeavingDueToClientError", 
-                        m_nRegEntryIndex);
-                m_pProc->pc->registry->ModifyInt(szBuffer, 1, &val, m_pProc);
-            }
-        }
-    }
-    return HXR_OK;
+    delete this;
+    return 0;
 }
 
 BroadcastGateway::BroadcastGateway(BroadcastInfo* pInfo,
@@ -1065,11 +1234,6 @@ BroadcastGateway::BroadcastGateway(BroadcastInfo* pInfo,
     m_pFileHeader               = 0;
     m_pStreamHeaders            = 0;
     m_ulStreamCount             = 0;
-    m_ulStreamGroupCount        = 0;
-    m_ulSwitchGroupCount        = 0;
-    m_aulLogicalStreamToStreamGroup = NULL;
-    m_aulLogicalStreamToSwitchGroup = NULL;
-
     m_ulStreamHeadersSeen       = 0;
     m_ulStreamDonesSeen         = 0;
 
@@ -1089,6 +1253,7 @@ BroadcastGateway::BroadcastGateway(BroadcastInfo* pInfo,
     m_ulLatencyCalcCBHandle     = 0;
 
     m_pStreamDoneTable          = NULL;
+    m_pCurrentSequenceNumbers   = NULL;
     m_nRegEntryIndex            = -1;
     m_ulGwayLatencyTotal        = 0;
     m_ulGwayLatencyReps         = 0;
@@ -1098,10 +1263,11 @@ BroadcastGateway::BroadcastGateway(BroadcastInfo* pInfo,
     m_bSureStreamAware          = FALSE;
 
     m_pASMSource                = NULL;
-    m_bIsSubscribed             = FALSE;
     m_ppRuleData                = NULL;
-    m_unKeyframeStreamGroup     = 0xffff;
-    m_ulAudioStreamGroup        = 0xffff;
+    m_pbTimeStampDelivery       = NULL;
+    m_unSyncStream              = 0xffff;
+    m_pSyncPacket               = NULL;
+    m_unKeyframeStream          = 0xffff;
 #ifdef DEBUG_IAT
     m_fAvgInterArrivalTime      = 0;
 #endif
@@ -1120,21 +1286,22 @@ BroadcastGateway::BroadcastGateway(BroadcastInfo* pInfo,
 
     m_bDisableLiveTurboPlay     = FALSE;
 
-    m_pPacketBufferQueue       = NULL;
-    m_pLongPacketBufferQueue   = NULL;
-    m_pFuturePacketBufferQueue = NULL;
+    m_ppPacketBufferQueue       = NULL;
+    m_ppFuturePacketBufferQueue = NULL;
+    m_pbIsKeyframeRule          = NULL;
+    m_pbIsSubscribed            = NULL;
     m_bQTrace                   = FALSE;
     m_bEnableRSDDebug           = FALSE; 
     m_bEnableRSDPerPacketLog    = FALSE;
     m_lMinPreroll               = 0;
     m_lExtraPrerollPercentage   = 0;
+    m_ulLastPacketTS            = 0;
+    
+    m_ulNumofPktBufQ            = 0;
     m_bLowLatency               = FALSE;
     m_bQSizeTooSmallReported    = FALSE;
-    m_ppSwitchGroupRSDInfo      = NULL;
-    m_aulTmpSwitchGroupMap        = NULL;
-    m_ppAudioSwitchGroupInfo    = NULL;
     INT32 lBuffering            = 0;
-    
+
     if (HXR_OK ==
         pStreamerProc->pc->registry->GetInt(DISABLE_TURBO_PLAY,
                                             &lBuffering, pStreamerProc))
@@ -1241,11 +1408,13 @@ BroadcastGateway::BroadcastGateway(BroadcastInfo* pInfo,
     m_lMaxDurationOfPacketBufferQueue = m_lMaxDurationOfPacketBufferQueue * 1000;
 
     m_PacketBufferQueueLock = HXCreateMutex();
-    m_LongPacketBufferQueueLock = HXCreateMutex();
+
+    m_pIsPayloadWirePacket = NULL;
+    m_pRTCPRule = NULL;
+    m_ppRTCPPacket = NULL;
+
 
     m_StateLock = HXCreateMutex();
-    m_pPerStreamerFileHeaderLock = HXCreateMutex();
-    m_pPerStreamerStreamHeaderLock = HXCreateMutex();
     m_BroadcastPacketManagerLock = HXCreateMutex();
 #ifdef DEBUG_IAT
     m_InterArrivalTimeLock = HXCreateMutex();
@@ -1371,15 +1540,8 @@ BroadcastGateway::BroadcastGateway(BroadcastInfo* pInfo,
 
     //printf("bcast gway x %f, y %f, z %f\n", m_fx, m_fy, m_fz);
 
-    m_ppPerStreamerFileHeaders = new IHXValues*[MAX_THREADS];
-    memset(m_ppPerStreamerFileHeaders, 0, sizeof(IHXValues *) * MAX_THREADS);
-
-    m_pppPerStreamerStreamHeaders = new IHXValues**[MAX_THREADS];
-    memset(m_pppPerStreamerStreamHeaders, 0, sizeof(IHXValues **) * MAX_THREADS);
-
     memset(m_pBroadcastPacketManagers, 0, (sizeof(BroadcastPacketManager*) * MAX_THREADS));
     memset(&m_pStreamers, 0, (sizeof(UINT16) * MAX_THREADS));
-
 
     /*
      * Do not store pStreamerProc since this class will execute in the
@@ -1393,11 +1555,12 @@ BroadcastGateway::~BroadcastGateway()
 
     HX_VECTOR_DELETE(m_pFilename);
     HX_VECTOR_DELETE(m_pStreamDoneTable);
+    HX_VECTOR_DELETE(m_pCurrentSequenceNumbers);
 
     HX_RELEASE(m_pFileHeader);
     HX_RELEASE(m_pASMSource);
 
-
+    
     for (i = 0; i < m_ulStreamCount; i++)
     {
         HX_RELEASE(m_pStreamHeaders[i]);
@@ -1409,25 +1572,18 @@ BroadcastGateway::~BroadcastGateway()
     {
         HX_RELEASE(m_pBroadcastPacketManagers[j]);
     }
+
     HXMutexUnlock(m_BroadcastPacketManagerLock);
 
     HXMutexLock(m_RuleDataLock, TRUE);
 
     for (i = 0; i < m_ulStreamCount; i++)
     {
-        HX_DELETE(m_ppRuleData[i]);
+       HX_DELETE(m_ppRuleData[i]);
+       HX_VECTOR_DELETE(m_pbTimeStampDelivery[i]);
     }
     HX_VECTOR_DELETE(m_ppRuleData);
-
-    if (m_ppSwitchGroupRSDInfo)
-    {
-        for (i = 0; i < m_ulSwitchGroupCount+1; i++)
-        {
-            HX_DELETE(m_ppSwitchGroupRSDInfo[i]);
-        }
-
-        HX_VECTOR_DELETE(m_ppSwitchGroupRSDInfo);
-    }
+    HX_VECTOR_DELETE(m_pbTimeStampDelivery);
 
     HXMutexUnlock(m_RuleDataLock);
 
@@ -1452,62 +1608,45 @@ BroadcastGateway::~BroadcastGateway()
     }
     HX_RELEASE(m_pLatencyCalcCallback);
 
-    HX_VECTOR_DELETE(m_aulLogicalStreamToStreamGroup);
-    HX_VECTOR_DELETE(m_aulLogicalStreamToSwitchGroup);
+    if (m_ppPacketBufferQueue)
+    {
+        for (i = 0; i < m_ulNumofPktBufQ; i++)
+        {
+            HX_RELEASE(m_ppPacketBufferQueue[i]);
+        }
+        delete m_ppPacketBufferQueue;
+    }
 
-    HX_RELEASE(m_pPacketBufferQueue);
-    HX_RELEASE(m_pLongPacketBufferQueue);
-    HX_RELEASE(m_pFuturePacketBufferQueue);
+    if (m_ppFuturePacketBufferQueue)
+    {
+        for (i = 0; i < m_ulNumofPktBufQ; i++)
+        {
+            HX_RELEASE(m_ppFuturePacketBufferQueue[i]);
+        }
+        delete m_ppFuturePacketBufferQueue;
+    }
+
+    HX_VECTOR_DELETE(m_pbIsKeyframeRule);
+    HX_VECTOR_DELETE(m_pbIsSubscribed);
 
     HXDestroyMutex(m_PacketBufferQueueLock);
-    HXDestroyMutex(m_LongPacketBufferQueueLock);
 
+    for (i = 0; i < m_ulStreamCount; i++)
+    {
+        HX_RELEASE(m_ppRTCPPacket[i]);
+    }
+    HX_RELEASE(m_pSyncPacket);
 
+    HX_VECTOR_DELETE(m_pIsPayloadWirePacket);
+    HX_VECTOR_DELETE(m_pRTCPRule);
+    HX_VECTOR_DELETE(m_ppRTCPPacket);
+    
     HXDestroyMutex(m_StateLock);
     HXDestroyMutex(m_BroadcastPacketManagerLock);
 #ifdef DEBUG_IAT
     HXDestroyMutex(m_InterArrivalTimeLock);
 #endif
     HXDestroyMutex(m_RuleDataLock);
-
-    if (m_ppPerStreamerFileHeaders)
-    {
-	HXMutexLock(m_pPerStreamerFileHeaderLock, TRUE);
-	for (i = 0; i < MAX_THREADS; i++)
-	    HX_RELEASE(m_ppPerStreamerFileHeaders[i]);
-	HX_VECTOR_DELETE(m_ppPerStreamerFileHeaders);
-	HXMutexUnlock(m_pPerStreamerFileHeaderLock);
-    }
-
-    if (m_pppPerStreamerStreamHeaders)
-    {
-	HXMutexLock(m_pPerStreamerStreamHeaderLock, TRUE);
-	for (i = 0; i < MAX_THREADS; i++)
-	{
-	    if (m_pppPerStreamerStreamHeaders[i])
-	    {
-		for (int j = 0; j < m_ulStreamCount; j++)
-		    HX_RELEASE(m_pppPerStreamerStreamHeaders[i][j]);
-		HX_VECTOR_DELETE(m_pppPerStreamerStreamHeaders[i]);
-	    }
-	}
-	HX_VECTOR_DELETE(m_pppPerStreamerStreamHeaders);
-	HXMutexUnlock(m_pPerStreamerStreamHeaderLock);
-    }
-
-    HXDestroyMutex(m_pPerStreamerFileHeaderLock);
-    HXDestroyMutex(m_pPerStreamerStreamHeaderLock);
-    HX_VECTOR_DELETE(m_aulTmpSwitchGroupMap);
-
-    if(m_ppAudioSwitchGroupInfo)
-    {
-        for (i = 0; i < m_ulSwitchGroupCount+1; i++)
-        {
-            HX_DELETE(m_ppAudioSwitchGroupInfo[i]);
-        }
-
-        HX_VECTOR_DELETE(m_ppAudioSwitchGroupInfo);
-    }
 }
 
 BroadcastPacketManager::DestructCallback::DestructCallback(BroadcastPacketManager* pManager)
@@ -1535,7 +1674,7 @@ STDMETHODIMP
 BroadcastGateway::DestructCallback::Func()
 {
     m_pBG->m_ulDestructCBHandle = 0;
-
+    
     if (m_pBG->m_ulIdleStopCBHandle)
     {
         m_pBG->m_pInfo->m_pProc->pc->engine->schedule.remove(m_pBG->m_ulIdleStopCBHandle);
@@ -1552,7 +1691,8 @@ BroadcastGateway::DestructCallback::Func()
         {
             if (m_pBG->m_pBroadcastPacketManagers[i])
             {
-                (m_pBG->m_pBroadcastPacketManagers[i])->SendDone(m_pBG->m_pInfo->m_pProc);
+                (m_pBG->m_pBroadcastPacketManagers[i])->SendDone(
+                    m_pBG->m_pInfo->m_pProc);
                 HX_RELEASE((m_pBG->m_pBroadcastPacketManagers[i]));
             }
         }
@@ -1564,8 +1704,8 @@ BroadcastGateway::DestructCallback::Func()
     else
     {
         m_pBG->m_ulDestructCBHandle = m_pBG->m_pInfo->m_pProc->pc->engine->schedule.enter(
-                m_pBG->m_pInfo->m_pProc->pc->engine->now + Timeval(10.0),
-                m_pBG->m_pDestructCallback);
+            m_pBG->m_pInfo->m_pProc->pc->engine->now + Timeval(10.0),
+            m_pBG->m_pDestructCallback);
     }
 
     return HXR_OK;
@@ -1587,8 +1727,8 @@ BroadcastGateway::IdleStopCallback::Func()
     {
         m_pBG->m_ulIdleStopCBHandle = 
             m_pBG->m_pInfo->m_pProc->pc->engine->schedule.enter(
-                    m_pBG->m_pInfo->m_pProc->pc->engine->now + Timeval(30.0),
-                    m_pBG->m_pIdleStopCallback);
+            m_pBG->m_pInfo->m_pProc->pc->engine->now + Timeval(30.0),
+            m_pBG->m_pIdleStopCallback);
     }
     return HXR_OK;
 }
@@ -1597,7 +1737,7 @@ STDMETHODIMP
 BroadcastGateway::LatencyCalcCallback::Func()
 {
     INT32 ulAvgLatency = 0;
-
+    
     if (m_pBG->m_ulGwayLatencyReps)
     {
         ulAvgLatency = (INT32)(m_pBG->m_ulGwayLatencyTotal / m_pBG->m_ulGwayLatencyReps);
@@ -1606,26 +1746,23 @@ BroadcastGateway::LatencyCalcCallback::Func()
     if (m_pBG->m_ulAvgGwayLatencyRegID)
     {
         m_pBG->m_pInfo->m_pProc->pc->registry->SetInt(
-                m_pBG->m_ulAvgGwayLatencyRegID, (INT32)ulAvgLatency, m_pBG->m_pInfo->m_pProc);
+            m_pBG->m_ulAvgGwayLatencyRegID, (INT32)ulAvgLatency, m_pBG->m_pInfo->m_pProc);
     }
 
     if (m_pBG->m_ulMaxGwayLatencyRegID)
     {
         m_pBG->m_pInfo->m_pProc->pc->registry->SetInt(
-                m_pBG->m_ulMaxGwayLatencyRegID, m_pBG->m_ulMaxGwayLatency, m_pBG->m_pInfo->m_pProc);
+            m_pBG->m_ulMaxGwayLatencyRegID, m_pBG->m_ulMaxGwayLatency, m_pBG->m_pInfo->m_pProc);
     }
 
     m_pBG->m_ulGwayLatencyTotal = 0;
     m_pBG->m_ulGwayLatencyReps = 0;
     // m_pBG->m_ulMaxGwayLatency = 0;
 
-    if (m_pBG->m_pLatencyCalcCallback)
-    {
-        m_pBG->m_ulLatencyCalcCBHandle = 
-            m_pBG->m_pInfo->m_pProc->pc->engine->ischedule.enter(
-                    m_pBG->m_pInfo->m_pProc->pc->engine->now + Timeval(15.0),
-                    m_pBG->m_pLatencyCalcCallback);
-    }
+    m_pBG->m_ulLatencyCalcCBHandle = 
+        m_pBG->m_pInfo->m_pProc->pc->engine->ischedule.enter(
+        m_pBG->m_pInfo->m_pProc->pc->engine->now + Timeval(15.0),
+        m_pBG->m_pLatencyCalcCallback);
 
     return HXR_OK;
 }
@@ -1673,7 +1810,7 @@ BroadcastGateway::Init(Process* pProc)
 
 void
 BroadcastGateway::AddBroadcastStreamer(Process*                pProc,
-                                       BroadcastStreamer* pStreamer)
+                                       BroadcastStreamer_Base* pStreamer)
 {
     HX_ASSERT(pProc);
     HX_ASSERT(pStreamer);
@@ -1684,23 +1821,26 @@ BroadcastGateway::AddBroadcastStreamer(Process*                pProc,
         HXMutexLock(m_BroadcastPacketManagerLock, TRUE);
         if (m_pBroadcastPacketManagers[pProc->procnum()] == NULL)
         {
-            m_pBroadcastPacketManagers[pProc->procnum()] = new BroadcastPacketManager (pProc, this);
-            m_pBroadcastPacketManagers[pProc->procnum()]->AddRef();
+            m_pBroadcastPacketManagers[pProc->procnum()] = 
+                new BroadcastPacketManager (pProc, this);
 
+            m_pBroadcastPacketManagers[pProc->procnum()]->AddRef();
+        
             m_pStreamers[m_unNumStreamers] = pProc->procnum();
             m_unNumStreamers++;
 
-            if (m_State == STREAMING)
-            {
-                m_pBroadcastPacketManagers[pProc->procnum()]->Init(pProc);
-            }
+             if (m_State == STREAMING)
+             {
+                 m_pBroadcastPacketManagers[pProc->procnum()]->Init(pProc);
+             }
         }
 
         /* add this streamer to the streamer list for this procnum */
-
+    
         if (m_pBroadcastPacketManagers[pProc->procnum()])
         {
-            m_pBroadcastPacketManagers[pProc->procnum()]->AddBroadcastStreamer(pStreamer);
+            m_pBroadcastPacketManagers[pProc->procnum()]->
+                AddBroadcastStreamer(pStreamer);
         }
         HXMutexUnlock(m_BroadcastPacketManagerLock);
     }
@@ -1708,7 +1848,7 @@ BroadcastGateway::AddBroadcastStreamer(Process*                pProc,
 
 void
 BroadcastGateway::RemoveBroadcastStreamer(Process*                pProc, 
-                                          BroadcastStreamer* pStreamer)
+                                          BroadcastStreamer_Base* pStreamer)
 {
     HX_ASSERT(pProc);
     HX_ASSERT(pStreamer);
@@ -1719,7 +1859,8 @@ BroadcastGateway::RemoveBroadcastStreamer(Process*                pProc,
         HXMutexLock(m_BroadcastPacketManagerLock, TRUE);
         if (m_pBroadcastPacketManagers[pProc->procnum()])
         {
-            m_pBroadcastPacketManagers[pProc->procnum()]->RemoveBroadcastStreamer(pStreamer);
+            m_pBroadcastPacketManagers[pProc->procnum()]->
+                RemoveBroadcastStreamer(pStreamer);
         }
         HXMutexUnlock(m_BroadcastPacketManagerLock);
     }
@@ -1772,7 +1913,7 @@ BroadcastGateway::QueryInterface(REFIID riid, void** ppvObj)
         *ppvObj = (IHXFormatResponse*)this;
         return HXR_OK;
     }
-
+    
     *ppvObj = NULL;
     return HXR_NOINTERFACE;
 }
@@ -1832,26 +1973,13 @@ BroadcastGateway::FileHeaderReady(HX_RESULT ulStatus, IHXValues* pHeader)
         return HXR_OK;
     }
 
-    FixupFileHeader(pHeader);
     pHeader->SetPropertyULONG32("LiveStream", 1);
 
-#ifdef BCASTMGR_HEADER_DEBUG
-    printf("\nFile Header:\n\n");
-    DumpHeader(pHeader);
-#endif //BCASTMGR_HEADER_DEBUG
-
     pHeader->GetPropertyULONG32("StreamCount", m_ulStreamCount);
-    pHeader->GetPropertyULONG32("StreamGroupCount", m_ulStreamGroupCount);
 
     UINT32 ulTemp = 0;
     pHeader->GetPropertyULONG32("LatencyMode", ulTemp);
     m_bLowLatency = (ulTemp> 0) ? TRUE : FALSE;
-
-    // Instant-on is currently disabled for low latency streams.
-    if(m_bLowLatency)
-    {
-        m_bDisableLiveTurboPlay = TRUE;
-    }
 
     ulTemp = 0;
     pHeader->GetPropertyULONG32("SureStreamAware", ulTemp);
@@ -1862,25 +1990,27 @@ BroadcastGateway::FileHeaderReady(HX_RESULT ulStatus, IHXValues* pHeader)
 
     m_pStreamHeaders = new IHXValues*[m_ulStreamCount];
     m_pStreamDoneTable = new UINT32[m_ulStreamCount];
+    m_pCurrentSequenceNumbers = new UINT32[m_ulStreamCount];
     m_ppRuleData = new RuleData*[m_ulStreamCount];
-    m_aulLogicalStreamToStreamGroup = new UINT32[m_ulStreamCount];
-    m_aulLogicalStreamToSwitchGroup = new UINT32[m_ulStreamCount];
-    m_aulTmpSwitchGroupMap = new UINT32[m_ulStreamCount];
+    m_pbTimeStampDelivery = new BOOL*[m_ulStreamCount];
+
+    m_pIsPayloadWirePacket = new BOOL[m_ulStreamCount];
+    m_pRTCPRule = new UINT32[m_ulStreamCount];
+    m_ppRTCPPacket = new IHXPacket*[m_ulStreamCount];
 
     for (UINT16 i = 0; i < m_ulStreamCount; i++)
     {
         m_pStreamHeaders[i] = 0;
         m_pStreamDoneTable[i] = BCAST_STREAMDONE_TABLE_OK;
+        m_pCurrentSequenceNumbers[i] = 0;
         m_ppRuleData[i] = NULL;
-        m_aulLogicalStreamToStreamGroup[i] = 0;
-        m_aulLogicalStreamToSwitchGroup[i] = 0;
-        m_aulTmpSwitchGroupMap[i] = 0;
-    }
-
-    for (i = 0; i < m_ulStreamCount; i++)
-    {
+        m_pbTimeStampDelivery[i] = NULL;
+        m_pIsPayloadWirePacket[i] = FALSE;
+        m_pRTCPRule[i] = 0xffffffff;
+        m_ppRTCPPacket[i] = NULL;
         m_pBCastObj->GetStreamHeader(i);
     }
+
     return HXR_OK;
 }
 
@@ -1898,43 +2028,8 @@ BroadcastGateway::StreamHeaderReady(HX_RESULT ulStatus, IHXValues* pHeader)
     UINT16 j    = 0;
 
     pHeader->GetPropertyULONG32("StreamNumber", ulSN);
-    FixupStreamHeader(ulSN, pHeader);
     m_pStreamHeaders[ulSN] = pHeader;
     pHeader->AddRef();
-
-#ifdef BCASTMGR_HEADER_DEBUG
-    printf("\nStream %u:\n\n", ulSN);
-    DumpHeader(pHeader);
-#endif //BCASTMGR_HEADER_DEBUG
-
-    UINT32 ulStreamGroupNum = 0;
-    pHeader->GetPropertyULONG32("StreamGroupNumber", ulStreamGroupNum);
-    m_aulLogicalStreamToStreamGroup[ulSN] = ulStreamGroupNum;
-
-    // SwitchGroupIDs are not always sequential and can be random integers between
-    // 1 to n for the live streams from SLTA. This is an attempt to identify the 
-    // number of unique SwitchGroupIDs and map them to contiguous numbers starting
-    // with 1 for easier processing in rest of the BroadcastGateway.
-    // m_aulTmpSwitchGroupMap is temporary array that holds these mappings. Ideally
-    // this should be a CHXMapLongtoLong map, but we don't have such map available.
-    UINT32 ulSwitchGroupNum = 0;
-    pHeader->GetPropertyULONG32("SwitchGroupID", ulSwitchGroupNum);
-
-    for(i=0; i < m_ulSwitchGroupCount; i++)
-    {
-        if (m_aulTmpSwitchGroupMap[i] == ulSwitchGroupNum)
-        {
-            break;
-        }
-    }
-
-    if (i == m_ulSwitchGroupCount)
-    {
-        m_aulTmpSwitchGroupMap[i] = ulSwitchGroupNum;
-        m_ulSwitchGroupCount++;
-    }
-
-    m_aulLogicalStreamToSwitchGroup[ulSN] = i+1;
 
     m_ulStreamHeadersSeen++;
 
@@ -1950,15 +2045,13 @@ BroadcastGateway::StreamHeaderReady(HX_RESULT ulStatus, IHXValues* pHeader)
         m_pInfo->m_pProc->pc->server_context->QueryInterface(IID_IHXRegistry, (void **)&pReg);
 
         /*we want to detect keyframe stream for the following contents:
-          1. video(rm and 3gpp) stream with any other streams.
-          2. only audio(rm) stream
-          3. only audio(rm) and event streams.
-         */
+         1. video(rm and 3gpp) stream with any other streams.
+         2. only audio(rm) stream
+         3. only audio(rm) and event streams.
+        */
         // Because we want to detect audio only content, which may contain two streams: audio and 
         // event streams. We need an extra loop here.
-        UINT32 unVideoKeyframeStrmGroup = 0xffff;
-        UINT32 unAudioKeyframeStrmGroup = 0xffff;
-        UINT32 unEventStreamStrmGroup = 0xffff;
+        UINT16 unVideoKeyframe = 0xffff, unAudioKeyframe = 0xffff, unEventStream = 0xffff;
         for (i = 0; i < m_ulStreamCount; i++)
         {
             if (SUCCEEDED(m_pStreamHeaders[i]->GetPropertyCString ("MimeType", pMimeType)) && pMimeType)
@@ -1968,20 +2061,15 @@ BroadcastGateway::StreamHeaderReady(HX_RESULT ulStatus, IHXValues* pHeader)
                 {
                     if (IsVideoKeyframeStream(pReg, szMimeType))
                     {
-                        unVideoKeyframeStrmGroup = m_aulLogicalStreamToStreamGroup[i];
+                        unVideoKeyframe = i;
                     }
                     else if (IsAudioKeyframeStream(pReg, szMimeType))
                     {
-                        unAudioKeyframeStrmGroup = m_aulLogicalStreamToStreamGroup[i];
+                        unAudioKeyframe = i;
                     }
                     else if (IsRealEventStream(pReg, szMimeType))
                     {
-                        unEventStreamStrmGroup = m_aulLogicalStreamToStreamGroup[i];
-                    }
-                    
-                    if(strncmp(szMimeType, "audio/", 6) == 0)
-                    {
-                        m_ulAudioStreamGroup = m_aulLogicalStreamToStreamGroup[i];
+                        unEventStream = i;
                     }
                 }
                 HX_RELEASE(pMimeType);
@@ -1989,45 +2077,47 @@ BroadcastGateway::StreamHeaderReady(HX_RESULT ulStatus, IHXValues* pHeader)
         }
         HX_RELEASE(pReg);
 
-        if (unVideoKeyframeStrmGroup != 0xffff)
+        if (unVideoKeyframe != 0xffff)
         {
-            m_unKeyframeStreamGroup = unVideoKeyframeStrmGroup;
+            m_unKeyframeStream = unVideoKeyframe;
         }
         // only one audio stream
-        else if (m_ulStreamGroupCount == 1 && unAudioKeyframeStrmGroup != 0xffff)
+        else if (m_ulStreamCount == 1 && unAudioKeyframe != 0xffff)
         {
-            m_unKeyframeStreamGroup = unAudioKeyframeStrmGroup;
+             m_unKeyframeStream = unAudioKeyframe;
         }
         // if the content contains only audio and event streams
-        else if (m_ulStreamGroupCount == 2 && unAudioKeyframeStrmGroup != 0xffff && unEventStreamStrmGroup != 0xffff)
+        else if (m_ulStreamCount == 2 && unAudioKeyframe != 0xffff && unEventStream != 0xffff)
         {
-            m_unKeyframeStreamGroup = unAudioKeyframeStrmGroup;
-        }
-
-        if (m_unKeyframeStreamGroup == 0xffff)
-        {
-            m_bDisableLiveTurboPlay = TRUE;
-        }
-
-        if (!m_bDisableLiveTurboPlay)
-        {
-            m_ppSwitchGroupRSDInfo = new SwitchGroupRSDInfo*[m_ulSwitchGroupCount+1];
-            memset(m_ppSwitchGroupRSDInfo, 0, sizeof(SwitchGroupRSDInfo*) * (m_ulSwitchGroupCount+1));
-        }
-
-        if (!m_bDisableLiveTurboPlay && m_ulAudioStreamGroup != 0xffff 
-            && m_ulAudioStreamGroup != m_unKeyframeStreamGroup)
-        {
-            m_ppAudioSwitchGroupInfo = new AudioSwitchGroupInfo*[m_ulSwitchGroupCount+1];
-            memset(m_ppAudioSwitchGroupInfo, 0, sizeof(AudioSwitchGroupInfo*) * (m_ulSwitchGroupCount+1));
+            m_unKeyframeStream = unAudioKeyframe;
         }
 
         for (i = 0; i < m_ulStreamCount; i++)
         {
-            m_pStreamHeaders[i]->GetPropertyCString("ASMRulebook", pRuleBook);
-            UINT32 ulStreamGroupNum = m_aulLogicalStreamToStreamGroup[i];
-            UINT32 ulSwitchGroupNum = m_aulLogicalStreamToSwitchGroup[i];
+            if (SUCCEEDED(m_pStreamHeaders[i]->GetPropertyCString ("MimeType", pMimeType)) && pMimeType)
+            {
+                const char* szMimeType = (const char*)pMimeType->GetBuffer();
+                if (szMimeType && RTSPMEDIA_TYPE_AUDIO == SDPMapMimeToMediaType (szMimeType))
+                {
+                    m_unSyncStream = i;
+                }
+                HX_RELEASE(pMimeType);
+            }
 
+            IHXBuffer* pPayloadWirePacket = NULL;
+            m_pStreamHeaders[i]->GetPropertyCString("PayloadWirePacket", pPayloadWirePacket);
+            if (pPayloadWirePacket)
+            {
+                if (0 == strcasecmp("rtp", (const char *)pPayloadWirePacket->GetBuffer()))
+                {
+                    m_pIsPayloadWirePacket[i] = TRUE;
+                }
+                pPayloadWirePacket->Release();
+            }
+                
+
+            m_pStreamHeaders[i]->GetPropertyCString("ASMRulebook", pRuleBook);
+        
             if (pRuleBook)
             {
                 pParsedRuleBook = new ASMRuleBook((const char*)pRuleBook->GetBuffer());
@@ -2036,41 +2126,85 @@ BroadcastGateway::StreamHeaderReady(HX_RESULT ulStatus, IHXValues* pHeader)
                 UINT16 unNumRules = pParsedRuleBook->GetNumRules();
                 IHXValues* pRuleProps = NULL;
                 BOOL bOnDepend = FALSE;
-
+        
                 HX_DELETE(m_ppRuleData[i]);
                 m_ppRuleData[i] = new RuleData (unNumRules);
-                
-                if (!m_bDisableLiveTurboPlay && m_unKeyframeStreamGroup == ulStreamGroupNum)
+                m_pbTimeStampDelivery[i] = new BOOL[unNumRules];
+
+                if (m_ppPacketBufferQueue == NULL && !m_bDisableLiveTurboPlay && m_unKeyframeStream == i)
                 {
-                    if (m_ppSwitchGroupRSDInfo[ulSwitchGroupNum] == NULL)
-                    {
-                        m_ppSwitchGroupRSDInfo[ulSwitchGroupNum] = new SwitchGroupRSDInfo(unNumRules);
-                    }
-                
+                    m_ulNumofPktBufQ = unNumRules;
+                    m_ppPacketBufferQueue = new CPacketBufferQueue*[m_ulNumofPktBufQ];
+                    memset(m_ppPacketBufferQueue, 0, sizeof(CPacketBufferQueue*)*m_ulNumofPktBufQ);
+
+                    m_ppFuturePacketBufferQueue = new CPacketBufferQueue*[m_ulNumofPktBufQ];
+                    memset(m_ppFuturePacketBufferQueue, 0, sizeof(CPacketBufferQueue*)*m_ulNumofPktBufQ); 
+
+                    m_pbIsKeyframeRule = new BOOL[m_ulNumofPktBufQ];
+                    memset(m_pbIsKeyframeRule, 0, sizeof(BOOL)*m_ulNumofPktBufQ); 
+                    
+                    m_pbIsSubscribed = new BOOL[m_ulNumofPktBufQ];
+                    memset(m_pbIsSubscribed, 0, sizeof(BOOL)*m_ulNumofPktBufQ); 
+
                     UINT32 ulPreroll = 0;
-                    if (m_pStreamHeaders[i]->GetPropertyULONG32("Preroll", ulPreroll) == HXR_OK && 
-                        ulPreroll > 0 && ulPreroll > m_lQueueDuration)
+                    if (m_pStreamHeaders[i]->GetPropertyULONG32("Preroll", ulPreroll) == HXR_OK && ulPreroll > 0)
                     {
                         m_lQueueDuration = ulPreroll;
                     }
-                }
-
-                if(!m_bDisableLiveTurboPlay && m_ulAudioStreamGroup == ulStreamGroupNum &&
-                    m_ppAudioSwitchGroupInfo)
-                {
-                    if(m_ppAudioSwitchGroupInfo[ulSwitchGroupNum] == NULL)
+                    else
                     {
-                        m_ppAudioSwitchGroupInfo[ulSwitchGroupNum] = new AudioSwitchGroupInfo(unNumRules);
+                        m_pStreamHeaders[i]->SetPropertyULONG32("Preroll", m_lQueueDuration);
+                    }
+
+                    if (m_lExtraPrerollPercentage)
+                    {
+                        UINT64 ulExtraDuration = m_lQueueDuration * m_lExtraPrerollPercentage;
+                        ulExtraDuration  /= 100;
+                        m_lQueueDuration += (UINT32)ulExtraDuration;
+                    }
+                
+                    // enforce minimum queue duration
+                    if (m_lMinPreroll && m_lQueueDuration < m_lMinPreroll)
+                    {
+                        // ServerPreroll is an internal preroll value not to be communicated
+                        m_lQueueDuration = m_lMinPreroll;
+                        m_pStreamHeaders[i]->SetPropertyULONG32("ServerPreroll", m_lQueueDuration);
                     }
                 }
-
+                
                 for (j = 0; j < unNumRules; j++)
                 {
+                    m_pbTimeStampDelivery[i][j] = FALSE;
                     pRule = NULL;
+
                     pParsedRuleBook->GetProperties(j, pRuleProps);
 
                     if (pRuleProps)
                     {
+                        pRuleProps->GetPropertyCString("TimeStampDelivery", pRule);
+                        
+                        if (pRule)
+                        {
+                            m_pbTimeStampDelivery[i][j] =
+                                (pRule->GetBuffer()[0] == 'T') ||
+                                (pRule->GetBuffer()[0] == 't');
+                
+                            pRule->Release();
+                            pRule = NULL;
+                        }
+
+                        pRuleProps->GetPropertyCString("RTCPRule", pRule);
+                        if (pRule)
+                        {
+                            if (pRule->GetBuffer()[0] == '1' ||
+                                pRule->GetBuffer()[0] == 't')
+                            {
+                                m_pRTCPRule[i] = j;
+                            }
+                            pRule->Release();
+                            pRule = NULL;
+                        }
+
                         pRuleProps->GetPropertyCString("OnDepend", pRule);
                         if (pRule)
                         {
@@ -2079,36 +2213,19 @@ BroadcastGateway::StreamHeaderReady(HX_RESULT ulStatus, IHXValues* pHeader)
                             pRule = NULL;
                         }
 
-                        //For 3GP live, key frame can be received on either of the two rules.
-                        //So receving a key frame packet on either of the two interdependent 
-                        //rules is sufficient.
-                        INT32 lInterDepend = -1;
-                        pRuleProps->GetPropertyCString("InterDepend", pRule);
-
-                        if (pRule)
-                        {
-                            lInterDepend = atoi((const char*)pRule->GetBuffer());
-                            HX_RELEASE(pRule);
-                        }
-
                         // XXXJJ if this rule has "OnDepend", that means it depends on some other rule(s).
-                        // Therefore we will mark it as dependent rule, and not key frame rule.  
+                        // Therefore we will mark it as dependent rule, and not create a bufferQ for it.  
                         // The reason is that even if the players get the keyframe of this rule, they 
                         // can't begin the playback because this rule depends on other rules for rendering.
-                        if (!m_bDisableLiveTurboPlay && 
-                            m_unKeyframeStreamGroup == ulStreamGroupNum &&
-                            m_ppSwitchGroupRSDInfo[ulSwitchGroupNum])
-                        {
-                            m_ppSwitchGroupRSDInfo[ulSwitchGroupNum]->SetKeyFrameRule(j, !bOnDepend);
-                            m_ppSwitchGroupRSDInfo[ulSwitchGroupNum]->SetInterDependency(j, lInterDepend);
-                        }
 
-                        if(m_ppAudioSwitchGroupInfo && m_ppAudioSwitchGroupInfo[ulSwitchGroupNum])
-                        {
-                            m_ppAudioSwitchGroupInfo[ulSwitchGroupNum]->SetOnDepend(j, bOnDepend);
-                            m_ppAudioSwitchGroupInfo[ulSwitchGroupNum]->SetInterDepend(j, lInterDepend);
-                        }
+                        // no queue for rtcp rules, because we will put rtcp packets at the
+                        // beginning of the each queue for streams from qtbcplin.
 
+                        if (m_unKeyframeStream == i && m_ppPacketBufferQueue && !bOnDepend
+                            && m_pRTCPRule[i] != j) 
+                        {
+                            m_pbIsKeyframeRule[j] = TRUE;
+                        }
                         bOnDepend = FALSE;
                     }
 
@@ -2119,43 +2236,15 @@ BroadcastGateway::StreamHeaderReady(HX_RESULT ulStatus, IHXValues* pHeader)
                 HX_RELEASE(pRuleBook);
             }
         }
-
-        if (!m_bDisableLiveTurboPlay)
-        {
-            // enforce minimum queue duration
-            if (m_lMinPreroll && m_lQueueDuration < m_lMinPreroll)
-            {
-                m_lQueueDuration = m_lMinPreroll;
-            }
-        }
-
+    
         /* don't start the streams until we're completelysetup: */
         for (i = 0; i < m_ulStreamCount; i++)
         {
-            if (!m_bDisableLiveTurboPlay)
-            {
-                // Add ServerPreroll to stream headers.
-                // ServerPreroll is an internal preroll value not to be communicated
-                UINT32 ulPreroll = 0;
-                if (m_pStreamHeaders[i]->GetPropertyULONG32("Preroll", ulPreroll) != HXR_OK)
-                {
-                    m_pStreamHeaders[i]->SetPropertyULONG32("Preroll", m_lQueueDuration);
-                }
-                m_pStreamHeaders[i]->SetPropertyULONG32("ServerPreroll", m_lQueueDuration);
-            }
-
             m_pBCastObj->StartPackets(i);
         }
 
-        if (!m_bDisableLiveTurboPlay && m_lExtraPrerollPercentage)
-        {
-            UINT64 ulExtraDuration = m_lQueueDuration * m_lExtraPrerollPercentage;
-            ulExtraDuration  /= 100;
-            m_lQueueDuration += (UINT32)ulExtraDuration;
-        }
-
-        // This is where the state transition should happen! Can't make the change
-        // until all live sources tested (only RBS live has been tested to date)
+// This is where the state transition should happen! Can't make the change
+// until all live sources tested (only RBS live has been tested to date)
 #ifdef BROADCAST_GATEWAY_STATE_BUG_FIXED
         /* Initialize the packet managers */
         HXMutexLock(m_StateLock, TRUE);
@@ -2165,13 +2254,13 @@ BroadcastGateway::StreamHeaderReady(HX_RESULT ulStatus, IHXValues* pHeader)
 
             m_ulIdleStopCBHandle =
                 m_pInfo->m_pProc->pc->engine->schedule.enter(
-                        m_pInfo->m_pProc->pc->engine->now + Timeval(30.0),
-                        m_pIdleStopCallback);
+                    m_pInfo->m_pProc->pc->engine->now + Timeval(30.0),
+                    m_pIdleStopCallback);
 
             m_ulLatencyCalcCBHandle =
                 m_pInfo->m_pProc->pc->engine->ischedule.enter(
-                        m_pInfo->m_pProc->pc->engine->now + Timeval(15.0),
-                        m_pLatencyCalcCallback);
+                    m_pInfo->m_pProc->pc->engine->now + Timeval(15.0),
+                    m_pLatencyCalcCallback);
 
             HXMutexLock(m_BroadcastPacketManagerLock, TRUE);
             for (UINT16 i = 0; i < m_unNumStreamers; i++)
@@ -2179,7 +2268,7 @@ BroadcastGateway::StreamHeaderReady(HX_RESULT ulStatus, IHXValues* pHeader)
                 if (m_pBroadcastPacketManagers[m_pStreamers[i]] != NULL)
                 {
                     m_pBroadcastPacketManagers[m_pStreamers[i]]->
-                        Init(m_pInfo->m_pProc);
+                                         Init(m_pInfo->m_pProc);
                 }
             }
             HXMutexUnlock(m_BroadcastPacketManagerLock);
@@ -2191,6 +2280,10 @@ BroadcastGateway::StreamHeaderReady(HX_RESULT ulStatus, IHXValues* pHeader)
     return HXR_OK;
 }
 
+
+
+
+
 STDMETHODIMP
 BroadcastGateway::PacketReady(HX_RESULT ulStatus, IHXPacket* pPacket)
 {
@@ -2201,43 +2294,70 @@ BroadcastGateway::PacketReady(HX_RESULT ulStatus, IHXPacket* pPacket)
         Done();
         return HXR_OK;
     }
-
+ 
     *g_pLiveIncomingPPS += 1;
 
 #ifdef DEBUG_IAT
     Timeval tInterArrivalTime = m_pInfo->m_pProc->pc->engine->now - m_tLastPacketArrival;
 
     if ((m_tLastPacketArrival.tv_sec == 0) && 
-            (m_tLastPacketArrival.tv_usec == 0)) 
+        (m_tLastPacketArrival.tv_usec == 0)) 
     {
         tInterArrivalTime.tv_sec = 0;
         tInterArrivalTime.tv_usec = 20000;
     }
 
     float fInterArrivalTime = tInterArrivalTime.tv_usec / 1000 +
-        tInterArrivalTime.tv_sec * 1000;
+                              tInterArrivalTime.tv_sec * 1000;
 
     HXMutexLock(m_InterArrivalTimeLock, TRUE);
     m_fAvgInterArrivalTime = (m_fAvgInterArrivalTime != 0) ?
-        (0.99 * m_fAvgInterArrivalTime +
-         0.01 * fInterArrivalTime) : fInterArrivalTime;
+               (0.99 * m_fAvgInterArrivalTime +
+                0.01 * fInterArrivalTime) : fInterArrivalTime;
     HXMutexUnlock(m_InterArrivalTimeLock);
 
 #if 0
-    printf("interarr time %ld.%06ld, fAvgIAT %f\n", tInterArrivalTime.tv_sec, 
-            tInterArrivalTime.tv_usec, m_fAvgInterArrivalTime);    
+printf("interarr time %ld.%06ld, fAvgIAT %f\n", tInterArrivalTime.tv_sec, 
+tInterArrivalTime.tv_usec, m_fAvgInterArrivalTime);    
 #endif
 
 #endif
-    UINT32 uStreamNumber;
+    UINT16 uStreamNumber;
     UINT16 unRule;
 
     uStreamNumber = pPacket->GetStreamNumber();
     unRule = pPacket->GetASMRuleNumber();
 
-    
-    if (!m_bDisableLiveTurboPlay)
+    if (m_pIsPayloadWirePacket[uStreamNumber] == TRUE)
+    {    
+        if (unRule == m_pRTCPRule[uStreamNumber])
+        {
+            IHXBuffer* pBuffer = pPacket->GetBuffer();
+            if (pBuffer && pBuffer->GetSize() >= 20 )
+            {
+                UCHAR* pRTCP = pBuffer->GetBuffer();
+
+                if (pRTCP && RTCP_SR == *(pRTCP+1))
+                {
+                    HX_RELEASE(m_ppRTCPPacket[uStreamNumber]);
+                    m_ppRTCPPacket[uStreamNumber] = pPacket;
+                    m_ppRTCPPacket[uStreamNumber]->AddRef();
+                }
+            }
+            HX_RELEASE(pBuffer);
+        }
+        else if (m_unSyncStream == uStreamNumber)
+        {
+            HX_RELEASE(m_pSyncPacket);
+            m_pSyncPacket = pPacket;
+            m_pSyncPacket->AddRef();
+        }
+    }
+
+    // Instant-on is currently disabled for low latency streams.
+    if (!m_bDisableLiveTurboPlay && !m_bLowLatency)
     {
+        // for normal latency streams, we queue packets for fast playback
         HandlePacketBufferQueue(pPacket, uStreamNumber, unRule);
     }
 
@@ -2250,7 +2370,7 @@ BroadcastGateway::PacketReady(HX_RESULT ulStatus, IHXPacket* pPacket)
         if (m_pBroadcastPacketManagers[m_pStreamers[i]] != NULL)
         {
             m_pBroadcastPacketManagers[m_pStreamers[i]]->
-                QueuePacket(pPacket);
+            QueuePacket(pPacket);
         }
     }
     HXMutexUnlock(m_BroadcastPacketManagerLock);
@@ -2273,13 +2393,13 @@ BroadcastGateway::PacketReady(HX_RESULT ulStatus, IHXPacket* pPacket)
 
         m_ulIdleStopCBHandle =
             m_pInfo->m_pProc->pc->engine->schedule.enter(
-                    m_pInfo->m_pProc->pc->engine->now + Timeval(30.0),
-                    m_pIdleStopCallback);
+            m_pInfo->m_pProc->pc->engine->now + Timeval(30.0),
+            m_pIdleStopCallback);
 
         m_ulLatencyCalcCBHandle = 
             m_pInfo->m_pProc->pc->engine->ischedule.enter(
-                    m_pInfo->m_pProc->pc->engine->now + Timeval(15.0),
-                    m_pLatencyCalcCallback);
+            m_pInfo->m_pProc->pc->engine->now + Timeval(15.0),
+            m_pLatencyCalcCallback);
 
         HXMutexLock(m_BroadcastPacketManagerLock, TRUE);
         for (UINT16 i = 0; i < m_unNumStreamers; i++)
@@ -2330,51 +2450,14 @@ BroadcastGateway::SeekDone(HX_RESULT ulStatus)
     return HXR_OK;
 }
 
-IHXValues*
-BroadcastGateway::GetFileHeader()
-{
-    HX_ASSERT(g_nTLSProcnum < MAX_THREADS);
-
-    if (!m_ppPerStreamerFileHeaders[g_nTLSProcnum])
-    {
-	HXMutexLock(m_pPerStreamerFileHeaderLock, TRUE);
-	m_ppPerStreamerFileHeaders[g_nTLSProcnum] = CloneHeader(m_pFileHeader,
-	    g_pTLSProc->pc->server_context);
-	HXMutexUnlock(m_pPerStreamerFileHeaderLock);
-    }
-    return m_ppPerStreamerFileHeaders[g_nTLSProcnum];
-}
-
-IHXValues*
-BroadcastGateway::GetStreamHeaders(UINT32 ulStreamNumber)
-{
-    HX_ASSERT(g_nTLSProcnum < MAX_THREADS);
-
-    if (!m_pppPerStreamerStreamHeaders[g_nTLSProcnum])
-    {
-	HXMutexLock(m_pPerStreamerStreamHeaderLock, TRUE);
-	m_pppPerStreamerStreamHeaders[g_nTLSProcnum] = new IHXValues*[m_ulStreamCount];
-	for (int i = 0; i < m_ulStreamCount; i++)
-	{
-	    m_pppPerStreamerStreamHeaders[g_nTLSProcnum][i] =
-		CloneHeader(m_pStreamHeaders[i], g_pTLSProc->pc->server_context);
-	}
-	HXMutexUnlock(m_pPerStreamerStreamHeaderLock);
-    }
-    return m_pppPerStreamerStreamHeaders[g_nTLSProcnum][ulStreamNumber];
-}
-
 HX_RESULT
 BroadcastGateway::Done()
 {
-    int i=0;
     HXMutexLock(m_StateLock, TRUE);
     m_State = DONE;
     HXMutexUnlock(m_StateLock);
 
-    HXMutexLock(m_pInfo->m_GatewayLock, TRUE);
     m_pInfo->m_pCurrentBroadcasts->RemoveKey(m_pFilename);
-    HXMutexUnlock(m_pInfo->m_GatewayLock);
 
     m_ulDestructCBHandle = m_pInfo->m_pProc->pc->engine->schedule.enter(
         m_pInfo->m_pProc->pc->engine->now + Timeval(10.0),
@@ -2384,14 +2467,14 @@ BroadcastGateway::Done()
 }
 
 IHXLivePacketBufferQueue* 
-BroadcastGateway::GetPacketBufferQueue(void)
+BroadcastGateway::GetPacketBufferQueue(UINT16 strmNum, UINT16 ruleNum)
 {
     IHXLivePacketBufferQueue* pQueue = NULL;
 
-    if (!m_bDisableLiveTurboPlay && m_pPacketBufferQueue)
+    if (!m_bDisableLiveTurboPlay && strmNum == m_unKeyframeStream && m_ppPacketBufferQueue)
     {
         HXMutexLock(m_PacketBufferQueueLock, TRUE);
-        pQueue = (IHXLivePacketBufferQueue*)m_pPacketBufferQueue;
+        pQueue = (IHXLivePacketBufferQueue*)m_ppPacketBufferQueue[ruleNum];
         if (pQueue)
         {
             pQueue->AddRef();
@@ -2402,468 +2485,393 @@ BroadcastGateway::GetPacketBufferQueue(void)
     return pQueue;
 }
 
-IHXLivePacketBufferQueue* 
-BroadcastGateway::GetLongPacketBufferQueue(void)
+
+BOOL
+IsMinQueueDuration(IHXPacket* pPacket, CPacketBufferQueue* pQ, UINT32 ulMinDur)
 {
-    IHXLivePacketBufferQueue* pQueue = NULL;
+    HX_ASSERT(pPacket && pQ);
 
-    if (!m_bDisableLiveTurboPlay && m_pLongPacketBufferQueue)
+    UINT32 ulCurTime = pPacket->GetTime();
+    UINT32 ulQTime = pQ->GetStartTime();
+
+    if (ulCurTime >= ulQTime)
     {
-        HXMutexLock(m_LongPacketBufferQueueLock, TRUE);
-        pQueue = (IHXLivePacketBufferQueue*)m_pLongPacketBufferQueue;
-        if (pQueue)
-        {
-            pQueue->AddRef();
-        }
-        HXMutexUnlock(m_LongPacketBufferQueueLock);
+        return (ulCurTime - ulQTime) >= ulMinDur;
     }
-
-    return pQueue;
-}
-void BroadcastGateway::AddPacketToQueue(CPacketBufferQueue*& pQueue,
-                                        IHXPacket* pPacket,
-                                        BOOL& bIncQSize,
-                                        HX_MUTEX queueLock)
-{
-    if(!pQueue)
+    else //ulCurTime < ulQTime, check for roll over
     {
-        return;
-    }
-
-    UINT32 ulCurrentQSize = 0;
-    UINT32 ulRefCount = 0;
-
-    if (pQueue->EnQueue(pPacket) != HXR_OK)
-    {
-        ulCurrentQSize = pQueue->GetSize();
-
-        if(queueLock)
+        if (ulQTime - ulCurTime > 0x7f000000)
         {
-            HXMutexLock(queueLock, TRUE);
-            ulRefCount = pQueue->Release();
-            pQueue = NULL;
-            HXMutexUnlock(queueLock);
-        }
-        else
-        {
-            ulRefCount = pQueue->Release();
-            pQueue = NULL;
-        }
-
-
-        //we only increase the size of the queue under the two conditions:
-        //1. somebody is using the queue, judged  by refcount > 0 after we release it.
-        //  it does no harm when we reach the max queue size while nobody is using //  it.
-        //2. the queue size hasn't been increased yet, judged by ulCurrentQSize >= m_lQueueSize.
-        // it is possible the queue size had been increased by other queues.
-        if (ulRefCount > 0 && ulCurrentQSize >= m_lQueueSize)
-        {
-            bIncQSize = TRUE;
+#ifdef RSD_LIVE_DEBUG
+            fprintf(stderr, "roll over detected, QTime = %u, Cur = %u\n", ulQTime, ulCurTime);
+#endif
+            return (MAX_UINT32 - ulQTime + ulCurTime) >= ulMinDur;
         }
     }
+    return FALSE;
 }
 
 HX_RESULT
 BroadcastGateway::HandlePacketBufferQueue(IHXPacket* pPacket, 
-                                          UINT32 uStreamNumber, 
+                                          UINT16 uStreamNumber, 
                                           UINT16 unRule)
 {
-    char szTime[128] = {0};
-    Timeval tNow = 0;
-
-    if(m_bEnableRSDDebug || m_bEnableRSDPerPacketLog)
+    if (m_pIsPayloadWirePacket && m_pIsPayloadWirePacket[uStreamNumber] == TRUE)
     {
-        tNow = m_pInfo->m_pProc->pc->engine->now;
-        struct tm localTime;
-        hx_localtime_r(&tNow.tv_sec, &localTime);
-        strftime(szTime, 128, "%d-%b-%y %H:%M:%S", &localTime);
-    }
-
-    if (m_bSureStreamAware && !m_bIsSubscribed)
-    {
-        if (m_bEnableRSDDebug && 
-            (m_pPacketBufferQueue || m_pLongPacketBufferQueue || m_pFuturePacketBufferQueue))
+        if (m_ulLastPacketTS == 0)
         {
-            fprintf(stderr, "%s.%03d RSDLive(File: %s) Flushing RSD queues\n",
-                    szTime, tNow.tv_usec/1000, m_pFilename);
-            fflush(0);
-        }
-
-        //Flush queues and return
-        if (m_pPacketBufferQueue)
-        {
-            HXMutexLock(m_PacketBufferQueueLock, TRUE);
-            HX_RELEASE(m_pPacketBufferQueue);
-            HXMutexUnlock(m_PacketBufferQueueLock);
-        }
-
-        if (m_pLongPacketBufferQueue)
-        {
-            HXMutexLock(m_LongPacketBufferQueueLock, TRUE);
-            HX_RELEASE(m_pLongPacketBufferQueue);
-            HXMutexUnlock(m_LongPacketBufferQueueLock);
-        }
-
-        HX_RELEASE(m_pFuturePacketBufferQueue);
-        ResetSwitchGroupRSDInfo();
-        return HXR_OK;
-    }
-
-    BOOL            bKeyFrame = FALSE;
-    UINT32          ulRefCount = 0;
-    BOOL            bAddedToFQ = FALSE;
-    BOOL            bIncQSize = FALSE;
-    UINT            ulDuration = 0;
-    UINT32          ulStreamGroupNum = m_aulLogicalStreamToStreamGroup[uStreamNumber];
-    UINT32          ulSwitchGroupNum = m_aulLogicalStreamToSwitchGroup[uStreamNumber];
-
-    /*
-    * ASMFlags with HX_ASM_SWITCH_ON bit set means this packet is a keyframe.
-    * But we only count keyframes from independent rules as "real" keyframes
-    * for our buffering purpose.
-    *
-    * XXXJJ Intentionally keep the above inaccurate comments. Most people perceived
-    * the same wrong concept as me.  Below is the correct keyframe definition from Larry.
-    * 
-    * HX_ASM_SWITCH_ON does not indicate a keyframe.  It only indicates a potential
-    * starting point.  For video, that could be the start of an I, B, or P frame.  
-    * E.g., if an I/B/P frame is large enough to be fragmented across multiple packets,
-    * only the first packet of the frame would be marked with HX_ASM_SWITCH_ON (since 
-    * you don't want to send a partial frame...).  Only the last packet of the frame
-    * would be marked with HX_ASM_SWITCH_OFF (again, since you don't want to send a 
-    * partial frame). A keyframe is indicated by the ASM rule not having any OnDepend 
-    * directives.  The first packet of a particular keyframe is indicated by 
-    * HX_ASM_SWITCH_ON.
-    *
-    * XXX AAK: part of the fix for pr# 215519 - where the server was
-    * incorrectly syncing on the end of the keyframe (in addition to
-    * the correct sync at the start of the keyframe).
-    * the new flag HX_ASM_SIDE_EFFECT signifies the end of the
-    * keyframe, so make sure that we find HX_ASM_SWITCH_ON and
-    * NOT HX_ASM_SIDE_EFFECT to indicate the start of the keyframe.
-    */
-
-    bKeyFrame = ((pPacket->GetASMFlags() & HX_ASM_SWITCH_ON) &&
-                 !(pPacket->GetASMFlags() & HX_ASM_SIDE_EFFECT) &&
-                 IsKeyFrameRule(uStreamNumber, unRule));
-
-
-    if (m_bEnableRSDPerPacketLog)
-    {
-        IHXServerPacketExt* pPacketExt = NULL;
-        pPacket->QueryInterface(IID_IHXServerPacketExt, (void **)&pPacketExt);
-                            
-        UINT32 ulStrmSeqNo= 0;
-        if (pPacketExt)
-        {        
-            ulStrmSeqNo = pPacketExt->GetStreamSeqNo();
-            pPacketExt->Release();
-        }
-
-        fprintf(stderr, "%s.%03d RSDLive(File: %s) Packet received: T=%d stream=%d rule=%d "
-                "Keyframe=%d strmseq=%d\n", szTime, tNow.tv_usec/1000, m_pFilename, pPacket->GetTime(),
-                uStreamNumber, unRule, bKeyFrame, ulStrmSeqNo);
-        fflush(0);
-    }
-
-    // Create a future queue if not present
-    if (bKeyFrame)
-    {
-        if (NULL == m_pFuturePacketBufferQueue)
-        {
-            m_pFuturePacketBufferQueue = new CPacketBufferQueue(m_lQueueSize, m_bQTrace, 0);
-                                                //GetNumOfReservedAudioPackets());
-            m_pFuturePacketBufferQueue->AddRef();
-            m_pFuturePacketBufferQueue->AddKeyframe(pPacket);
-        
-            bAddedToFQ = TRUE;
-        
-            if (m_bEnableRSDDebug)
-            {
-                fprintf(stderr, "%s.%03d RSDLive(File: %s, stream %d, rule %d) Created Future Queue 0x%x, "
-                        "starting timestamp: %d\n", szTime, tNow.tv_usec/1000, m_pFilename, uStreamNumber,
-                        unRule, m_pFuturePacketBufferQueue, pPacket->GetTime());
-                fflush(0);
-            }
-        }
-
-        HX_ASSERT(m_ppSwitchGroupRSDInfo[ulSwitchGroupNum]);
-        m_ppSwitchGroupRSDInfo[ulSwitchGroupNum]->OnKeyFramePacket(pPacket, unRule);
-    }
-
-    AddPacketToQueue(m_pLongPacketBufferQueue, pPacket, bIncQSize, m_LongPacketBufferQueueLock);
-
-    //Queue the packet to current queue, if present
-    AddPacketToQueue(m_pPacketBufferQueue, pPacket, bIncQSize, m_PacketBufferQueueLock);
-
-    //Queue the packet to furture queue, if present
-    if (!bAddedToFQ)
-    {
-        AddPacketToQueue(m_pFuturePacketBufferQueue, pPacket, bIncQSize, NULL);
-    }
- 
-    //Check the minimum queue duration of the future queue
-    if (IsMinRSDQueueDuration(pPacket))
-    {
-        if (m_bEnableRSDDebug)
-        {
-            fprintf(stderr, "%s.%03d RSDLive(File: %s) Moving Future Queue to Current Queue. "
-                    "CurrentQDepth=%d FutureQDepth=%d CurrentQTS=%d FutureQTS=%d\n",
-                    szTime, tNow.tv_usec/1000, m_pFilename, 
-                    m_pPacketBufferQueue ? m_pPacketBufferQueue->GetSize() : 0,
-                    m_pFuturePacketBufferQueue ?  m_pFuturePacketBufferQueue->GetSize() :0,
-                    m_pPacketBufferQueue ? m_pPacketBufferQueue->GetStartTime() : 0,
-                    m_pFuturePacketBufferQueue ?  m_pFuturePacketBufferQueue->GetStartTime() :0);
-                    
-            fflush(0);
-        }
-
-#if 0
-        //fill up the audio packets before the video keyframe
-        //we need the current queues to find the audio packets right before the video keyframe
-        if(m_ppAudioSwitchGroupInfo && m_pPacketBufferQueue)
-        {
-            IHXPacket* pVideoKeyFrame = m_pFuturePacketBufferQueue->GetKeyFramePacket();
-            UINT32 i = 0;
-            for(i = 1; i < m_ulSwitchGroupCount+1; i++)
-            {
-                if(m_ppAudioSwitchGroupInfo[i])
-                {
-                    m_ppAudioSwitchGroupInfo[i]->SetVideoKeyframePacket(pVideoKeyFrame);
-                }
-            }
-            HX_RELEASE(pVideoKeyFrame);
-
-            UINT32 ulIndex = m_pPacketBufferQueue->GetSize() - 1;
-            while(!HasAllAudioPackets())
-            {
-                IHXPacket* pQueuedPacket = NULL;
-                if(FAILED(m_pPacketBufferQueue->GetPacket(ulIndex, pQueuedPacket)))
-                {
-                    break;
-                }
-
-                UINT32 ulSwitchGroup = m_aulLogicalStreamToSwitchGroup[pQueuedPacket->GetStreamNumber()];
-                if(m_ppAudioSwitchGroupInfo[ulSwitchGroup])
-                {
-                    m_ppAudioSwitchGroupInfo[ulSwitchGroup]->OnPacket(pQueuedPacket);
-                }
-                ulIndex--;
-                if(ulIndex == 0)
-                {
-                    break;
-                }
-            }
-
-            for(i = 1; i < m_ulSwitchGroupCount+1; i++)
-            {
-                if(m_ppAudioSwitchGroupInfo[i])
-                {
-                    IHXPacket** ppPacket = NULL;
-                    UINT32 ulCount = 0;
-                    m_ppAudioSwitchGroupInfo[i]->GetAudioPackets(ppPacket, ulCount);
-                    for(UINT32 j = 0;  j < ulCount; j++)
-                    {
-                        if(ppPacket[j])
-                        {
-                            m_pFuturePacketBufferQueue->AddAudioPacket(ppPacket[j]);
-                        }
-                    }
-                    m_ppAudioSwitchGroupInfo[i]->Reset();
-                }
-                
-            }
-        }
-#endif
-
-        HXMutexLock(m_LongPacketBufferQueueLock, TRUE);
-        HX_RELEASE(m_pLongPacketBufferQueue);
-        // taking AddRef()
-        m_pLongPacketBufferQueue = m_pPacketBufferQueue;
-        HXMutexUnlock(m_LongPacketBufferQueueLock);
-
-        HXMutexLock(m_PacketBufferQueueLock, TRUE);
-        // taking AddRef()
-        m_pPacketBufferQueue = m_pFuturePacketBufferQueue;
-        m_pFuturePacketBufferQueue = NULL;                
-        HXMutexUnlock(m_PacketBufferQueueLock);
-
-        //Reset SwitchGroupRSDInfo array.
-        ResetSwitchGroupRSDInfo();
-    }
-
-    //Increase the queue size, if required
-    if (bIncQSize)
-    {
-        // the failed return code means the queue size is too small to buffer up the packets 
-        // needed.  We can't do anything about the current queues, but we can increase the 
-        // queue size for queues created hereafter.
-        
-        m_lQueueSize *= 2;
-
-        // if we exceed the max queue size, something must be wrong here, we better disable this 
-        // feature for current streams.
-        if (m_lQueueSize > MAX_PACKET_BUFFER_QUEUE_SIZE)
-        {
-            m_bDisableLiveTurboPlay = TRUE;
-            NEW_FAST_TEMP_STR(errmsg, 512, strlen(m_pFilename)+256);
-            sprintf(errmsg, "Exceeding the max packet queue size %d for %s, the buffering of packets "
-                    "is disabled.", MAX_PACKET_BUFFER_QUEUE_SIZE, m_pFilename);
-            printf("%s\n", errmsg);
-            m_pInfo->m_pProc->pc->error_handler->Report(HXLOG_WARNING, 0, 0, errmsg, 0);
-            DELETE_FAST_TEMP_STR(errmsg);
-        }
-    }
-
-    //Check and remove PacketBufferQueue if duration is greater than max duration
-    if (m_pPacketBufferQueue)
-    {
-        if((ulDuration = m_pPacketBufferQueue->GetDuration()) > m_lMaxDurationOfPacketBufferQueue)
-        {
-            if (m_pPacketBufferQueue->HandlePacketInvalidTimeStamp())
-            {
-                if (m_bEnableRSDDebug)
-                {
-                    NEW_FAST_TEMP_STR(errmsg, 1024, strlen(m_pFilename)+256);
-                    sprintf(errmsg, "%s.%03d RSDLive(File: %s) Current Queue with size %d and "
-                            "duration %.2f exceeded the max duration %d. Flusing the Current Queue \n",
-                            szTime, tNow.tv_usec/1000, m_pFilename, m_pPacketBufferQueue->GetSize(),
-                            (float)ulDuration/1000, m_lMaxDurationOfPacketBufferQueue/1000);
-                    printf("%s\n", errmsg);
-                    fflush(stdout);
-                    m_pInfo->m_pProc->pc->error_handler->Report(HXLOG_WARNING, 0, 0, errmsg, 0);
-                    DELETE_FAST_TEMP_STR(errmsg);
-                }
-
-                HXMutexLock(m_PacketBufferQueueLock, TRUE);
-                HX_RELEASE(m_pPacketBufferQueue);
-                HXMutexUnlock(m_PacketBufferQueueLock);
-            }
+            m_ulLastPacketTS = pPacket->GetTime();
         }
         else
         {
-            m_pPacketBufferQueue->ResetPacketInvalidTimeStamp();
+            UINT32 ulCurTS = pPacket->GetTime();
+            //if the timestamp difference between two sibling packets is greater than 10s,
+            //then something must be wrong(one case is that the live stream is from legacy
+            //transmitter(pre 11.1), which have a bug to do incorrect timestamp conversion),
+            //we better disable RSD from now on.
+            if (ulCurTS > m_ulLastPacketTS && ulCurTS - m_ulLastPacketTS > 10000)
+            {
+                m_bDisableLiveTurboPlay = TRUE;      
+                NEW_FAST_TEMP_STR(errmsg, 512, strlen(m_pFilename)+256);
+                sprintf(errmsg, "The packets' timestamps are incorrect for %s, the buffering of packets "
+                        "is disabled.", m_pFilename);
+                printf("%s\n", errmsg);
+                m_pInfo->m_pProc->pc->error_handler->Report(HXLOG_WARNING, 0, 0, errmsg, 0);
+                DELETE_FAST_TEMP_STR(errmsg);
+                return HXR_FAIL;
+            }
+            else
+            {
+                m_ulLastPacketTS = ulCurTS;
+            }
         }
     }
 
-    if (m_bQTrace)
+    if (m_ppPacketBufferQueue && m_unKeyframeStream != 0xffff)
     {
-        if (m_pPacketBufferQueue)
+        BOOL            bKeyFrame = FALSE;
+        UINT32          i;
+        UINT32          ulRefCount = 0;
+        UINT32          ulCurrentQSize = 0;
+        BOOL            bAddedToFQ = FALSE;
+        BOOL            bIncQSize = FALSE;
+        UINT            ulDuration = 0;
+
+        if (uStreamNumber == m_unKeyframeStream)
         {
-            printf("*** CQ ");
-            m_pPacketBufferQueue->Dump();
+            // ASMFlags with HX_ASM_SWITCH_ON bit set means this packet is a keyframe.
+            // But we only count keyframes form independent rules as "real" keyframes
+            // for our buffering purpose.
+            //
+            // XXXJJ Intentionally keep the aboved inaccurate comments. Most people perceived
+            // the same wrong concept as me.  Below is the correct keyframe definition from Larry.
+            // 
+            // HX_ASM_SWITCH_ON does not indicate a keyframe.  It only indicates a potential
+            // starting point.  For video, that could be the start of an I, B, or P frame.  
+            // E.g., if an I/B/P frame is large enough to be fragmented across multiple packets,
+            // only the first packet of the frame would be marked with HX_ASM_SWITCH_ON (since 
+            // you don't want to send a partial frame...).  Only the last packet of the frame
+            // would be marked with HX_ASM_SWITCH_OFF (again, since you don't want to send a 
+            // partial frame). A keyframe is indicated by the ASM rule not having any OnDepend 
+            // directives.  The first packet of a particular keyframe is indicated by 
+            // HX_ASM_SWITCH_ON.
+ 
+            bKeyFrame = ((pPacket->GetASMFlags() & HX_ASM_SWITCH_ON) != 0);
+
+            if (m_bEnableRSDPerPacketLog)
+            {
+                IHXBroadcastDistPktExt* pPacketExt = NULL;
+                pPacket->QueryInterface(IID_IHXBroadcastDistPktExt, (void **)&pPacketExt);
+                                    
+                UINT32 ulStrmSeqNo= 0;
+                if (pPacketExt)
+                {        
+                    ulStrmSeqNo = pPacketExt->GetStreamSeqNo();
+                    pPacketExt->Release();
+                }       
+                fprintf(stderr, "RSDLive T=%d STR=%s(%d:%d) Keyframe=%d, strmseq; %d\n",
+                pPacket->GetTime(), m_pFilename, uStreamNumber, unRule, bKeyFrame, ulStrmSeqNo);
+                fflush(0);
+            }
+
+            // create a future queue if not present
+            if (bKeyFrame && 
+                m_pbIsKeyframeRule[unRule] && 
+                !m_ppFuturePacketBufferQueue[unRule] &&
+                //we don't create a new queue when the feed is sureStreamAware and no body
+                //subscribe to this rule, because the packets for this rule will stop soon.
+                (m_bSureStreamAware == FALSE || m_pbIsSubscribed[unRule] == TRUE))
+            {
+                m_ppFuturePacketBufferQueue[unRule] = new CPacketBufferQueue(m_lQueueSize, m_bQTrace);
+                m_ppFuturePacketBufferQueue[unRule]->AddRef();
+#ifdef FIXED_RTP_ORDERING
+                m_ppFuturePacketBufferQueue[unRule]->Init(m_ppPacketBufferQueue[unRule]);
+#endif
+    
+                // for packets from rtp live, we need rtcp packets from all streams, plus a packet
+                // from a master stream(m_unSyncStream)
+                for (i = 0; i < m_ulStreamCount; i++)
+                {
+                    // we need to send these rtcp packets first only the cients connect,
+                    // because they will need them to sync up ntp time.
+                    if (m_ppRTCPPacket[i])
+                    {
+                        m_ppFuturePacketBufferQueue[unRule]->EnQueue(m_ppRTCPPacket[i]);
+                    }
+                }
+                //we need to put one packet from the master stream(normally audio) into the queue
+                //because RTPInfoSync needs RTCP SR from all streams and one RTP packet from the
+                //master stream to calculate ntp time.  Normally the queue will be like:
+                // RTCPSR-videoStream, RTCPSR-AudioStream, RTP-AudioStream, RTP-VideoKeyframe....
+                if (m_pSyncPacket)
+                {
+                    m_ppFuturePacketBufferQueue[unRule]->EnQueue(m_pSyncPacket);
+                }
+    
+                m_ppFuturePacketBufferQueue[unRule]->AddKeyframe(pPacket); 
+    
+                bAddedToFQ = TRUE;
+                
+                if (m_bEnableRSDPerPacketLog)
+                {
+                    fprintf(stderr, "RSDLive(stream %d, rule %d) Create a future queue %d, starting timestamp: %d\n",
+                     uStreamNumber, unRule, m_ppFuturePacketBufferQueue[unRule], pPacket->GetTime());
+                    fflush(0);
+                }
+            }
+
+            for (i = 0; i <  m_ulNumofPktBufQ; i++)
+            {
+                if (m_pbIsKeyframeRule[i])
+                {
+                    //for SureStreamAware feed, if nobody subscribe to this rule, the packets 
+                    //will stop soon. We need to flush these queues so we won't server stale packets
+                    //once the subscribe comes in again.
+                    if (m_bSureStreamAware && m_pbIsSubscribed[i] == FALSE)
+                    {
+#ifdef RSD_LIVE_DEBUG
+                        if (m_ppPacketBufferQueue[i] || m_ppFuturePacketBufferQueue[i])
+                        {
+                            printf("flush q: %p, fq: %p, rule: %d\n", m_ppPacketBufferQueue[i],
+                            m_ppFuturePacketBufferQueue[i], i);
+                        }
+#endif
+                        if (m_ppPacketBufferQueue[i])
+                        {
+                            HXMutexLock(m_PacketBufferQueueLock, TRUE);
+                            HX_RELEASE(m_ppPacketBufferQueue[i]);
+                            HXMutexUnlock(m_PacketBufferQueueLock);
+                        }
+    
+                        HX_RELEASE(m_ppFuturePacketBufferQueue[i]);
+                    }
+    
+                    if (m_ppPacketBufferQueue[i])
+                    {
+                        if (m_ppPacketBufferQueue[i]->EnQueue(pPacket) != HXR_OK)
+                        {
+                            ulCurrentQSize = m_ppPacketBufferQueue[i]->GetSize();
+
+                            HXMutexLock(m_PacketBufferQueueLock, TRUE);
+                            ulRefCount = m_ppPacketBufferQueue[i]->Release();
+                            m_ppPacketBufferQueue[i] = NULL;
+                            HXMutexUnlock(m_PacketBufferQueueLock);
+
+                            //we only increase the size of the queue under the two conditions:
+                            //1. somebody is using the queue, judged  by refcount > 0 after we release it.
+                            //  it does no harm when we reach the max queue size while nobody is using //  it.
+                            //2. the queue size hasn't been increased yet, judged by ulCurrentQSize >= m_lQueueSize.
+                            // it is possible the queue size had been increased by other queues.
+                            if (ulRefCount > 0 && ulCurrentQSize >= m_lQueueSize)
+                            {
+                                bIncQSize = TRUE;
+                            }
+                        }
+                        else
+                        {
+                            //check and remove PacketBufferQueue if duration is greater than max duration
+                            if (m_ppPacketBufferQueue[i]->GetSize() > 100 &&
+                                ((ulDuration = m_ppPacketBufferQueue[i]->GetDuration()) > 
+                                            m_lMaxDurationOfPacketBufferQueue))
+                            {
+                                NEW_FAST_TEMP_STR(errmsg, 1024, strlen(m_pFilename)+256);
+                                sprintf(errmsg, "RSDLive: Packet Queue with size %d and duration %.2f for %s,"
+                                    "stream: %d, rule: %d exceeded the max duration %d. Flushing Packet Queue",
+                                    m_ppPacketBufferQueue[i]->GetSize(), (float)ulDuration/1000,
+                                    m_pFilename, uStreamNumber, i,
+                                    m_lMaxDurationOfPacketBufferQueue/1000);
+                                printf("%s\n", errmsg);
+                                fflush(0);
+                                HXMutexLock(m_PacketBufferQueueLock, TRUE);
+                                HX_RELEASE(m_ppPacketBufferQueue[i]);
+                                HXMutexUnlock(m_PacketBufferQueueLock);
+                                m_pInfo->m_pProc->pc->error_handler->Report(HXLOG_WARNING, 0, 0, errmsg, 0);
+                                DELETE_FAST_TEMP_STR(errmsg);
+                            }
+                        }
+                    }
+    
+                    if (m_ppFuturePacketBufferQueue[i] && !bAddedToFQ)
+                    {
+                        if (m_ppFuturePacketBufferQueue[i]->EnQueue(pPacket) != HXR_OK)
+                        {
+                            ulCurrentQSize = m_ppFuturePacketBufferQueue[i]->GetSize();
+                            HX_RELEASE(m_ppFuturePacketBufferQueue[i]);
+                            //we only increase the size of the queue under the condition that the queue
+                            //size hasn't been increased yet, judged by ulCurrentQSize >= m_lQueueSize.
+                            //It is possible the queue size had been increased by other queues.
+                            //We don't need to check the refcount as the current queue, becasue no one
+                            //esle is using this queue.
+                            if (ulCurrentQSize >= m_lQueueSize)
+                            {
+                                bIncQSize = TRUE;
+                            }
+                        }
+                        
+                        //we need to do the queue length check here because those keyframe
+                        //rules only have sparse packets.
+                        if (IsMinQueueDuration(pPacket, m_ppFuturePacketBufferQueue[i], m_lQueueDuration))
+                        {
+                            if (m_bEnableRSDDebug)
+                            {
+                                char szTime[128];
+                                Timeval tNow = m_pInfo->m_pProc->pc->engine->now;
+                                struct tm localTime;
+                                hx_localtime_r(&tNow.tv_sec, &localTime);
+                                strftime(szTime, 128, "%d-%b-%y %H:%M:%S", &localTime);
+                        
+                                fprintf(stderr, "%s.%03d RSDLive T=%d STR=%s(%d:%d) CurrentQDepth=%d "
+                                "NextQDepth=%d CurrentQTS=%d NextQTS=%d\n",
+                                    szTime, tNow.tv_usec/1000, 
+                                    pPacket->GetTime(), m_pFilename, m_unKeyframeStream, i, 
+                                    m_ppPacketBufferQueue[i] ? m_ppPacketBufferQueue[i]->GetSize() : 0,
+                                    m_ppFuturePacketBufferQueue[i] ?  m_ppFuturePacketBufferQueue[i]->GetSize() :0,
+                                    m_ppPacketBufferQueue[i] ? m_ppPacketBufferQueue[i]->GetStartTime() : 0,
+                                    m_ppFuturePacketBufferQueue[i] ?  m_ppFuturePacketBufferQueue[i]->GetStartTime() :0);
+                                fflush(0);
+                            }
+    
+                            HXMutexLock(m_PacketBufferQueueLock, TRUE);
+                
+                            HX_RELEASE(m_ppPacketBufferQueue[i]);
+                            // taking AddRef()
+                            m_ppPacketBufferQueue[i] = m_ppFuturePacketBufferQueue[i];
+                            m_ppFuturePacketBufferQueue[i] = NULL;                
+                            HXMutexUnlock(m_PacketBufferQueueLock);
+                        }
+                    }                        
+    
+                    if (m_bQTrace)
+                    {
+                        printf("*** CQ ");
+                        m_ppPacketBufferQueue[i]->Dump();            
+                        printf("*** FQ ");
+                        if (m_ppFuturePacketBufferQueue[i])
+                        {
+                            m_ppFuturePacketBufferQueue[i]->Dump();            
+                        }
+                        else
+                        {
+                            printf("\tNULL\n");
+                        }
+                    }
+                }
+            }
+        }
+        else //uStreamNumber != m_unKeyframeStream 
+        {
+            //enqueue all audio and appl streams
+            for (i = 0; i <  m_ulNumofPktBufQ; i++)
+            {
+                if (m_ppPacketBufferQueue[i] != NULL)
+                {
+                    if (m_ppPacketBufferQueue[i]->EnQueue(pPacket) != HXR_OK)
+                    {
+                        ulCurrentQSize = m_ppPacketBufferQueue[i]->GetSize();
+
+                        HXMutexLock(m_PacketBufferQueueLock, TRUE);
+                        ulRefCount = m_ppPacketBufferQueue[i]->Release();
+                        m_ppPacketBufferQueue[i] = NULL;
+                        HXMutexUnlock(m_PacketBufferQueueLock);
+
+                        //we only increase the size of the queue under the two conditions:
+                        //1. somebody is using the queue, judged  by refcount > 0 after we release it.
+                        //  it does no harm when we reach the max queue size while nobody is using //  it.
+                        //2. the queue size hasn't been increased yet, judged by ulCurrentQSize >= m_lQueueSize.
+                        // it is possible the queue size had been increased by other queues.
+                        if (ulRefCount != 0 && ulCurrentQSize >= m_lQueueSize)
+                        {
+                            bIncQSize = TRUE;
+                        }
+                    }
+                    else
+                    {
+                        //check and remove PacketBufferQueues if duration is greater than max duration
+                        if (m_ppPacketBufferQueue[i]->GetSize() > 100 && 
+                            ((ulDuration = m_ppPacketBufferQueue[i]->GetDuration()) > m_lMaxDurationOfPacketBufferQueue))
+                        {
+                            NEW_FAST_TEMP_STR(errmsg, 1024, strlen(m_pFilename)+256);
+                            sprintf(errmsg, "RSDLive: Packet Queue with size %d and duration %.2f for %s,"
+                                        "stream: %d, rule: %d exceeded the max duration %d. Flushing Packet Queue",
+                                        m_ppPacketBufferQueue[i]->GetSize(), (float)ulDuration/1000,
+                                        m_pFilename, uStreamNumber, i,
+                                        m_lMaxDurationOfPacketBufferQueue/1000);
+                            printf("%s\n", errmsg);
+                            fflush(0);
+                            HXMutexLock(m_PacketBufferQueueLock, TRUE);
+                            HX_RELEASE(m_ppPacketBufferQueue[i]);
+                            HXMutexUnlock(m_PacketBufferQueueLock);
+                            m_pInfo->m_pProc->pc->error_handler->Report(HXLOG_WARNING, 0, 0, errmsg, 0);
+                            DELETE_FAST_TEMP_STR(errmsg);
+                        }
+                    }
+                }
+                if (m_ppFuturePacketBufferQueue[i])
+                {
+                    if (m_ppFuturePacketBufferQueue[i]->EnQueue(pPacket) != HXR_OK)
+                    {
+                        ulCurrentQSize = m_ppFuturePacketBufferQueue[i]->GetSize();
+                        HX_RELEASE(m_ppFuturePacketBufferQueue[i]);
+                        //we only increase the size of the queue under the condition that the queue
+                        //size hasn't been increased yet, judged by ulCurrentQSize >= m_lQueueSize.
+                        //It is possible the queue size had been increased by other queues.
+                        //We don't need to check the refcount as the current queue, becasue no one
+                        //esle is using this queue.
+                        if (ulCurrentQSize >= m_lQueueSize)
+                        {
+                            bIncQSize = TRUE;
+                        }
+                    }
+        }                        
+            }
         }
 
-        if (m_pFuturePacketBufferQueue)
+        if (bIncQSize)
         {
-            printf("*** FQ ");
-            m_pFuturePacketBufferQueue->Dump();            
+            // the failed return code means the queue size is too small to buffer up the packets 
+            // needed.  We can't do anything about the current queues, but we can increase the 
+            // queue size for queues created hereafter.
+            
+            m_lQueueSize *= 2;
+
+            // if we exceed the max queue size, something must be wrong here, we better disable this 
+            // feature for current streams.
+            if (m_lQueueSize > MAX_PACKET_BUFFER_QUEUE_SIZE)
+            {
+                m_bDisableLiveTurboPlay = TRUE;
+                NEW_FAST_TEMP_STR(errmsg, 512, strlen(m_pFilename)+256);
+                sprintf(errmsg, "Exceeding the max packet queue size %d for %s, the buffering of packets "
+                        "is disabled.", MAX_PACKET_BUFFER_QUEUE_SIZE, m_pFilename);
+                printf("%s\n", errmsg);
+                m_pInfo->m_pProc->pc->error_handler->Report(HXLOG_WARNING, 0, 0, errmsg, 0);
+                DELETE_FAST_TEMP_STR(errmsg);
+            }
         }
+
+
     }
 
     return HXR_OK;
-}
-
-HX_RESULT
-BroadcastGateway::FixupFileHeader(IHXValues* pFileHeader)
-{
-    HX_RESULT res = HXR_OK;
-
-    // Ensure that there is a stream group count
-    UINT32 ulNumStreamGroups = 0;
-    res = pFileHeader->GetPropertyULONG32("StreamGroupCount", ulNumStreamGroups);
-
-    // If there was no stream group count, set it to be the number of logical streams
-    if (FAILED(res))
-    {
-        res = pFileHeader->GetPropertyULONG32("StreamCount", ulNumStreamGroups);
-
-        if (SUCCEEDED(res))
-        {
-            res = pFileHeader->SetPropertyULONG32("StreamGroupCount", ulNumStreamGroups);
-        }
-    }
-
-    return res;
-}
-
-HX_RESULT
-BroadcastGateway::FixupStreamHeader(UINT32 ulLogicalStreamNum, IHXValues* pStreamHeader)
-{
-    HX_RESULT res = HXR_OK;
-
-    // Ensure that there is a stream group number
-    UINT32 ulStreamGroupNum = 0;
-    res = pStreamHeader->GetPropertyULONG32("StreamGroupNumber", ulStreamGroupNum);
-
-    // If there was no stream group number, set it equal to the logical stream number
-    if (FAILED(res))
-    {
-        res = pStreamHeader->SetPropertyULONG32("StreamGroupNumber", ulLogicalStreamNum);
-    }
-
-    // Ensure that there is a switch group number
-    UINT32 ulSwitchGroupNum = 0;
-    res = pStreamHeader->GetPropertyULONG32("SwitchGroupID", ulSwitchGroupNum);
-
-    // If there was no switch group number, set it equal to the logical stream number + 1
-    // Note that this assumes that all (or none) of the logical streams have a switch group number
-    if (FAILED(res))
-    {
-        res = pStreamHeader->SetPropertyULONG32("SwitchGroupID", ulLogicalStreamNum + 1);
-    }
-
-    return res;
-}
-
-BOOL 
-BroadcastGateway::IsKeyFrameStream(UINT32 uStreamNumber)
-{
-    return (m_unKeyframeStreamGroup == m_aulLogicalStreamToStreamGroup[uStreamNumber]);
-}
-
-BOOL
-BroadcastGateway::IsKeyFrameRule(UINT32 uStreamNumber, UINT16 unRule)
-{
-    if (IsKeyFrameStream(uStreamNumber))
-    {
-        UINT32 ulSwitchGroupNum = m_aulLogicalStreamToSwitchGroup[uStreamNumber];
-        HX_ASSERT(m_ppSwitchGroupRSDInfo[ulSwitchGroupNum]);
-
-        if (m_ppSwitchGroupRSDInfo[ulSwitchGroupNum])
-        {
-            return m_ppSwitchGroupRSDInfo[ulSwitchGroupNum]->IsKeyFrameRule(unRule);
-        }
-    }
-
-    return FALSE;
-}
-
-BOOL
-BroadcastGateway::IsMinRSDQueueDuration(IHXPacket* pPacket)
-{
-    for(int i=1; i < m_ulSwitchGroupCount+1; i++)
-    {
-        if (m_ppSwitchGroupRSDInfo[i] && 
-            !m_ppSwitchGroupRSDInfo[i]->IsPrerollSatisfied(pPacket, m_lQueueDuration))
-        {
-            return FALSE;
-        }
-    }
-
-    return TRUE;
-}
-
-void
-BroadcastGateway::ResetSwitchGroupRSDInfo()
-{
-    for(int i=1; i < m_ulSwitchGroupCount+1; i++)
-    {
-        if (m_ppSwitchGroupRSDInfo[i])
-        {
-            m_ppSwitchGroupRSDInfo[i]->ResetInfo();
-        }
-    }
 }
 
 /*
@@ -2902,7 +2910,7 @@ BroadcastPacketManager::DispatchPacket(UINT32 uMaxSinkSends,
 {
     HX_ASSERT(m_pStreamQueue);
 
-    BroadcastStreamer*     pBroadcastStreamer  = NULL;
+    BroadcastStreamer_Base*     pBroadcastStreamer  = NULL;
     IHXPacket*                  pHeadPacket         = NULL;
     Timeval                     tHeadTime;
     UINT8                       bIsStreamDoneMarker = FALSE;
@@ -2934,7 +2942,7 @@ BroadcastPacketManager::DispatchPacket(UINT32 uMaxSinkSends,
     {
         for (; *i; ++i)
         {
-            pBroadcastStreamer = (BroadcastStreamer *)*i;
+            pBroadcastStreamer = (BroadcastStreamer_Base *)*i;
             if (pBroadcastStreamer && pBroadcastStreamer->m_pSinkControl)
             {
                 pBroadcastStreamer->m_pSinkControl->
@@ -2953,7 +2961,7 @@ BroadcastPacketManager::DispatchPacket(UINT32 uMaxSinkSends,
     /* iterate over BroadcastStreamers, sending the packet to each */
     for (; *i; ++i)
     {
-        pBroadcastStreamer = (BroadcastStreamer *)*i;
+        pBroadcastStreamer = (BroadcastStreamer_Base *)*i;
 
         if ((pBroadcastStreamer) && (pBroadcastStreamer->m_pbPacketsStarted) && 
             pBroadcastStreamer->m_pbPacketsStarted[pHeadPacket->GetStreamNumber()])
@@ -3178,7 +3186,7 @@ BroadcastPacketManager::Done()
     }
 
     BroadcastPacketListEntry* pPacket = NULL;
-    BroadcastStreamer* pStreamer = NULL;
+    BroadcastStreamer_Base* pStreamer = NULL;
     
     if (m_ulCallbackHandle)
     {
@@ -3187,7 +3195,7 @@ BroadcastPacketManager::Done()
     }
 
     while (pStreamer = 
-       (BroadcastStreamer*)m_BroadcastStreamerList.remove_head())
+       (BroadcastStreamer_Base*)m_BroadcastStreamerList.remove_head())
     {
         HX_RELEASE(pStreamer);
     }
@@ -3223,14 +3231,14 @@ BroadcastPacketManager::SendStreamDone(UINT16 unStreamNumber)
 }
 
 void 
-BroadcastPacketManager::AddBroadcastStreamer(BroadcastStreamer* pStreamer)
+BroadcastPacketManager::AddBroadcastStreamer(BroadcastStreamer_Base* pStreamer)
 {
     pStreamer->AddRef();
     m_BroadcastStreamerList.insert(pStreamer);
 }
 
 void 
-BroadcastPacketManager::RemoveBroadcastStreamer(BroadcastStreamer* pStreamer)
+BroadcastPacketManager::RemoveBroadcastStreamer(BroadcastStreamer_Base* pStreamer)
 {
     pStreamer->Release();
     m_BroadcastStreamerList.remove(pStreamer);
@@ -3283,15 +3291,13 @@ BroadcastStreamQueue::BroadcastStreamQueue()
     , m_uHead(0)
     , m_uTail(0)
     , m_uMaxSize(0)
-    , m_uReaders(0)
-    , m_uWriters(0)
 {
+    m_QueueLock = HXCreateMutex();
 }
 
 BroadcastStreamQueue::~BroadcastStreamQueue()
 {
-    HX_ASSERT(m_uWriters == 0);
-    HX_ASSERT(m_uReaders == 0);
+    HXMutexLock(m_QueueLock, TRUE);
 
     while (m_uHead != m_uTail)
     {
@@ -3300,6 +3306,10 @@ BroadcastStreamQueue::~BroadcastStreamQueue()
         m_uHead = (m_uHead + 1) % m_uMaxSize;
     }
     
+    HXMutexUnlock(m_QueueLock);
+    
+    HXDestroyMutex(m_QueueLock);
+
     HX_DELETE(m_pQueue);
     HX_RELEASE(m_pParent);
 }
@@ -3332,10 +3342,9 @@ BroadcastStreamQueue::Empty()
 void
 BroadcastStreamQueue::TerminateQueue(UINT16 unStreamNumber)
 {
-    InterlockedIncrement(&m_uWriters);
-    HX_ASSERT(m_uWriters == 1);
-
     /* Place a stream done marker in the packet Queue */
+    
+    HXMutexLock(m_QueueLock, TRUE);
     
     UINT32 uNewTail = (m_uTail + 1) % m_uMaxSize;
 
@@ -3354,21 +3363,17 @@ BroadcastStreamQueue::TerminateQueue(UINT16 unStreamNumber)
         (*g_pBroadcastPacketsDropped)++;
     }
     
-    InterlockedDecrement(&m_uWriters);
+    HXMutexUnlock(m_QueueLock);
 }
 
 HX_RESULT
 BroadcastStreamQueue::Enqueue(IHXPacket* pPacket)
 {
     
-    InterlockedIncrement(&m_uWriters);
-    HX_ASSERT(m_uWriters == 1);
-
     Timeval tHeadTime   = m_pParent->m_pProc->pc->engine->now;
     
     /* Queue this packet if the queue occupancy isn't too long */
-    // Note that if we're getting behind this drops the newest
-    // packets rather than the oldest which seems backwards.
+    HXMutexLock(m_QueueLock, TRUE);
 
     UINT32 uNewTail = (m_uTail + 1) % m_uMaxSize;
 
@@ -3382,7 +3387,7 @@ BroadcastStreamQueue::Enqueue(IHXPacket* pPacket)
              m_pParent->m_pGateway->m_tMaxQueueOccupancy) )
     {
         (*g_pBroadcastPacketsDropped)++;
-        InterlockedDecrement(&m_uWriters);
+        HXMutexUnlock(m_QueueLock);
         return HXR_FAIL;
     }
 
@@ -3392,7 +3397,7 @@ BroadcastStreamQueue::Enqueue(IHXPacket* pPacket)
     pPacket->AddRef();
 
     m_uTail = uNewTail;
-    InterlockedDecrement(&m_uWriters);
+    HXMutexUnlock(m_QueueLock);
     return HXR_OK;
 }
 
@@ -3401,12 +3406,18 @@ BroadcastStreamQueue::Dequeue(Timeval&  tHead,
                               UINT8&    bIsStreamDoneMarker,
                               UINT16&   unStreamNumberDone)
 {
-    InterlockedIncrement(&m_uReaders);
-    HX_ASSERT(m_uReaders == 1);
+    IHXPacket* pPacket = NULL;
+
+    /* DeQueue the Packet :  this queue is designed to not need to lock on 
+     *  dequeue. Due to a linux bug(see MemCache::_RecyclerGet) we still 
+     * need to lock on linux at least. So just lock it and work out the
+     * linux issue later. */
+    HXMutexLock(m_QueueLock, TRUE);
 
     if (m_uHead == m_uTail)
     {
         // empty queue
+        HXMutexUnlock(m_QueueLock);
         return NULL;
     }
 
@@ -3414,29 +3425,31 @@ BroadcastStreamQueue::Dequeue(Timeval&  tHead,
     unStreamNumberDone = m_pQueue[m_uHead].m_unStreamNumberDone;
     bIsStreamDoneMarker = m_pQueue[m_uHead].m_bIsStreamDoneMarker;
 
-    IHXPacket* pPacket = m_pQueue[m_uHead].m_pPacket;
+    pPacket = m_pQueue[m_uHead].m_pPacket;
     m_uHead = (m_uHead + 1) % m_uMaxSize;
+    
+    HXMutexUnlock(m_QueueLock);
 
     // caller inherits queue's AddRef()
-    InterlockedDecrement(&m_uReaders);
     return pPacket;
 }
 
-//XXX FIXME
 float
 BroadcastStreamQueue::QueueDepthInSeconds()
 {
     float fSecsInQ = 0;
     Timeval tHead;
-
+       
     if (m_uHead != m_uTail)
     {
+        HXMutexLock(m_QueueLock, TRUE);
         tHead = m_pQueue[m_uHead].m_tTime;
+        HXMutexUnlock(m_QueueLock);
     }
 
-    fSecsInQ = m_pParent->m_pProc->pc->engine->now.tv_sec - tHead.tv_sec;
-    fSecsInQ += (float)(m_pParent->m_pProc->pc->engine->now.tv_usec -
-            tHead.tv_usec) / 1000000.0;
+        fSecsInQ = m_pParent->m_pProc->pc->engine->now.tv_sec - tHead.tv_sec;
+        fSecsInQ += (float)(m_pParent->m_pProc->pc->engine->now.tv_usec -
+                   tHead.tv_usec) / 1000000.0;
 
     if (fSecsInQ > 0)
     {
@@ -3465,30 +3478,112 @@ BroadcastInfo::~BroadcastInfo()
     PANIC(("BroadcastInfo should never destruct\n"));
 }
 
+/* CongestionQueue: */
+CongestionQueue::CongestionQueue(UINT32 ulQueueSize)
+    : m_pCongestionQueue(NULL)
+    , m_ulQueueWrite(0)
+    , m_ulQueueRead(0)
+    , m_ulQueueSize(ulQueueSize)
+{
+    m_pCongestionQueue = new ServerPacket*[m_ulQueueSize];
+    memset(m_pCongestionQueue, 0, sizeof(ServerPacket*) * m_ulQueueSize);
+}
+
+CongestionQueue::~CongestionQueue()
+{
+    for (UINT16 i = 0; i < m_ulQueueSize; i++)
+    {
+        HX_RELEASE(m_pCongestionQueue[i]);
+    }
+    
+    HX_VECTOR_DELETE(m_pCongestionQueue);
+}
+
+HX_RESULT
+CongestionQueue::Enqueue(ServerPacket* pPacket)
+{
+    HX_ASSERT(pPacket);
+    HX_ASSERT(m_ulQueueWrite < m_ulQueueSize);
+
+    if (!pPacket)
+    {
+        return HXR_INVALID_PARAMETER;
+    }
+
+    if (m_pCongestionQueue == NULL)
+    {
+        (*g_pBroadcastPacketsDropped)++;
+        return HXR_NOT_INITIALIZED;
+    }
+
+    if (m_pCongestionQueue[m_ulQueueWrite])
+    {
+        (*g_pBroadcastPacketsDropped)++;
+        m_pCongestionQueue[m_ulQueueWrite]->Release();
+        m_pCongestionQueue[m_ulQueueWrite] = NULL;
+    }
+    
+    m_pCongestionQueue[m_ulQueueWrite] = pPacket; 
+    pPacket->AddRef();
+    (++m_ulQueueWrite) %= m_ulQueueSize;
+
+    return HXR_OK;
+}
+
+HX_RESULT
+CongestionQueue::Peek(ServerPacket*& pPacket)
+{
+    pPacket = (m_pCongestionQueue[m_ulQueueRead]) ? 
+    m_pCongestionQueue[m_ulQueueRead] : NULL;
+
+    return (pPacket) ? HXR_OK : HXR_FAIL;
+}
+
+
+HX_RESULT
+CongestionQueue::ReleaseHead()
+{
+    if (m_pCongestionQueue[m_ulQueueRead])
+    {
+        m_pCongestionQueue[m_ulQueueRead]->Release();
+        m_pCongestionQueue[m_ulQueueRead] = NULL;
+        (++m_ulQueueRead) %= m_ulQueueSize;
+    }
+
+    return HXR_OK;
+}
+
 //CPacketBufferQueue
 
-CPacketBufferQueue::CPacketBufferQueue(UINT32 ulQueueSize, BOOL bTrace, UINT32 ulReservedForAudioPacket)
+CPacketBufferQueue::CPacketBufferQueue(UINT32 ulQueueSize, BOOL bTrace)
 {
     m_ulRefCount = 0;
-    m_ulInsertPosition = ulReservedForAudioPacket;
-    m_ulStartingPosition = ulReservedForAudioPacket;
+    m_ulInsertPosition = 0;
     m_ulQueueSize = ulQueueSize;
     m_PacketBufferQueue = new IHXPacket*[m_ulQueueSize];
     m_ulQueueBytes = 0;
     m_ulStartTS = 0;
-    m_ulInvalidPacketCount = 0;
+
+#ifdef FIXED_RTP_ORDERING
+    m_pPrevQ = NULL;
+    m_bJustAddedKeyFrame = FALSE;
+    m_ulKeyFrameStrmSeqNo = 0;
+    m_ulKeyFrameStream = 0xffff;
+#endif
+
     m_bTrace = bTrace;
-    m_pKeyFrame = NULL;
 }
 
 CPacketBufferQueue::~CPacketBufferQueue()
 {
-    for (int i = m_ulStartingPosition; i < m_ulInsertPosition; i++)
+    for (int i = 0; i < m_ulInsertPosition; i++)
     {
         m_PacketBufferQueue[i]->Release();
     }
     delete m_PacketBufferQueue;
-    HX_RELEASE(m_pKeyFrame);
+#ifdef FIXED_RTP_ORDERING
+    HX_RELEASE(m_pPrevQ);
+#endif
 }
 
 HX_RESULT
@@ -3506,7 +3601,7 @@ CPacketBufferQueue::QueryInterface(REFIID riid, void** ppvObj)
         *ppvObj = (IHXLivePacketBufferQueue*)this;
         return HXR_OK;
     }
-
+    
     *ppvObj = NULL;
     return HXR_NOINTERFACE;
 }
@@ -3534,18 +3629,25 @@ CPacketBufferQueue::Release()
 UINT32
 CPacketBufferQueue::GetDuration()
 {
+    IHXPacket* pHead = NULL;
     IHXPacket* pTail = NULL;
     HX_RESULT theErr = HXR_OK;
     UINT ulDuration = 0;
     INT32 timeDiff = 0;
 
-    theErr = GetPacket(m_ulInsertPosition - 1, pTail);
+    theErr = GetPacket(0, pHead);
+    if (SUCCEEDED(theErr))
+    {    
+       theErr = GetPacket(m_ulInsertPosition - 1, pTail);
+    }
+
     if (SUCCEEDED(theErr))
     {
-        timeDiff = pTail->GetTime() - m_ulStartTS;
+        timeDiff = pTail->GetTime() - pHead->GetTime();
         ulDuration = (timeDiff < 0) ? 0 : timeDiff;
     }
 
+    HX_RELEASE(pHead);
     HX_RELEASE(pTail);
 
     return ulDuration;
@@ -3554,7 +3656,7 @@ CPacketBufferQueue::GetDuration()
 void
 CPacketBufferQueue::Dump()
 {
-    //    printf("CPacketBufferQueue: %p ", this);
+//    printf("CPacketBufferQueue: %p ", this);
     printf("MaxSz=%u ", m_ulQueueSize);    
     printf("ActSz=%u ", m_ulInsertPosition);
     printf("Bytes=%u ", m_ulQueueBytes);
@@ -3577,11 +3679,6 @@ CPacketBufferQueue::Dump()
         printf("D=%u", pTail->GetTime() - pHead->GetTime());
     }
     printf("\n");
-
-    for(UINT32 i = m_ulStartingPosition; i < m_ulInsertPosition; i++)
-    {
-        DumpPacket(m_PacketBufferQueue[i]);
-    }
     fflush(0);
 }
 
@@ -3598,6 +3695,67 @@ CPacketBufferQueue::EnQueue(IHXPacket*  pPacket)
         return HXR_FAIL;
     }
 
+#ifdef FIXED_RTP_ORDERING
+    if (m_bJustAddedKeyFrame)
+    {
+        IHXBroadcastDistPktExt* pPacketExt = NULL;
+        pPacket->QueryInterface(IID_IHXBroadcastDistPktExt,
+                            (void **)&pPacketExt);
+        
+        UINT32 ulStrmSeqNo= 0;
+        UINT16 usStream = 0xffff;
+        if (pPacketExt)
+        {
+            ulStrmSeqNo = pPacketExt->GetStreamSeqNo();
+            usStream = pPacket->GetStreamNumber();
+            pPacketExt->Release();
+        }
+
+        // this is for packets from qtbcplin only, because there is no a jtter
+        //buffer in qtbcplin, so the packets are not sorted.
+
+        // for packets from brcvplin, the packets are reordered in a jitter buffer
+        // so we won't have a gap for them.
+
+        // for packets from other live sources(wm encoder), there won't come in here
+        // because we don't have CPacketBufferQueue for them.(7/2005, this might change 
+        // later).
+        if (usStream == m_ulKeyFrameStream) 
+        {
+            if (ulStrmSeqNo - m_ulKeyFrameStrmSeqNo > 1)
+            {
+                UINT32 ulPrevQPos = m_pPrevQ->m_ulInsertPosition - 1 ;
+                UINT32 ulSearchEnd = ulPrevQPos > 10 ? ulPrevQPos - 10 : 0;
+                for (UINT32 i = ulPrevQPos; i > ulSearchEnd; i--)
+                {
+                    IHXPacket* pCurPacket = m_pPrevQ->m_PacketBufferQueue[i];
+                    pCurPacket->QueryInterface(
+                         IID_IHXBroadcastDistPktExt, (void **)&pPacketExt);
+                    UINT32 ulCurStrmSeqNo = pPacketExt->GetStreamSeqNo();
+                    pPacketExt->Release();
+    
+                    if (ulCurStrmSeqNo > m_ulKeyFrameStrmSeqNo &&
+                        ulCurStrmSeqNo < ulStrmSeqNo)
+                    {
+                        m_PacketBufferQueue[m_ulInsertPosition] = pCurPacket;
+                        pPacket->AddRef();
+                        m_ulInsertPosition++;
+
+                        if (m_bTrace)
+                        {
+                            IHXBuffer* pBuf = pPacket->GetBuffer();    
+                            m_ulQueueBytes += pBuf->GetSize();
+                            pBuf->Release(); 
+                        }
+                    }
+                }
+            }
+            m_bJustAddedKeyFrame = FALSE;
+            HX_RELEASE(m_pPrevQ);
+        }
+    }
+#endif
+
     m_PacketBufferQueue[m_ulInsertPosition] = pPacket;
     pPacket->AddRef();
     m_ulInsertPosition++;
@@ -3611,15 +3769,41 @@ CPacketBufferQueue::EnQueue(IHXPacket*  pPacket)
     return HXR_OK;
 }
 
+#ifdef FIXED_RTP_ORDERING
+void 
+CPacketBufferQueue::Init(CPacketBufferQueue* pPrevQ)
+{
+    HX_ASSERT(m_pPrevQ == NULL);
+    HX_RELEASE(m_pPrevQ);
+    m_pPrevQ = pPrevQ;
+    if (m_pPrevQ)
+    {
+        m_pPrevQ->AddRef();
+    }
+}
+#endif
+
 HX_RESULT 
 CPacketBufferQueue::AddKeyframe(IHXPacket*  pPacket)
 {
     HX_RESULT rc = HXR_OK;
+    IHXBroadcastDistPktExt* pPacketExt = NULL;
     m_ulStartTS = pPacket->GetTime();
-    m_pKeyFrame = pPacket;
-    m_pKeyFrame->AddRef();
     rc = EnQueue(pPacket);
     HX_ASSERT(rc == HXR_OK);
+
+#ifdef FIXED_RTP_ORDERING
+    pPacket->QueryInterface(IID_IHXBroadcastDistPktExt, (void **)&pPacketExt);
+    if (pPacketExt && m_pPrevQ)
+    {
+        m_bJustAddedKeyFrame = TRUE;
+
+        //these two are for out of order packet handling.
+        m_ulKeyFrameStrmSeqNo = pPacketExt->GetStreamSeqNo();
+        m_ulKeyFrameStream = pPacket->GetStreamNumber();
+        pPacketExt->Release();
+    }
+#endif
 
     return rc;
 }
@@ -3627,306 +3811,11 @@ CPacketBufferQueue::AddKeyframe(IHXPacket*  pPacket)
 HX_RESULT
 CPacketBufferQueue::GetPacket(UINT32 ulIndex, IHXPacket*&  pPacket)
 {
-    if (ulIndex + m_ulStartingPosition < m_ulInsertPosition)
+    if (ulIndex < m_ulInsertPosition)
     {
-        pPacket = m_PacketBufferQueue[ulIndex + m_ulStartingPosition];
+        pPacket = m_PacketBufferQueue[ulIndex];
         pPacket->AddRef();
         return HXR_OK;
     }
     return HXR_FAIL;
 }
-
-UINT32
-CPacketBufferQueue::GetSize()
-{
-    return m_ulInsertPosition - m_ulStartingPosition;
-}
-
-IHXPacket* CPacketBufferQueue::GetKeyFramePacket()
-{
-    if(m_pKeyFrame)
-    {
-        m_pKeyFrame->AddRef();
-    }
-    return m_pKeyFrame;
-}
-
-void CPacketBufferQueue::AddAudioPacket(IHXPacket*  pPacket)
-{
-    m_ulStartingPosition--;
-    m_PacketBufferQueue[m_ulStartingPosition] = pPacket;
-    pPacket->AddRef();
-
-    // if pPacket is in the queue, we need to delete it and move the q up
-    for(UINT32 i = m_ulStartingPosition + 1; i < m_ulInsertPosition; i++)
-    {
-        if(m_PacketBufferQueue[i] == pPacket)
-        {
-            m_PacketBufferQueue[i]->Release();
-            memmove(m_PacketBufferQueue + i, m_PacketBufferQueue + i + 1, m_ulInsertPosition - 1 -i);
-            m_ulInsertPosition--;
-        }
-    }
-}
-
-
-// SwitchGroupRSDInfo methods
-void
-SwitchGroupRSDInfo::SetKeyFrameRule(UINT16 ulRuleNum, BOOL bIsKeyFrameRule)
-{
-    HX_ASSERT(ulRuleNum < m_unNumRules);
-    m_pbIsKeyFrameRule[ulRuleNum] = bIsKeyFrameRule;
-}
-
-void
-SwitchGroupRSDInfo::SetInterDependency(UINT16 ulRuleNum, INT16 lInterDepend)
-{
-    HX_ASSERT(ulRuleNum < m_unNumRules);
-    HX_ASSERT(lInterDepend < m_unNumRules);
-
-    m_plInterDependent[ulRuleNum] = lInterDepend;
-}
-
-void
-SwitchGroupRSDInfo::OnKeyFramePacket(IHXPacket* pPacket, UINT16 unRule)
-{
-    HX_ASSERT(m_pbIsKeyFrameRule[unRule]);
-
-    if (!m_bAllKeyFramesReceived && !m_pbKeyFrameReceived[unRule])
-    {
-        m_pbKeyFrameReceived[unRule] = TRUE;
-        m_ulLastKeyFrameTS = pPacket->GetTime();
-
-        //For 3GP live, key frame can be received on either of the two rules.
-        //So receving a key frame packet on either of the two interdependent 
-        //rules is sufficient.
-        if (m_plInterDependent[unRule] != -1)
-        {
-            INT32 lInterDependentRule = m_plInterDependent[unRule];
-            HX_ASSERT(lInterDependentRule < m_unNumRules);
-            m_pbKeyFrameReceived[lInterDependentRule] = TRUE;
-        }
-
-        //Check if we recevied key frame packets for all the key frame rules.
-        m_bAllKeyFramesReceived = TRUE;
-        for (int i=0; i < m_unNumRules; i++)
-        {
-            if (m_pbIsKeyFrameRule[i] &&
-                !m_pbKeyFrameReceived[i])
-            {
-                m_bAllKeyFramesReceived = FALSE;
-                break;
-            }
-        }
-    }
-}
-
-BOOL
-SwitchGroupRSDInfo::IsPrerollSatisfied(IHXPacket* pPacket, INT32 lPreroll)
-{
-    BOOL bResult = FALSE;
-
-    if (m_bAllKeyFramesReceived)
-    {
-        UINT32 ulCurTime = pPacket->GetTime();
-
-        if (ulCurTime >= m_ulLastKeyFrameTS)
-        {
-            bResult = (ulCurTime - m_ulLastKeyFrameTS) >= lPreroll; 
-        }
-        else if (m_ulLastKeyFrameTS - ulCurTime > 0x7f000000)
-        {
-            bResult = (MAX_UINT32 - m_ulLastKeyFrameTS + ulCurTime) >= lPreroll;
-        }
-    }
-
-    return bResult;
-}
-
-void
-SwitchGroupRSDInfo::ResetInfo()
-{
-    m_bAllKeyFramesReceived = FALSE;
-    m_ulLastKeyFrameTS = 0;
-    memset(m_pbKeyFrameReceived, 0, sizeof(BOOL) * m_unNumRules);
-}
-
-BOOL 
-SwitchGroupRSDInfo::IsKeyFrameRule(UINT16 unRule)
-{
-    HX_ASSERT(unRule < m_unNumRules);
-    return m_pbIsKeyFrameRule[unRule];
-}
-
-//AudioSwitchGroupInfo////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////
-AudioSwitchGroupInfo::AudioSwitchGroupInfo(UINT32 ulNumOfRules)
-{
-    m_ulNumOfRules = ulNumOfRules;
-    m_ppPackets= new IHXPacket*[ulNumOfRules];
-    memset(m_ppPackets, 0, sizeof(IHXPacket*) * ulNumOfRules);
-    m_pVideoKeyframe = NULL;
-    m_pOnDepend = new BOOL[ulNumOfRules];
-    memset(m_pOnDepend, FALSE, sizeof(BOOL) * ulNumOfRules);
-    m_pInterDepend = new UINT16[ulNumOfRules];
-    memset(m_pInterDepend, -1, sizeof(UINT16) * ulNumOfRules);
-}
-
-AudioSwitchGroupInfo::~AudioSwitchGroupInfo()
-{
-    Reset();
-    HX_DELETE(m_ppPackets);
-    HX_DELETE(m_pOnDepend);
-    HX_DELETE(m_pInterDepend);
-}
-
-void AudioSwitchGroupInfo::SetVideoKeyframePacket(IHXPacket* pVideoKeyFrame)
-{
-    HX_RELEASE(m_pVideoKeyframe);
-    m_pVideoKeyframe = pVideoKeyFrame;
-    pVideoKeyFrame->AddRef();
-}
-
-void AudioSwitchGroupInfo::OnPacket(IHXPacket* pPacket)
-{
-   if(!IsEarlier(pPacket, m_pVideoKeyframe))
-   {
-       return;
-   }
-
-   UINT16 ulRule = pPacket->GetASMRuleNumber(); 
-
-   if(m_pOnDepend[ulRule])
-   {
-       return;
-   }
-
-   if(m_ppPackets[ulRule])
-   {
-       //we want the packets as close to the keyframe as possible
-       if(!IsEarlier(pPacket, m_ppPackets[ulRule]))
-       {
-           HX_RELEASE(m_ppPackets[ulRule]);
-           m_ppPackets[ulRule] = pPacket;
-           m_ppPackets[ulRule]->AddRef();
-       }
-   }
-   else if(m_pInterDepend[ulRule] != -1 && m_ppPackets[m_pInterDepend[ulRule]])
-   {
-        // for inter-dependent rules, we will keep the best packet between them.
-        // here "best" means earlier than the video keyframe, and the closest to
-        // it.
-        if(!IsEarlier(pPacket, m_ppPackets[m_pInterDepend[ulRule]]))
-        {
-            m_ppPackets[ulRule] = pPacket;
-            m_ppPackets[ulRule]->AddRef();
-
-            HX_RELEASE(m_ppPackets[m_pInterDepend[ulRule]]);
-        }
-   }
-   else
-   {
-        m_ppPackets[ulRule] = pPacket;
-        m_ppPackets[ulRule]->AddRef();
-   }
-}
-
-void AudioSwitchGroupInfo::Reset()
-{
-    for(UINT16 i = 0; i < m_ulNumOfRules; i++)
-    {
-        HX_RELEASE(m_ppPackets[i]);
-    }
-    HX_RELEASE(m_pVideoKeyframe);
-}
-
-BOOL AudioSwitchGroupInfo::IsEarlier(IHXPacket* pPacket, IHXPacket* pPacketCompared)
-{
-    if(pPacket->GetTime() > pPacketCompared->GetTime())
-    {
-        return FALSE;
-    }
-
-    if(((ServerPacket*)pPacket)->GetMediaTimeInMs() >
-        ((ServerPacket*)pPacketCompared)->GetMediaTimeInMs() )
-    {
-        return FALSE;
-    }
-
-    return TRUE;
-}
-
-BOOL AudioSwitchGroupInfo::HasAllAudioPackets()
-{
-    for(UINT16 i = 0; i < m_ulNumOfRules; i++)
-    {
-        //if the rule depend on other rules, we can start with the packets from 
-        //this rule. So we just skip this rule.
-        if(m_pOnDepend[i])
-        {
-            continue;
-        }
-
-        if(!m_ppPackets[i] && (m_pInterDepend[i] == -1 || !m_ppPackets[m_pInterDepend[i]]))
-        {
-            return FALSE;
-        }
-    }
-    return TRUE;
-}
-
-void AudioSwitchGroupInfo::GetAudioPackets(IHXPacket**& ppPackets, UINT32& ulCount)
-{
-    ppPackets = m_ppPackets;
-    ulCount = m_ulNumOfRules;
-}
-
-UINT32 AudioSwitchGroupInfo::GetNumOfPacket()
-{
-    return m_ulNumOfRules;
-}
-
-
-void AudioSwitchGroupInfo::SetOnDepend(UINT16 ulRuleNum, BOOL bOnDepend)
-{
-    m_pOnDepend[ulRuleNum] = bOnDepend;
-}
-
-void AudioSwitchGroupInfo::SetInterDepend(UINT16 unRuleNum, UINT16 nInterDepend)
-{
-    m_pInterDepend[unRuleNum] = nInterDepend;
-}
-
-BOOL BroadcastGateway::HasAllAudioPackets()
-{
-    for(UINT32 i = 1; i < m_ulSwitchGroupCount+1; i++)
-    {
-        if(m_ppAudioSwitchGroupInfo[i])
-        {
-            if(m_ppAudioSwitchGroupInfo[i]->HasAllAudioPackets() == FALSE)
-            {
-                return FALSE;
-            }
-        }
-    }
-    return TRUE;
-}
-
-UINT32 BroadcastGateway::GetNumOfReservedAudioPackets()
-{
-    if(!m_ppAudioSwitchGroupInfo)
-    {
-        return 0;
-    }
-
-    UINT32 ulTotal = 0;
-    for(UINT32 i = 1; i < m_ulSwitchGroupCount+1; i++)
-    {
-        if(m_ppAudioSwitchGroupInfo[i])
-        {
-            ulTotal += m_ppAudioSwitchGroupInfo[i]->GetNumOfPacket();
-        }
-    }
-    return ulTotal;
-}
-

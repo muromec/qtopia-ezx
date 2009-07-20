@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: rtspbase.h,v 1.18 2008/01/24 20:39:28 cdunn Exp $
+ * Source last modified: $Id: rtspbase.h,v 1.16 2006/10/03 21:38:30 jc Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -54,11 +54,7 @@
 #include "hxslist.h"
 
 const UINT16 MAX_RTSP_MSG   = 4096;             // XXXBAB adjust this
-#if defined(HELIX_FEATURE_EMBEDDED_UI)
-const UINT32 MAX_QUEUE_SIZE = (UINT32)0x1ffff;
-#else
 const UINT16 MAX_QUEUE_SIZE = (UINT16)0x7fff;   // XXXGLENN adjust this
-#endif
 const UINT32 MAX_RECVBUF_SIZE = 1000000;
 
 struct RTSPRequireOptions

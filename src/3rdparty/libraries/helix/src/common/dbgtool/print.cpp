@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: print.cpp,v 1.5 2008/01/18 04:12:08 vkathuria Exp $
+ * Source last modified: $Id: print.cpp,v 1.3 2004/07/09 18:21:53 hubbe Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -47,23 +47,8 @@
  * 
  * ***** END LICENSE BLOCK ***** */
 
-#ifdef _BREW
-
-#ifdef AEE_SIMULATOR
-#define _WIN32
-#endif
-
-#include "AEEStdlib.h"
-#include "hlxclib/stdio.h"
-
-#ifdef AEE_SIMULATOR
-#undef _WIN32
-#endif
-
-#else //_BREW
 #include <stdarg.h>
 #include <stdio.h>
-#endif
 #include "print.h"
 #ifdef WIN32_PLATFORM_PSPC
 #include "hlxosstr.h"

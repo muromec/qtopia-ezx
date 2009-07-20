@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: xmlparse.rc,v 1.7 2007/08/02 07:56:03 anshuman Exp $
+ * Source last modified: $Id: xmlparse.rc,v 1.4 2004/09/23 17:40:54 ping Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -64,7 +64,7 @@
 #endif
 
 #include "hxver.h"        // Defines for standard Helix DNA Platform deliverables
-#include "hxxml.ver"
+#include "rnxmllib.ver"    // Defines for this deliverable created by GETFILES
 
 VS_VERSION_INFO         VERSIONINFO
     FILEVERSION         TARVER_LIST_VERSION
@@ -85,10 +85,10 @@ BEGIN
     BEGIN
         BLOCK "040904E4" // Lang=US English, CharSet=Windows Multilingual
         BEGIN 
-            VALUE "FileDescription", "XML Parser plugin for RealMedia(R)\0"
+            VALUE "FileDescription", "XML Parser plugin for RealMedia®\0"
             VALUE "InternalName",    "RNXMLLIB\0"
             VALUE "OriginalFilename","RNXMLLIB.DLL\0"
-            VALUE "ProductName",     "XML Parser plugin for RealMedia(R)" 
+            VALUE "ProductName",     "XML Parser plugin for RealMedia®" 
                                      STRPLATFORM TARVER_STR_BUILD_NAME STREND
 
             VALUE "FileVersion",     TARVER_STRING_VERSION

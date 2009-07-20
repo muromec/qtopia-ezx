@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: qos_sig_bus.h,v 1.15 2007/07/30 06:15:28 hdeware Exp $ 
+ * Source last modified: $Id: qos_sig_bus.h,v 1.13 2003/08/18 17:46:39 darrick Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -38,9 +38,6 @@
 #ifndef _QOS_SIG_BUS_H_
 #define _QOS_SIG_BUS_H_
 
-#include "hxccf.h"
-#include "hxmon.h"
-
 struct IHXQoSTransportAdaptationInfo;
 struct IHXQoSSessionAdaptationInfo;
 struct IHXQoSApplicationAdaptationInfo;
@@ -75,7 +72,8 @@ class SinkListElem : public HXListElem
 class QoSSignalBus : public IHXQoSSignalBus,
 		     public IHXQoSTransportAdaptationInfo, 
 		     public IHXQoSSessionAdaptationInfo,
-             public IHXQoSApplicationAdaptationInfo
+		     public IHXQoSApplicationAdaptationInfo,
+		     public IHXQoSProfileConfigurator
 {
  public:
     QoSSignalBus (Process* pProc);
@@ -167,13 +165,20 @@ class QoSSignalBus : public IHXQoSSignalBus,
     STDMETHODIMP SetASMUnsubscribes(UINT32 ulASMUnsubscribes);
 
 
+    /* IHXQoSProfileConfiguroatr methods */
+    STDMETHOD (SetConfigId)     (THIS_ INT32 lConfigId);
+    STDMETHOD (GetConfigId)     (THIS_ REF(INT32) /*OUT*/ lConfigId);
+    STDMETHOD (GetConfigInt)    (THIS_ const char* pItemName, REF(INT32) /*OUT*/ lValue); 
+    STDMETHOD (GetConfigBuffer) (THIS_ const char* pItemName, REF(IHXBuffer*) /*OUT*/ pValue);
+
  private:
     LONG32                        m_lRefCount;
     Process*                      m_pProc;
 
     IHXBuffer*                    m_pSessionId;
     FilterTableNode****           m_pFilterTable;
-    IHXQoSProfileConfigurator*    m_pQosProfConfigurator;
+    INT32                         m_lConfigId;
+    char*                         m_pConfigName;
 
     IHXBuffer*                    m_pTxRateRange;
     UINT32                        m_ulRRFrequency;
@@ -196,6 +201,7 @@ class QoSSignalBus : public IHXQoSSignalBus,
     UINT32                        m_ulASMUnsubscribes;
     UINT32                        m_ulSuccessfulResends;
     UINT32                        m_ulFailedResends;
+
 };
 
 #endif /*_QOS_SIG_BUS_H_ */

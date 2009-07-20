@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: unix_net.h,v 1.19 2009/01/19 23:42:56 sfu Exp $
+ * Source last modified: $Id: unix_net.h,v 1.16 2006/02/23 22:31:02 ping Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -47,7 +47,7 @@
  * 
  * ***** END LICENSE BLOCK ***** */
 
-#if !defined _HPUX && !defined _AIX43 && !defined ANDROID && (!defined _MAC_UNIX || ( defined(_MAC_UNIX) && ( !defined(MAC_OS_X_VERSION_10_3) || (MAC_OS_X_VERSION_MAX_ALLOWED < MAC_OS_X_VERSION_10_3) ) ) )
+#if !defined _HPUX && !defined _AIX43 && (!defined _MAC_UNIX || ( defined(_MAC_UNIX) && ( !defined(MAC_OS_X_VERSION_10_3) || (MAC_OS_X_VERSION_MAX_ALLOWED < MAC_OS_X_VERSION_10_3) ) ) )
 typedef unsigned int socklen_t;
 #endif
 
@@ -70,9 +70,6 @@ typedef unsigned int socklen_t;
 #ifndef fcntl
 #define fcntl ioctl
 #endif
-#include <fcntl.h>
-#endif
-#if defined(_LSB)
 #include <fcntl.h>
 #endif
 #include <netinet/in.h>

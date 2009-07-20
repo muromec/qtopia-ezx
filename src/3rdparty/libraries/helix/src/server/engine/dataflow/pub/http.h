@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: http.h,v 1.15 2008/10/15 00:00:44 ckarusala Exp $
+ * Source last modified: $Id: http.h,v 1.10 2006/10/03 23:19:07 tknox Exp $
  *
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.
  *
@@ -49,10 +49,11 @@
 #include "hxplugn.h"
 #include "hxauthn.h"
 #include "imalloc.h"
+#include "player.h"
 #include "fsmanager.h"
 
 class HTTP;
-class HTTPBaseProtocol;
+class HTTPProtocol;
 class CHXPtrArray;
 
 typedef enum
@@ -71,7 +72,8 @@ typedef enum
 
 class HTTPFileResponse : public IHXFileResponse,
                          public IHXFileStatResponse,
-                         public IHXFileMimeMapperResponse
+                         public IHXFileMimeMapperResponse,
+                         public IHXThreadSafeMethods
 {
 public:
     HTTPFileResponse(HTTP* h);
@@ -103,6 +105,9 @@ public:
                               HX_RESULT status,
                               const char* mimeType);
 
+    /*  IHXThreadSafe Methods */
+    STDMETHOD_(UINT32,IsThreadSafe)(THIS);
+
 private:
     LONG32                          m_lRefCount;
     HTTP*                           m_pHTTP;
@@ -110,8 +115,6 @@ private:
     IHXFileMimeMapper*              m_file_mime;
     UINT32                          m_ulSize;
     UINT32                          m_ulCreationTime;
-    IHXFileObject*                  m_pHTTPFileObject;
-    Client*                         m_pHTTPClient;
 };
 
 class HTTPFileSystemManagerResponse : public IHXFileSystemManagerResponse,
@@ -138,6 +141,9 @@ public:
     STDMETHOD(RedirectDone)     (THIS_ IHXBuffer* pURL);
 
     void HTTPDone();
+
+private:
+    STDMETHOD_(BOOL, IsAccessAllowed)(char* url, char*** HTTP_paths);
 };
 
 class HTTPChallenge : public IHXChallenge
@@ -165,7 +171,7 @@ public:
 class HTTP
 {
 public:
-    HTTP(IHXSocket* pSock, HTTPBaseProtocol* pProtocol, Client* pClient);
+    HTTP(IHXSocket* pSock, HTTPProtocol* pProtocol, Client* pClient);
     ~HTTP();
 
     int         flushed_tcp(int flush_count);
@@ -178,11 +184,11 @@ public:
     void        Done();
 
     HX_RESULT WriteReady(void);
-    static BOOL IsAccessAllowed(char* url, char*** HTTP_paths);
+
 
     IHXFileObject*                  m_pFileObject;
     IHXSocket*                      m_pSock;
-    HTTPBaseProtocol*               m_pProtocol;
+    HTTPProtocol*                   m_pProtocol;
     Client*                         m_pClient;
     FSManager*                      m_FSManager;
     HTTPFileResponse*               m_pFileResponse;

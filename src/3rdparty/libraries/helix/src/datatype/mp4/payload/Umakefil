@@ -54,9 +54,8 @@ project.AddModuleIncludes("common/include",
                           "datatype/rm/common/pub",
                           "datatype/mp4/common/pub",
                           "datatype/mp4/fileformat/pub",
-                          "datatype/amr/common/pub",
-                          "common/log/logutil/pub")
-						  
+                          "datatype/amr/common/pub")
+
 project.AddSources("amrpyld.cpp",
                    "amr-depack.cpp",
                    "amr_toc.cpp",
@@ -69,8 +68,6 @@ project.AddSources("amrpyld.cpp",
                    "mp4tpyld.cpp",
                    "mp4gpyld.cpp",
 		   "concatpyld.cpp",
-		   "pcmpyld.cpp",
-                   "mp3pyld.cpp",		   
                    "mp4a-mux-cfg.cpp",
                    "mp4-latm-depack.cpp",
                    "qclppyld.cpp",
@@ -84,35 +81,9 @@ if project.IsDefined("HELIX_FEATURE_VIDEO_CODEC_AVC1"):
 if project.IsDefined("HELIX_FEATURE_AUDIO_CODEC_MP3"):
         project.AddSources("mp3draft.cpp")
 
-if project.IsDefined("HELIX_FEATURE_VIDEO_CODEC_VP6"):                   
-        project.AddSources("flvpyld.cpp") 
-if project.IsDefined("HELIX_FEATURE_SERVER") or \
-   project.IsDefined("HELIX_FEATURE_PRODUCER") or \
-   project.IsDefined("HELIX_FEATURE_MP4_FILEFORMAT_ALL"):
+if project.IsDefined("HELIX_FEATURE_SERVER"):
         project.AddSources("latmpacketizer.cpp",
-                           "mp4vpacketizer.cpp",
-                           "h264packetizer.cpp")
-        project.AddModuleIncludes("protocol/common/util/pub",
-                     "protocol/transport/common/system/pub")
-	if project.IsDefined("HELIX_FEATURE_PRODUCER"):
-		project.AddDefines("QTCONFIG_NON_INTERLEAVE_MODE")
-		project.AddDefines("QTCONFIG_SIMPLIFIED_NON_INTERLEAVE")
-	else:
-		project.AddDefines("QTCONFIG_INTERLEAVE_MODE")
-
-# ************************************************************************
-# - To invoke h264packetizer packetizer "QTCONFIG_H264_PACKETIZER" must be defined
-# - This packetizer will generte by default Single NAL RTP packets
-# - For non-interleave mode "QTCONFIG_NON_INTERLEAVE_MODE" must be defined
-# - For Interleave mode "QTCONFIG_INTERLEAVE_MODE" must be defined and 
-#   any one of the following defines
-#    - Define "QTCONFIG_STAP_B_PACKET" to generate STAP-B type packets
-#    - Define "QTCONFIG_MTAP_16_PACKET" to generate MTAP-16 type packets
-#    - Define "QTCONFIG_MTAP_24_PACKET" to generate MTAP-24 type packets
-# ************************************************************************
-						   
-if project.IsDefined("QTCONFIG_INTERLEAVE_MODE"):
-	project.AddDefines("QTCONFIG_STAP_B_PACKET") 
+                           "mp4vpacketizer.cpp")
 
 LibraryTarget("mp4pyldlib")
 

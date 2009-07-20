@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: servcallback.h,v 1.5 2007/08/18 00:21:11 dcollins Exp $ 
+ * Source last modified: $Id: servcallback.h,v 1.3 2004/05/13 18:57:48 tmarshall Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -76,9 +76,9 @@ public:
     void    InvokeStart();
     int     InvokeOne();
     int     InvokeOneTS();
-    void    Add(SOCKET s, IHXCallback* cb, BOOL bThreadSafe = TRUE);
+    void    Add(SOCKET s, IHXCallback* cb, BOOL bThreadSafe = FALSE);
     void    Remove(SOCKET s);
-    void    Enable(SOCKET s, BOOL bThreadSafe = TRUE);
+    void    Enable(SOCKET s, BOOL bThreadSafe = FALSE);
     void    Disable(SOCKET s);
     fd_set* GetSet();
 
@@ -151,24 +151,26 @@ Callbacks::Add(SOCKET s, IHXCallback* cb, BOOL bThreadSafe)
 inline void
 Callbacks::Remove(SOCKET s)
 {
-    unsigned i;
-    for(i = 0; i < store_set.fd_count; i++)
-    {
-        if (store_set.fd_array[i] == s)
-        {
-            memmove(&(store_set.fd_array[i]),
-                        &(store_set.fd_array[i + 1]),
-                         sizeof(SOCKET) * (store_set.fd_count - i - 1));
-                         store_set.fd_count--;
-             break;
-        }
-    }
-    
     SocketInfo* pInfo;
-    if (m_map.Lookup(s, (void*&)pInfo))
+    if(m_map.Lookup(s, (void*&)pInfo))
     {
-    	delete pInfo;
-	    m_map.RemoveKey(s);
+	if(pInfo->in)
+	{
+	    unsigned i;
+	    for(i = 0; i < store_set.fd_count; i++)
+	    {
+		if(store_set.fd_array[i] == s)
+		{
+		    memmove(&(store_set.fd_array[i]),
+			&(store_set.fd_array[i + 1]),
+			sizeof(SOCKET) * (store_set.fd_count - i - 1));
+		    store_set.fd_count--;
+		    break;
+		}
+	    }
+	}
+	delete pInfo;
+	m_map.RemoveKey(s);
     }
 }
 

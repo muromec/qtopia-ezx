@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxaudply.cpp,v 1.58 2008/09/20 06:02:27 gajia Exp $
+ * Source last modified: $Id: hxaudply.cpp,v 1.54 2007/03/23 00:42:08 milko Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -1412,7 +1412,7 @@ void CHXAudioPlayer::SetGranularity
  */
 HX_RESULT CHXAudioPlayer::Resume()
 {
-    HXLOGL2(HXLOG_ADEV, "CHXAudioPlayer[%p]::Resume()", this);
+    HXLOGL3(HXLOG_ADEV, "CHXAudioPlayer[%p]::Resume()", this);
 
     HX_RESULT theErr = HXR_OK;
 
@@ -1495,7 +1495,7 @@ HX_RESULT CHXAudioPlayer::Resume()
  */
 HX_RESULT CHXAudioPlayer::Pause()
 {
-    HXLOGL2(HXLOG_ADEV, "CHXAudioPlayer[%p]::Pause()", this);
+    HXLOGL3(HXLOG_ADEV, "CHXAudioPlayer[%p]::Pause()", this);
 
     if (m_eState == E_PAUSED)
     {
@@ -1541,7 +1541,7 @@ HX_RESULT CHXAudioPlayer::Stop
     const HXBOOL bFlush
 )
 {
-    HXLOGL2(HXLOG_ADEV, "CHXAudioPlayer[%p]::Stop()", this);
+    HXLOGL3(HXLOG_ADEV, "CHXAudioPlayer[%p]::Stop()", this);
     m_eState = E_STOPPED;
 
     m_ulAPstartTime     = 0;
@@ -1585,7 +1585,7 @@ HX_RESULT CHXAudioPlayer::Seek
 const   UINT32                  ulSeekTime
 )
 {
-    HXLOGL2(HXLOG_ADEV, "CHXAudioPlayer[%p]::Seek(): to = %lu", this, ulSeekTime);
+    HXLOGL3(HXLOG_ADEV, "CHXAudioPlayer[%p]::Seek(): to = %lu", this, ulSeekTime);
 
     /* always remember this seek time.. even though there may not be any streams
      * yet for this player. This is because the streams may be created later and
@@ -1916,16 +1916,7 @@ HX_RESULT CHXAudioPlayer::Setup( ULONG32 ulGranularity)
 
         // Set the audio format for this Player.
         m_PlayerFmt.uMaxBlockSize       = maxBlocksize;
-        // keep min. channel at stereo
-        // this is a workaround for b#205546, the root cause of this is that we only
-        // choose the audio format of the 1st audio stream when the playback is started
-        // without audio, then audio clip is started at later time. For sure stream audio,
-        // the first audio stream is often the lowest quality, thus the audio device is 
-        // configured to play the lowest quality audio.
-        // 
-        // proper fix requires the audio device is setup only after all audio streams 
-        // assoicated with the same clip have been registered
-        m_PlayerFmt.uChannels           = (maxChannels < 2) ? 2 : maxChannels;
+        m_PlayerFmt.uChannels           = maxChannels;
         m_PlayerFmt.uBitsPerSample      = maxBitsPerSample;
 
         // If user wants upsampling
@@ -2033,8 +2024,7 @@ ULONG32 CHXAudioPlayer::GetCurrentPlayBackTime(void)
 {
     if (m_eState != E_PLAYING)
     {
-		return (m_lPlaybackVelocity != HX_PLAYBACK_VELOCITY_NORMAL ? 
-				m_ulCurrentScaledTime : m_ulCurrentTime);
+        return m_ulCurrentTime;
     }
 
     // The current playback time of any player is the difference

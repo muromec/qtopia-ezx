@@ -1,6 +1,6 @@
 # 
 # ***** BEGIN LICENSE BLOCK *****
-# Source last modified: $Id: Umakefil,v 1.12 2008/12/11 23:55:23 svaidhya Exp $
+# Source last modified: $Id: Umakefil,v 1.10 2004/12/16 22:36:05 liam_murray Exp $
 # 
 # Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
 # 
@@ -19,7 +19,7 @@
 # contents of the file.
 # 
 # Alternatively, the contents of this file may be used under the
-# terms of the GNU General Public License Version 2 (the
+# terms of the GNU General Public License Version 2 or later (the
 # "GPL") in which case the provisions of the GPL are applicable
 # instead of those above. If you wish to allow use of your version of
 # this file only under the terms of the GPL, and not to allow others
@@ -58,8 +58,7 @@ project.AddModuleIncludes('common/include',
 			  'common/log/logutil/pub',
 			  'common/system/pub', 
 			  'common/fileio/pub', 
-			  'common/runtime/pub',
-			  'server/include')
+			  'common/runtime/pub')
 
 project.AddIncludes('../../rtsp/pub',
 		    '../../transport/common/system/pub')
@@ -78,8 +77,5 @@ project.AddSources('trmimemp.cpp', 'hxbitset.cpp',
 if (project.IsDefined('HELIX_FEATURE_HTTPCLOAK')):
     project.AddModuleIncludes('common/netio/pub', 'protocol/http/pub')
     project.AddSources('hxcloakedsocket.cpp', 'hxcloaksockv2.cpp')
-
-if "HELIX_FEATURE_SERVER_MR_RTP" in project.defines:
-        project.AddModuleIncludes("server-restricted/datatype/switch/pub")
 
 LibraryTarget('protutillib')

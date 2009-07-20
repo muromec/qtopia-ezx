@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: context.cpp,v 1.13 2009/02/09 20:01:35 dcollins Exp $
+ * Source last modified: $Id: context.cpp,v 1.11 2006/02/24 01:16:00 ping Exp $
  *
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.
  *
@@ -35,14 +35,12 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-#include "hlxclib/signal.h"
-
 #include "hxtypes.h"
 #include "hxcom.h"
 #include "commreg.h"
 #include "debug.h"
 #include "ihxpckts.h"
-//#include "hxcommn.h"
+#include "hxcommn.h"
 #include "hxengin.h"
 #include "hxnet.h"
 #include "hxpref.h"
@@ -69,7 +67,6 @@
 
 #include "rscontext.ver"
 
-#include "rbsfactory.h"
 #include "context.h"
 #include "cfgreg.h"
 #include "errorcontroller.h"
@@ -229,7 +226,7 @@ Context::QueryInterface(REFIID riid, void** ppvObj)
     {
         if(!m_pCommonClassFactory)
         {
-            m_pCommonClassFactory = new RBSCommonClassFactory((IUnknown*)this);
+            m_pCommonClassFactory = new HXCommonClassFactory((IUnknown*)this);
             m_pCommonClassFactory->AddRef();
         }
         m_pCommonClassFactory->AddRef();
@@ -253,7 +250,7 @@ Context::QueryInterface(REFIID riid, void** ppvObj)
 
             if (NULL == m_pCommonClassFactory)
             {
-                m_pCommonClassFactory = new RBSCommonClassFactory((IUnknown*)this);
+                m_pCommonClassFactory = new HXCommonClassFactory((IUnknown*)this);
                 m_pCommonClassFactory->AddRef();
             }
         }

@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hlxosstr.cpp,v 1.30 2009/01/19 23:13:53 sfu Exp $
+ * Source last modified: $Id: hlxosstr.cpp,v 1.22 2005/04/13 19:26:35 jeffl Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -47,616 +47,513 @@
  * 
  * ***** END LICENSE BLOCK ***** */
 
-
 #include "hlxosstr.h"
 #include "hlxclib/windows.h"
 #include "hlxclib/assert.h"
 #include "hlxclib/string.h"
-#include "hxassert.h"
-#include "uniconv.h"
 
-
-//----------------------------------------------------------------------------
-// New utilities
-//----------------------------------------------------------------------------
-// Keep this flag for testing (at least for compile-time syntax checking).
-// By uncommenting it, it's possible to test on MS-Windows how the code would behave
-// without native WideCharToMultiByte/MultiByteWideChar.
-//
-//#define FORCE_NO_NATIVE_MULTIBYTE_WIDECHAR 1
-
-
-#ifdef _BIG_ENDIAN
-const HXBOOL g_bBigEndianMachine = TRUE;
-#else
-const HXBOOL g_bBigEndianMachine = FALSE;
-#endif //_BIG_ENDIAN
-
-
-size_t StringLengthA(const char* psz)
-{
-    if(psz)
-    {
-        const char* pszStart = psz;
-        while(*psz++);
-        return size_t((psz - pszStart) - 1);
-    }
-    return size_t(0);
-}
-
-size_t StringLengthW(const wchar_t* pszw)
-{
-    if(pszw)
-    {
-        const wchar_t* pszwStart = pszw;
-        while(*pszw++);
-        return size_t((pszw - pszwStart) - 1);
-    }
-    return size_t(0);
-}
-
-char* StringCopyA(char* psz1, const char* psz2)
-{
-    char* psz1Start = psz1;
-    if(psz1 && psz2)
-    {
-        while((*psz1++ = *psz2++));
-    }
-    return psz1Start;
-}
-
-wchar_t* StringCopyW(wchar_t* pszw1, const wchar_t* pszw2)
-{
-    wchar_t* pszw1Start = pszw1;
-    if(pszw1 && pszw2)
-    {
-        while((*pszw1++ = *pszw2++));
-    }
-    return pszw1Start;
-}
-
-int StringEqualA(const char* psz1, const char* psz2)
-{
-    if(psz1 && psz2)
-    {
-        while(*psz1 && *psz2)
-        {
-            if(*psz1++ != *psz2++) return 0; //FALSE
-        }
-        // if both point to the terminator, return TRUE
-        return (*psz1 == *psz2) ? 1 : 0;
-    }
-    // if both are NULL, return TRUE
-    return (psz1 == psz2) ? 1 : 0;
-}
-
-int StringEqualW(const wchar_t* pszw1, const wchar_t* pszw2)
-{
-    if(pszw1 && pszw2)
-    {
-        while(*pszw1 && *pszw2)
-        {
-            if(*pszw1++ != *pszw2++) return 0; //FALSE
-        }
-        // if both point to the terminator, return TRUE
-        return (*pszw1 == *pszw2) ? 1 : 0;
-    }
-    // if both are NULL, return TRUE
-    return (pszw1 == pszw2) ? 1 : 0;
-}
-
-char* StringAppendA(char* pBuffer, const char* pAppend, int releaseOldBuffer, int allocType)
-{
-    if(!pBuffer && !pAppend)
-    {
-        return 0;
-    }
-    // calc new buffer length
-    size_t len = 1; //for null-terminator
-    size_t lenFirst = 0;
-    size_t lenSecond = 0;
-    if(pBuffer)
-    {
-        lenFirst = StringLengthA(pBuffer);
-        len += lenFirst;
-    }
-    if(pAppend)
-    {
-        lenSecond = StringLengthA(pAppend);
-        len += lenSecond;
-    }
-    // allocate buffer
-    char* pOut = 0;
-    if(allocType == 0)
-    {
-        pOut = (char*)malloc(len);
-    }
-    else if(allocType == 1)
-    {
-        pOut = new char[len];
-    }
-    if(pOut)
-    {
-        // concatenate
-        char* pWrite = pOut;
-        if(pBuffer)
-        {
-            StringCopyA(pWrite, pBuffer);
-            pWrite += lenFirst;
-        }
-        if(pAppend)
-        {
-            StringCopyA(pWrite, pAppend);
-            pWrite += lenSecond;
-        }
-        *pWrite = 0;
-
-        // release old buffer
-        if(pBuffer && releaseOldBuffer == 1)
-        {
-            if(allocType == 0)
-            {
-                free(pBuffer);
-            }
-            else if(allocType == 1)
-            {
-                delete [] pBuffer;
-            }
-        }
-    }
-    return pOut;
-}
-
-wchar_t* StringAppendW(wchar_t* pBuffer, const wchar_t* pAppend, int releaseOldBuffer, int allocType)
-{
-    // calc new buffer length
-    if(!pBuffer && !pAppend)
-    {
-        return 0;
-    }
-    size_t len = 1; //for null-terminator
-    size_t lenFirst = 0;
-    size_t lenSecond = 0;
-    if(pBuffer)
-    {
-        lenFirst = StringLengthW(pBuffer);
-        len += lenFirst;
-    }
-    if(pAppend)
-    {
-        lenSecond = StringLengthW(pAppend);
-        len += lenSecond;
-    }
-    // allocate buffer
-    wchar_t* pOut = 0;
-    if(allocType == 0)
-    {
-        pOut = (wchar_t*)malloc(len * sizeof(wchar_t));
-    }
-    else if(allocType == 1)
-    {
-        pOut = new wchar_t[len];
-    }
-    if(pOut)
-    {
-        wchar_t* pWrite = pOut;
-        if(pBuffer)
-        {
-            StringCopyW(pWrite, pBuffer);
-            pWrite += lenFirst;
-        }
-        if(pAppend)
-        {
-            StringCopyW(pWrite, pAppend);
-            pWrite += lenSecond;
-        }
-        *pWrite = 0;
-
-        // release old buffer
-        if(pBuffer && releaseOldBuffer == 1)
-        {
-            if(allocType == 0)
-            {
-                free(pBuffer);
-            }
-            else if(allocType == 1)
-            {
-                delete [] pBuffer;
-            }
-        }
-    }
-    return pOut;
-}
-
-
-UTF8FromWCharT::UTF8FromWCharT(const wchar_t* pszw, size_t length)
-{
-    if(!pszw)
-    {
-        return;
-    }
-    UINT32 numInputUnits = (length == (size_t)-1) ? UINT32(MAX_UINT32) : UINT32(length);
-    UINT32 numConsumed = 0;
-    UINT32 numOutputed = 0;
-
-    // platform uses UTF16 encoding
-    if(sizeof(wchar_t) == 2)
-    {
-        if(ConvertUTF16StringToUTF8String((const UINT16*)pszw, numInputUnits, numConsumed,
-                        g_bBigEndianMachine, 0, 0, numOutputed) >= 0)
-        {
-            m_data = (char*)malloc(numOutputed);
-            if(ConvertUTF16StringToUTF8String((const UINT16*)pszw, numInputUnits, numConsumed,
-                        g_bBigEndianMachine, (UINT8*)m_data, numOutputed, numOutputed) >= 0)
-            {
-                m_length = numOutputed; //success
-            }
-            else if(m_data)
-            {
-                free(m_data); //failed
-            }
-        }
-        return;
-    }
-    // platform uses UTF32 encoding
-    if(sizeof(wchar_t) == 4)
-    {
-        if(ConvertUTF32StringToUTF8String((const UINT32*)pszw, numInputUnits, numConsumed,
-                        g_bBigEndianMachine, 0, 0, numOutputed) >= 0)
-        {
-            m_data = (char*)malloc(numOutputed);
-            if(ConvertUTF32StringToUTF8String((const UINT32*)pszw, numInputUnits, numConsumed,
-                        g_bBigEndianMachine, (UINT8*)m_data, numOutputed, numOutputed) >= 0)
-            {
-                m_length = numOutputed; //success
-            }
-            else if(m_data)
-            {
-                free(m_data); //failed
-            }
-        }
-        return;
-    }
-    HX_ASSERT(!"Unexpected size of wchar_t");
-}
-
-
-WCharTFromUTF8::WCharTFromUTF8(const char* psz, size_t length)
-{
-    if(!psz)
-    {
-        return;
-    }
-    UINT32 numInputUnits = (length == (size_t)-1) ? UINT32(MAX_UINT32) : UINT32(length);
-    UINT32 numConsumed = 0;
-    UINT32 numOutputed = 0;
-
-    // platform uses UTF16 encoding
-    if(sizeof(wchar_t) == 2)
-    {
-        if(ConvertUTF8StringToUTF16String((const UINT8*)psz, numInputUnits, numConsumed,
-                        0, 0, numOutputed, g_bBigEndianMachine) >= 0)
-        {
-            m_data = (wchar_t*)malloc(numOutputed * 2);
-            if(ConvertUTF8StringToUTF16String((const UINT8*)psz, numInputUnits, numConsumed,
-                        (UINT16*)m_data, numOutputed, numOutputed, g_bBigEndianMachine) >= 0)
-            {
-                m_length = numOutputed; //success
-            }
-            else if(m_data)
-            {
-                free(m_data); //failed
-            }
-        }
-        return;
-    }
-    // platform uses UTF32 encoding
-    if(sizeof(wchar_t) == 4)
-    {
-        if(ConvertUTF8StringToUTF32String((const UINT8*)psz, numInputUnits, numConsumed,
-                        0, 0, numOutputed, g_bBigEndianMachine) >= 0)
-        {
-            m_data = (wchar_t*)malloc(numOutputed * 4);
-            if(ConvertUTF8StringToUTF32String((const UINT8*)psz, numInputUnits, numConsumed,
-                        (UINT32*)m_data, numOutputed, numOutputed, g_bBigEndianMachine) >= 0)
-            {
-                m_length = numOutputed; //success
-            }
-            else if(m_data)
-            {
-                free(m_data); //failed
-            }
-        }
-        return;
-    }
-    HX_ASSERT(!"Unexpected size of wchar_t");
-}
-
-
-CCPFromWCharT::CCPFromWCharT(const wchar_t* pszw, size_t length)
-{
-    if(!pszw)
-    {
-        return;
-    }
-#if defined(_WINDOWS) && !defined(FORCE_NO_NATIVE_MULTIBYTE_WIDECHAR)
-    int numInputUnits = (length == (size_t)-1) ? -1 : int(length);
-    UINT codePage = CP_ACP;
-    int iBufferLen = WideCharToMultiByte(codePage, 0, pszw, numInputUnits, 0, 0, 0, 0);
-    if(!iBufferLen)
-    {
-        return;
-    }
-    m_data = (char*)malloc(iBufferLen);
-    if(WideCharToMultiByte(codePage, 0, pszw, numInputUnits, (LPSTR)m_data, iBufferLen, 0, 0) == 0)
-    {
-        free(m_data);
-    }
-    else
-    {
-        m_length = UINT32(iBufferLen);
-    }
-
-#else
-    // fail for non-ascii strings
-    UINT32 numInputUnits = (length == (size_t)-1) ? UINT32(MAX_UINT32) : UINT32(length);
-    UINT32 numConsumed = 0;
-    UINT32 numOutputed = 0;
-
-    // platform uses UTF16 encoding
-    if(sizeof(wchar_t) == 2)
-    {
-        if(IsUTF16StringAsciiOnly((const UINT16*)pszw, numInputUnits, g_bBigEndianMachine, numConsumed))
-        {
-            m_data = (char*)malloc(numConsumed);
-            if(ConvertUTF16StringToUTF8String((const UINT16*)pszw, numInputUnits, numConsumed, g_bBigEndianMachine,
-                                (UINT8*)m_data, numConsumed, numOutputed) < 0)
-            {
-                free(m_data);
-            }
-            else
-            {
-                m_length = numOutputed;
-            }
-        }
-        return;
-    }
-    // platform uses UTF32 encoding
-    if(sizeof(wchar_t) == 4)
-    {
-        if(IsUTF32StringAsciiOnly((const UINT32*)pszw, numInputUnits, g_bBigEndianMachine, numConsumed))
-        {
-            m_data = (char*)malloc(numConsumed);
-            if(ConvertUTF32StringToUTF8String((const UINT32*)pszw, numInputUnits, numConsumed, g_bBigEndianMachine,
-                                (UINT8*)m_data, numConsumed, numOutputed) < 0)
-            {
-                free(m_data);
-            }
-            else
-            {
-                m_length = numOutputed;
-            }
-        }
-        return;
-    }
-#endif
-}
-
-
-WCharTFromCCP::WCharTFromCCP(const char* psz, size_t length)
-{
-    if(!psz)
-    {
-        return;
-    }
-#if defined(_WINDOWS) && !defined(FORCE_NO_NATIVE_MULTIBYTE_WIDECHAR)
-    int numInputUnits = (length == (size_t)-1) ? -1 : int(length);
-    UINT codePage = CP_ACP;
-    int iBufferLen = MultiByteToWideChar(codePage, MB_PRECOMPOSED, psz, numInputUnits, 0, 0);
-    if(!iBufferLen)
-    {
-        return;
-    }
-    m_data = (wchar_t*)malloc(iBufferLen * 2);
-    if(MultiByteToWideChar(codePage, MB_PRECOMPOSED, psz, numInputUnits, (LPWSTR)m_data, iBufferLen) == 0)
-    {
-        free(m_data);
-    }
-    else
-    {
-        m_length = UINT32(iBufferLen);
-    }
-
-#else
-    // fail for non-ascii strings
-    UINT32 numInputUnits = (length == (size_t)-1) ? UINT32(MAX_UINT32) : UINT32(length);
-    UINT32 numConsumed = 0;
-    UINT32 numOutputed = 0;
-
-    if(IsUTF8StringAsciiOnly((const UINT8*)psz, numInputUnits, numConsumed))
-    {
-        // platform uses UTF16 encoding
-        if(sizeof(wchar_t) == 2)
-        {
-            m_data = (wchar_t*)malloc(numConsumed * 2);
-            if(ConvertUTF8StringToUTF16String((const UINT8*)psz, numInputUnits, numConsumed,
-                                (UINT16*)m_data, numConsumed, numOutputed, g_bBigEndianMachine) < 0)
-            {
-                free(m_data);
-            }
-            else
-            {
-                m_length = numOutputed;
-            }
-            return;
-        }
-        // platform uses UTF32 encoding
-        if(sizeof(wchar_t) == 4)
-        {
-            m_data = (wchar_t*)malloc(numConsumed * 4);
-            if(ConvertUTF8StringToUTF32String((const UINT8*)psz, numInputUnits, numConsumed,
-                                (UINT32*)m_data, numConsumed, numOutputed, g_bBigEndianMachine) < 0)
-            {
-                free(m_data);
-            }
-            else
-            {
-                m_length = numOutputed;
-            }
-        }
-        return;
-    }
-#endif
-}
-
-
-UTF8FromCCP::UTF8FromCCP(const char* psz, size_t length)
-{
-    WCharTFromCCP wide(psz, length);
-    UTF8FromWCharT utf8((const wchar_t*)wide, wide.Length());
-    m_data = utf8.Release();
-    m_length = utf8.Length();
-}
-
-
-CCPFromUTF8::CCPFromUTF8(const char* psz, size_t length)
-{
-    WCharTFromUTF8 wide(psz, length);
-    CCPFromWCharT ccp((const wchar_t*)wide, wide.Length());
-    m_data = ccp.Release();
-    m_length = ccp.Length();
-}
-
-
-//----------------------------------------------------------------------------
-// Legacy utilities
-//----------------------------------------------------------------------------
-// XXX
-// This should be reviewed.
-// With current logic we're using ActiveCodePage on CE Windows and UTF8 on non-CE Windows.
 #ifdef _WINCE
 #  if !defined(CP_UTF8)
 #     define CP_UTF8 CP_ACP
 #  else //!CP_UTF8
-#     if (defined(_X86_) || (WINVER >= 0x500)) && (CP_UTF8==65001)
+#     if defined(_X86_) && (CP_UTF8==65001)
 #       undef CP_UTF8
 #       define CP_UTF8 CP_ACP
 #     endif //_X86_ && (CP_UTF8==65001)
 #  endif //!CP_UTF8
 #endif //_WINCE
 
+
 #ifndef _WINDOWS
 #define CP_UTF8 65001
-#endif //_WINDOWS
 
-
-static int MultiByteToWideChar_Dispatch(
-                        UINT32 CodePage,            // code page
-                        ULONG32 dwFlags,            // character-type options
-                        const char* lpMultiByteStr, // string to map
-                        int cchMultiByte,           // number of bytes in string
-                        wchar_t* lpWideCharStr,     // wide-character buffer
-                        int cchWideChar)            // size of buffer
+#if defined(_FREEBSD) || defined(_OPENBSD) || defined(_NETBSD) || \
+    (defined(_MACINTOSH) && defined(_MAC_MACHO)) || defined(_MAC_UNIX) || \
+    defined(_OPENWAVE_ARMULATOR)
+int wcslen(const wchar_t* pStr)
 {
-#if defined(_WINDOWS) && !defined(FORCE_NO_NATIVE_MULTIBYTE_WIDECHAR)
-    return MultiByteToWideChar(CodePage, dwFlags, lpMultiByteStr, cchMultiByte,
-                    lpWideCharStr, cchWideChar);
+    assert(!"wcslen() Not Implemented\n");
+    return 0;
+}
+#elif defined(_SYMBIAN) || defined(_OPENWAVE_SIMULATOR)
+// We already got wcslen in string.h
 #else
-    // check arguments
-    if(!cchMultiByte || (CodePage != CP_UTF8))
-    {
-        return 0;
-    }
-    // translate arguments
-    UINT32 numInputUnits = UINT32(cchMultiByte);
-    if(cchMultiByte == -1)
-    {
-        numInputUnits = MAX_UINT32;
-    }
-    UINT32 numConsumed = 0;
-    UINT32 numOutputed = 0;
-
-    // platform uses UTF16 encoding
-    if(sizeof(wchar_t) == 2)
-    {
-        if(ConvertUTF8StringToUTF16String((const UINT8*)lpMultiByteStr, numInputUnits, numConsumed,
-                        (UINT16*)lpWideCharStr, (UINT32)cchWideChar, numOutputed, g_bBigEndianMachine) < 0)
-        {
-            return 0; //failure
-        }
-        return int(numOutputed);
-    }
-    // platform uses UTF32 encoding
-    if(sizeof(wchar_t) == 4)
-    {
-        if(ConvertUTF8StringToUTF32String((const UINT8*)lpMultiByteStr, numInputUnits, numConsumed,
-                        (UINT32*)lpWideCharStr, (UINT32)cchWideChar, numOutputed, g_bBigEndianMachine) < 0)
-        {
-            return 0; //failure
-        }
-        return int(numOutputed);
-    }
-    HX_ASSERT(!"Unexpected size of wchar_t");
-    return 0; //failure
-
+#include <wchar.h> //for wcslen()
 #endif
+
+// Declare static tables needed by the UTF8 <-> Unicode functions
+static const unsigned char z_byteZeroMask[] = {
+    0x1F, 0x0F, 0x07, 0x03, 0x01};
+
+static const unsigned int z_UTF8Bounds[] = {
+    0, 0x80, 0x800, 0x10000, 0x200000, 0x4000000, 0x80000000};
+
+
+// UTF16 <-> Unicode conversion functions
+// Declare static tables and types needed by the UTF16 <-> Unicode functions
+#define UTF16_BOM_BE	0xFEFF
+#define UTF16_BOM_LE	0xFFFE
+#define UTF16_W_PREFIX_MASK	0xFC00
+#define UTF16_W1_PREFIX	0xD800
+#define UTF16_W2_PREFIX	0xDC00
+#define UTF16_W_VALUE_MASK 0x03FF
+#define UTF16_W_VALUE_BIT_NUM 10
+#define UTF16_BOUND_1 0x10000
+#define UTF16_BOUND_2 0x10FFFF
+
+
+static int UTF8toUnicode(const char* pIn, 
+			 int inSize,
+			 unsigned int& out)
+{
+    int ret = 0;
+    
+    if (inSize > 0)
+    {
+	if (pIn[0] & 0x80)
+	{
+	    unsigned int value = pIn[0] << 1;
+	    int byteCount = 1;
+		
+	    // Count the number of bytes
+	    while (value & 0x80)
+	    {
+		byteCount++;
+		value <<= 1;
+	    }
+		
+	    // Make sure the byte count is within expected values and
+	    // that there are enough bytes in the input to contain
+	    // the encoding of this character
+	    if ((byteCount > 1) && 
+		(byteCount < 7) && 
+		(inSize >= byteCount))
+	    {
+		bool failed = false;
+		value = pIn[0] & z_byteZeroMask[byteCount - 2];
+		    
+		for (int i = 1; i < byteCount; i++)
+		{
+		    if ((pIn[i] & 0xC0) == 0x80)
+		    {
+			value <<= 6;
+			value |= pIn[i] & 0x3F;
+		    }
+		    else
+		    {
+			failed = true;
+			break;
+		    }
+		}
+		    
+		// Make sure we have not failed yet and make sure
+		// the value decoded is within the proper bounds for
+		// that encoding method
+		if ((!failed) &&
+		    (value >= z_UTF8Bounds[byteCount-1]) &&
+		    (value < z_UTF8Bounds[byteCount]))
+		{		
+		    ret = byteCount;
+		    out = value;
+		}
+	    }
+	}
+	else
+	{
+	    // single byte
+	    out = pIn[0];
+	    ret = 1;
+	}
+    }
+
+    return ret;
 }
 
-
-static int WideCharToMultiByte_Dispatch(
-                        UINT32 CodePage,                // code page
-                        ULONG32 dwFlags,                // performance and mapping flags
-                        const wchar_t* lpWideCharStr,   // wide-character string
-                        int cchWideChar,                // number of characters
-                        char* lpMultiByteStr,           // buffer for new string
-                        int cchMultiByte,               // size of buffer
-                        char* lpDefaultChar,            // default for unmappable characters
-                        HXBOOL* lpUsedDefaultChar)      // flag set when default char used
+static int UnicodeToUTF8(unsigned int in, 
+			 char* pOut, 
+			 int outSize)
 {
-#if defined(_WINDOWS) && !defined(FORCE_NO_NATIVE_MULTIBYTE_WIDECHAR)
-    return WideCharToMultiByte(CodePage, dwFlags, lpWideCharStr, cchWideChar,
-                    lpMultiByteStr, cchMultiByte, lpDefaultChar, lpUsedDefaultChar);
-#else
-    // check arguments
-    if(!cchWideChar || (CodePage != CP_UTF8))
-    {
-        return 0;
-    }
-    // translate arguments
-    UINT32 numInputUnits = UINT32(cchWideChar);
-    if(cchWideChar == -1)
-    {
-        numInputUnits = MAX_UINT32;
-    }
-    UINT32 numConsumed = 0;
-    UINT32 numOutputed = 0;
+    int bytesWritten = 0;
 
-    // platform uses UTF16 encoding
-    if(sizeof(wchar_t) == 2)
-    {
-        if(ConvertUTF16StringToUTF8String((const UINT16*)lpWideCharStr, numInputUnits, numConsumed,
-                        g_bBigEndianMachine, (UINT8*)lpMultiByteStr, (UINT32)cchMultiByte, numOutputed) < 0)
-        {
-            return 0; //failure
-        }
-        return int(numOutputed);
-    }
-    // platform uses UTF32 encoding
-    if(sizeof(wchar_t) == 4)
-    {
-        if(ConvertUTF32StringToUTF8String((const UINT32*)lpWideCharStr, numInputUnits, numConsumed,
-                        g_bBigEndianMachine, (UINT8*)lpMultiByteStr, (UINT32)cchMultiByte, numOutputed) < 0)
-        {
-            return 0; //failure
-        }
-        return int(numOutputed);
-    }
-    HX_ASSERT(!"Unexpected size of wchar_t");
-    return 0; //failure
+    unsigned int i = 0;
+    int bytesNeeded = -1;
+    unsigned char ch;
 
-#endif
+    while (i < (sizeof(z_UTF8Bounds) / sizeof(unsigned int)))
+    {
+	if (in < z_UTF8Bounds[i])
+	{
+	    bytesNeeded = i;
+	    break;
+	}
+	i++;
+    }
+
+    if (bytesNeeded == 1)
+    {
+	ch = in & 0xff;
+	if (outSize > bytesWritten)
+	{
+	    pOut[bytesWritten] = ch;
+	}
+	bytesWritten++;
+    }
+    else if (bytesNeeded > 1)
+    {
+	ch = ((0xff << (8 - bytesNeeded)) | 
+	      ((in >> ((bytesNeeded - 1) * 6) ) & 
+	       z_byteZeroMask[bytesNeeded - 2]));
+	if (outSize > bytesWritten)
+	{
+	    pOut[bytesWritten] = ch;
+	}
+	bytesWritten++;
+
+	for (int j = bytesNeeded - 2; j >= 0; j--)
+	{
+	    ch = 0x80 | ((in >> (j * 6)) & 0x3F);
+	    if (outSize > bytesWritten)
+	    {
+		pOut[bytesWritten] = ch;
+	    }
+	    bytesWritten++;
+	}
+
+    }
+    else
+    {
+	bytesWritten = 0;
+    }
+
+    return bytesWritten;
 }
 
+/**************************************************************************************
+ * UTF16ToUnicode()
+ *
+ *Parameters:
+ *	const UINT16* pwIn:	[in] input UTF16 code array.
+ *	int iInSize:		[in] the number UTF16 in pwIn, iInSize is at least 1
+ *	UINT32* pdwOut:		[out] the result UICODE. 0 means the termination of the string
+ *	
+ *Return:
+ *	int : the number of UTF16 comsumed in this function. 0 means invalid code is met or no enough data in input buffer.
+ *
+ ************************************************************************************/
+static int UTF16BEToUnicode(const UINT16* pwIn, int iInSize,UINT32* pdwOut)
+{
+	UINT16 wUtf16[2];
+	const UINT8* pbTmp = (const UINT8*)pwIn;
+	
+	/* check input parameters */
+	
+	/* parse input string */
+	if(iInSize >= 1)	
+	{
+		wUtf16[0] = (UINT16)*pbTmp++ << 8;
+		wUtf16[0] |= (UINT16)*pbTmp++;
+		if((wUtf16[0] & UTF16_W_PREFIX_MASK) != UTF16_W1_PREFIX)	
+		{
+			*pdwOut = (UINT32)wUtf16[0];
+			return 1;
+		}
+		else if(iInSize>=2)	
+		{
+			wUtf16[1] = (UINT16)*pbTmp++ << 8;
+			wUtf16[1] |= (UINT16)*pbTmp++;
+			if((wUtf16[1] && UTF16_W_PREFIX_MASK) ==  UTF16_W2_PREFIX)	
+			{
+				*pdwOut = (UINT32)((wUtf16[0] & UTF16_W_VALUE_MASK) << UTF16_W_VALUE_BIT_NUM);
+				*pdwOut |= (UINT32)(wUtf16[1] & UTF16_W_VALUE_MASK);
+				return 2;
+			}
+		}
+	}
+	/* error code or input buffer empty, terminate */
+	*pdwOut = 0;
+	return 0;
+
+}
+
+/**************************************************************************************
+ * UTF16ToUnicode()
+ *
+ *Parameters:
+ *	const UINT16* pwIn:	[in] input UTF16 code array.
+ *	int iInSize:		[in] the number UTF16 in pwIn, iInSize is at least 1
+ *	UINT32* pdwOut:		[out] the result UICODE. 0 means the termination of the string
+ *	
+ *Return:
+ *	int : the number of UTF16 comsumed in this function. 0 means invalid code is met or no enough data in input buffer.
+ *
+ ************************************************************************************/
+static int UTF16LEToUnicode(const UINT16* pwIn, int iInSize,UINT32* pdwOut)
+{
+	UINT16 wUtf16[2];
+	const UINT8* pbTmp = (const UINT8*)pwIn;
+	
+	/* check input parameters */
+	
+	/* parse input string */
+	if(iInSize >= 1)	
+	{
+		wUtf16[0] = (UINT16)*pbTmp++;
+		wUtf16[0] |= (UINT16)*pbTmp++ << 8;
+		if((wUtf16[0] & UTF16_W_PREFIX_MASK) != UTF16_W1_PREFIX)	
+		{
+			*pdwOut = (UINT32)wUtf16[0];
+			return 1;
+		}
+		else if(iInSize>=2)	
+		{
+			wUtf16[1] = (UINT16)*pbTmp++;
+			wUtf16[1] |= (UINT16)*pbTmp++ << 8;
+			if((wUtf16[1] && UTF16_W_PREFIX_MASK) ==  UTF16_W2_PREFIX)	
+			{
+				*pdwOut = (UINT32)((wUtf16[0] & UTF16_W_VALUE_MASK) << UTF16_W_VALUE_BIT_NUM);
+				*pdwOut |= (UINT32)(wUtf16[1] & UTF16_W_VALUE_MASK);
+				return 2;
+			}
+		}
+	}
+	/* error code or input buffer empty, terminate */
+	*pdwOut = 0;
+	return 0;
+}
+
+static int ConvertUTF8ToUnicode(const char* pInBuf, 
+				int iInSize,
+				wchar_t* pOutWideBuf,
+				int iOutSize)
+{
+    int used_from_input_this_round;
+    int used_from_output = 0;
+    unsigned int unicode = 0;
+    bool failed = false;
+
+    if (iInSize < 0)
+    {
+	iInSize = strlen(pInBuf);
+    }
+
+    while (iInSize > 0)
+    {
+	used_from_input_this_round = 
+	    UTF8toUnicode(pInBuf, iInSize, unicode);
+	
+	if (used_from_input_this_round)
+	{
+	    pInBuf += used_from_input_this_round;
+	    iInSize -= used_from_input_this_round;
+	    if (used_from_output < iOutSize)
+	    {
+		pOutWideBuf[used_from_output] = unicode;
+	    }
+	    used_from_output++;
+	}
+	else
+	{
+	    failed = true;
+	    break;
+	}
+    }
+
+    // Always make sure the output is null terminated
+    if (unicode != 0)
+    {
+	unicode = 0;
+	if (used_from_output < iOutSize)
+	{
+	    pOutWideBuf[used_from_output] = unicode;
+	}
+	used_from_output++;
+    }
+    
+    if ((failed || (used_from_output > iOutSize)) && (iOutSize != 0))
+    {
+	used_from_output = 0;
+    }
+
+    return used_from_output;
+}
+
+static int ConvertUnicodeToUTF8(const wchar_t* pInWideBuf,
+				int iInSize,
+				char* pOutBuf, 
+				int iOutSize)
+{
+    int used_from_output_this_round;
+    int used_from_output = 0;
+    unsigned int unicode = 0;
+    bool failed = false;
+
+    if (iInSize < 0)
+    {
+	iInSize = wcslen(pInWideBuf);
+    }
+
+    while (iInSize > 0)
+    {
+	unicode = *pInWideBuf;
+	used_from_output_this_round =
+	    UnicodeToUTF8(unicode, 
+			  &(pOutBuf[used_from_output]),
+			  iOutSize - used_from_output);
+	
+	if (used_from_output_this_round)
+	{
+	    pInWideBuf++;
+	    iInSize--;
+	    used_from_output += used_from_output_this_round;
+	}
+	else
+	{
+	    failed = true;
+	    break;
+	}
+    }
+
+    // Always make sure the output is null terminated
+    if (unicode != 0)
+    {
+	unicode = 0;
+	used_from_output_this_round =
+	    UnicodeToUTF8(unicode, 
+			  &(pOutBuf[used_from_output]),
+			  iOutSize - used_from_output);
+	used_from_output += used_from_output_this_round;
+	if (!used_from_output_this_round)
+	{
+	    failed = true;
+	}
+    }
+    
+    if ((failed || (used_from_output > iOutSize)) && (iOutSize != 0))
+    {
+	used_from_output = 0;
+    }
+
+    return used_from_output;
+}
+
+ 
+/**************************************************************************************
+ * ConvertUTF16ToUTF8()
+ *
+ * Parameters:
+ *	UINT8* pbInCur		[in]: the input UTF8 buffer 
+ *	int iInSize	[in]: the size of pbInCur
+ *	UINT16* pwOut	[out]: the output UTF16 buffer
+ *
+ * Return:
+ *	int: the number of UTF8 (exclude termination char) in pbOut
+ *
+ *************************************************************************************/
+int ConvertUTF16ToUTF8(const UINT16* pwIn,int iInSize,UINT8* pbOut,int iOutSize,UTF16_TYPE Utf16Type)
+{
+	int iTmpConvertSize = 0;
+	int iUTF8Count = 0;
+	UINT32 dwUtf32 = 0;
+	
+	/* check parameters */
+	if(pwIn == NULL || pbOut == NULL || iInSize <= 2 || iOutSize<=2)
+		return 0;
+
+	/* determin type */
+	if(Utf16Type == UTF16)	
+	{
+		const unsigned char* pbInCur = (const unsigned char*)pwIn;
+		if(pbInCur[0] == 0xFE && pbInCur[1] == 0xFF)
+			Utf16Type = UTF16BE;
+		else if(pbInCur[0] == 0xFF && pbInCur[1] == 0xFE)
+			Utf16Type = UTF16LE;
+		else
+			return 0;
+
+		/* move pointer to first UTF16 char */
+		pwIn += 1;
+		iInSize -= 1;
+	}
+	
+	/* parse string */	
+	while(1)	
+	{
+		/* convert UTF16 to UTF32 */
+		if(Utf16Type == UTF16LE)	
+		{
+			iTmpConvertSize = UTF16LEToUnicode(
+								pwIn,
+								iInSize,
+								&dwUtf32);
+		}
+		else	{
+			iTmpConvertSize = UTF16BEToUnicode(
+								pwIn,
+								iInSize,
+								&dwUtf32);
+		}
+		/* update pointer */
+		pwIn += iTmpConvertSize;
+		iInSize -= iTmpConvertSize;
+
+		/* check result */
+		if(iTmpConvertSize ==0 || dwUtf32 == 0)	
+		{
+			/* convertion is terminate */
+			*pbOut++ = 0x00;
+			break;
+		}
+
+		/* convert UTF32 to UTF8 */
+		iTmpConvertSize = UnicodeToUTF8(
+								dwUtf32,
+								(char*)pbOut,
+								iOutSize-1);
+		if(iTmpConvertSize ==0)	
+		{
+			/* convertion is terminate */
+			*pbOut++ = 0x00;
+			break;
+		}
+		pbOut += iTmpConvertSize;
+		iOutSize -= iTmpConvertSize;
+		iUTF8Count += iTmpConvertSize;
+	}
+
+	return iUTF8Count;
+}
+				
+int MultiByteToWideChar(UINT32 CodePage,        // code page
+			 ULONG32 dwFlags,       // character-type options
+			 const char* lpMultiByteStr, // string to map
+			 int cchMultiByte,      // number of bytes in string
+			 wchar_t* lpWideCharStr, // wide-character buffer
+			 int cchWideChar)        // size of buffer
+{
+    return ConvertUTF8ToUnicode(lpMultiByteStr, 
+				cchMultiByte,
+				lpWideCharStr,
+				cchWideChar);
+}
+
+int WideCharToMultiByte(UINT32 CodePage,        // code page
+			 ULONG32 dwFlags,      // performance and mapping flags
+			 const wchar_t* lpWideCharStr, // wide-character string
+			 int cchWideChar,       // number of characters
+			 char* lpMultiByteStr, // buffer for new string
+			 int cchMultiByte,      // size of buffer
+			 char* lpDefaultChar,  // default for unmappable 
+                                                // characters
+			 HXBOOL* lpUsedDefaultChar) // flag set when default 
+                                                 // char. used
+{
+    return ConvertUnicodeToUTF8(lpWideCharStr,
+				cchWideChar,
+				lpMultiByteStr, 
+				cchMultiByte);
+}
+
+#endif
 
 HLXOsStrW::HLXOsStrW(const char* ascii, size_t length) : 
     m_isMutable(FALSE), 
@@ -693,17 +590,16 @@ HLXOsStrW::HLXOsStrW(const unsigned char* ascii, size_t length) :
 
 void HLXOsStrW::Init(const char* ascii, size_t length)
 {
-    m_size = ((length != (size_t)-1) ? length : ((ascii) ? StringLengthA((const char*) ascii) + 1 : 0));
+    m_size = ((length != (size_t)-1) ? length : ((ascii) ? strlen((const char*) ascii) + 1 : 0));
 
     if (ascii)
     {
-	m_outsize = MultiByteToWideChar_Dispatch(CP_UTF8, 0, (const char*) ascii, length, NULL, 0);
-	if ((length != (size_t)-1) && (length != 0))
-	  m_outsize = ((size_t)m_outsize < length)?length:m_outsize;
-	m_uni = ((wchar_t*) malloc(m_outsize * sizeof(wchar_t)));
-	if (m_uni)
+	m_outsize = MultiByteToWideChar(CP_UTF8, 0, (const char*) ascii, length, NULL, 0);
+	if( length!=(size_t)-1 && (size_t)m_outsize<length )
+        m_outsize = length;
+	if ((m_uni = ((wchar_t*) malloc( m_outsize * sizeof(wchar_t)))))
 	{
-	    m_outsize = MultiByteToWideChar_Dispatch(CP_UTF8, 0, (const char*) ascii, length, m_uni, m_outsize);
+	    m_outsize = MultiByteToWideChar(CP_UTF8, 0, (const char*) ascii, length, m_uni, m_outsize);
 	}
 	else
 	{
@@ -712,23 +608,21 @@ void HLXOsStrW::Init(const char* ascii, size_t length)
     }
 }
 
-#ifndef ANDROID
 HLXOsStrW::HLXOsStrW(const wchar_t* uni, size_t length) : 
     m_isMutable(FALSE), 
     m_toAscii(FALSE),
-    m_size((length != (size_t)-1) ? length : ((uni) ? StringLengthW(uni) + 1 : 0)),
+    m_size((length != (size_t)-1) ? length : ((uni) ? wcslen(uni) + 1 : 0)),
     m_uni(0),
     m_ascii(0)
 { 
     if (uni)
     {
-	m_outsize = WideCharToMultiByte_Dispatch(CP_UTF8, 0, uni, length, NULL, 0, NULL, NULL);
-	if ((length != (size_t)-1) && (length != 0))
-	  m_outsize = ((size_t)m_outsize < length)?length:m_outsize;
-	m_ascii = ((char*) malloc(m_outsize));
-	if (m_ascii)
+	m_outsize = WideCharToMultiByte(CP_UTF8, 0, uni, length, NULL, 0, NULL, NULL);
+	if( length!=(size_t)-1 && (size_t)m_outsize<length )
+        m_outsize = length;
+	if ( (m_ascii = ((char*) malloc(m_outsize))) )
 	{
-	    m_outsize = WideCharToMultiByte_Dispatch(CP_UTF8, 0, uni, length, m_ascii, m_outsize, NULL, NULL); 
+	    m_outsize = WideCharToMultiByte(CP_UTF8, 0, uni, length, m_ascii, m_outsize, NULL, NULL); 
 	}
 	else
 	{
@@ -736,7 +630,6 @@ HLXOsStrW::HLXOsStrW(const wchar_t* uni, size_t length) :
 	}
     }
 }
-#endif
 
 HLXOsStrW::~HLXOsStrW() 
 { 
@@ -744,7 +637,7 @@ HLXOsStrW::~HLXOsStrW()
     {
 	if (m_toAscii && m_ascii && m_uni)
 	{
-	    WideCharToMultiByte_Dispatch(CP_UTF8, 0, m_uni, -1, m_ascii, m_size, NULL, NULL);
+	    WideCharToMultiByte(CP_UTF8, 0, m_uni, -1, m_ascii, m_size, NULL, NULL);
 	}
     }
     if (m_toAscii) 
@@ -804,7 +697,7 @@ void HLXOsStrW::Copy(HLXOsStrW& lhs, const HLXOsStrW& rhs)
 	    if (lhs.m_uni)
 	    {
 		lhs.m_outsize = rhs.m_outsize;
-		memcpy(lhs.m_uni, rhs.m_uni, bufSize); /* Flawfinder: ignore */
+		::memcpy(lhs.m_uni, rhs.m_uni, bufSize); /* Flawfinder: ignore */
 	    }
 	}
 	lhs.m_ascii = rhs.m_ascii;
@@ -821,10 +714,9 @@ void HLXOsStrW::Copy(HLXOsStrW& lhs, const HLXOsStrW& rhs)
 	    if (lhs.m_ascii)
 	    {
 		lhs.m_outsize = rhs.m_outsize;
-		memcpy(lhs.m_ascii, rhs.m_ascii, lhs.m_outsize); /* Flawfinder: ignore */
+		::memcpy(lhs.m_ascii, rhs.m_ascii, lhs.m_outsize); /* Flawfinder: ignore */
 	    }
 	}
 	lhs.m_uni = rhs.m_uni;
     }
 }
-

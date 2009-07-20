@@ -53,7 +53,8 @@
  *
  */
 class CFileSwitcherPassthrough : public IHXFileSwitcher,
-				 public IHXFileResponse
+				 public IHXFileResponse,
+				 public IHXThreadSafeMethods
 {
 public:
     /*
@@ -124,6 +125,11 @@ public:
 
     STDMETHOD(SeekDone)		(THIS_ 
 				HX_RESULT status);
+
+    /*
+     *  IHXThreadSafeMethods method
+     */
+   STDMETHOD_(UINT32,IsThreadSafe) (THIS);
 
 private:
     void Reset(void);

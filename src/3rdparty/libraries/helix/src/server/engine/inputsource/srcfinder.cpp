@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
-* Source last modified: $Id: srcfinder.cpp,v 1.41 2009/05/08 23:00:56 dcollins Exp $
+* Source last modified: $Id: srcfinder.cpp,v 1.27 2007/04/17 12:51:12 npatil Exp $
 *
 * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.
 *
@@ -62,13 +62,12 @@
 #include "asmstreamfilter.h"
 #include "srcfinder.h"
 #include "fsmanager.h"
-#include "defslice.h"
 
-BasicSourceFinder::BasicSourceFinder(Process* pProc, ClientSession* pSession)
+BasicSourceFinder::BasicSourceFinder(Process* pProc, Player::Session* pPlayerSession)
     : m_ulRefCount(0)
     , m_pProc(pProc)
     , m_pConfig(NULL)
-    , m_pSession(pSession) // if only used by ClientSession
+    , m_pPlayerSession(pPlayerSession) // if only used by Player::Session
     , m_pResp(NULL)
     , m_pRequest(NULL)
     , m_pURL(NULL)
@@ -84,7 +83,6 @@ BasicSourceFinder::BasicSourceFinder(Process* pProc, ClientSession* pSession)
     , m_pCurrentPlugin(NULL)
     , m_findState(SF_CLOSED)
 {
-    HX_ADDREF(m_pSession);
     HX_ASSERT(m_pProc);
 }
 
@@ -133,7 +131,6 @@ BasicSourceFinder::Close(void)
 {
     m_findState = SF_CLOSED;
 
-    HX_RELEASE(m_pSession);
     HX_RELEASE(m_pFSManager);
     HX_RELEASE(m_pRequest);
     HX_RELEASE(m_pMimeMapper);
@@ -149,7 +146,8 @@ BasicSourceFinder::Close(void)
 
     m_pCurrentPlugin = NULL;
 
-    HX_RELEASE(m_pURL);
+    // this needs to be a COM obj.
+    m_pURL = NULL;
 
 }
 
@@ -160,7 +158,7 @@ BasicSourceFinder::Close(void)
 //  Given an URL, instantiates an appropriate source object and
 //  calls back IHXSourceFinderFileResponse::FindDone()
 HX_RESULT
-BasicSourceFinder::FindSource(IHXURL* pURL, ServerRequest* pRequest)
+BasicSourceFinder::FindSource(URL* pURL, ServerRequest* pRequest)
 {
     HX_ASSERT(pURL);
     HX_ASSERT(pRequest);
@@ -190,8 +188,7 @@ BasicSourceFinder::FindSource(IHXURL* pURL, ServerRequest* pRequest)
     m_pRequest->AddRef();
 
     m_pURL = pURL;
-    m_pURL->AddRef();
-    
+
     if (m_pProc->pc->config->GetInt(m_pProc,
         "config.InputSource.UseASMFilter"))
     {
@@ -261,20 +258,14 @@ BasicSourceFinder::InitDone(HX_RESULT status)
     return HXR_OK;
 }
 
+
 STDMETHODIMP
 BasicSourceFinder::FileObjectReady(HX_RESULT status, IUnknown* pFileObject)
 {
     HX_RESULT hResult = HXR_OK;
     HX_ASSERT(!m_pBroadcastMapper);
     HX_ASSERT(!m_pMimeMapper);
-    BOOL  bSwitchRequest = FALSE;
 
-#ifdef HELIX_FEATURE_SERVER_FCS
-    if (m_pSession && m_pSession->m_pStack)
-    {
-        bSwitchRequest = m_pSession->m_pStack->GetSize();
-    }
-#endif //HELIX_FEATURE_SERVER_FCS
     if (SF_FINDING == m_findState && HXR_OK == status)
     {
         HX_RELEASE(m_pFileObject);
@@ -298,16 +289,14 @@ BasicSourceFinder::FileObjectReady(HX_RESULT status, IUnknown* pFileObject)
             (void**)&m_pBroadcastMapper);
         if(HXR_OK == hResult)
         {
-            const char* pPath = NULL;
-            m_pURL->GetFullPath(pPath);
             // Must be a live object
-            hResult = m_pBroadcastMapper->FindBroadcastType(pPath, this);
+            hResult = m_pBroadcastMapper->FindBroadcastType(m_pURL->full, this);
             // continues in BroadcastTypeFound()
             return HXR_OK;
         }
         else
         {
-            if (m_pSession && m_pSession->m_bBlockTransfer)
+            if (m_pPlayerSession && m_pPlayerSession->m_bBlockTransfer)
             {
                 // See if the "client" has requested a block transfer ... this is
                 // a hack but the url is irrelevant in this case
@@ -315,12 +304,12 @@ BasicSourceFinder::FileObjectReady(HX_RESULT status, IUnknown* pFileObject)
 
                 if (HXR_FAIL == hResult)
                 {
-                    m_pSession->SendAlert(SE_DATATYPE_UNSUPPORTED);
+                    m_pPlayerSession->SendAlert(SE_DATATYPE_UNSUPPORTED);
                 }
                 // XXXAAK, XXXSMP - quick fix for now -- need to handle errors
                 else if (HXR_OK != hResult)
                 {
-                    m_pSession->SendAlert(SE_INTERNAL_ERROR);
+                    m_pPlayerSession->SendAlert(SE_INTERNAL_ERROR);
                 }
                 return HXR_OK;
             }
@@ -328,15 +317,9 @@ BasicSourceFinder::FileObjectReady(HX_RESULT status, IUnknown* pFileObject)
             hResult = m_pFileObject->QueryInterface(IID_IHXFileMimeMapper,
                 (void**)&m_pMimeMapper);
 
-            const char* pPath = NULL;
-            const char* pExt = NULL;
-            
-            m_pURL->GetFullPath(pPath);
-            m_pURL->GetExt(pExt);
-                        
             if(HXR_OK == hResult)
             {
-                m_pMimeMapper->FindMimeType(pPath, this);
+                m_pMimeMapper->FindMimeType(m_pURL->full, this);
                 // Continues in MimeTypeFound()..
             }
             else
@@ -346,29 +329,25 @@ BasicSourceFinder::FileObjectReady(HX_RESULT status, IUnknown* pFileObject)
                 /*
                 * "+" URL Hack
                 */
-                if (m_pSession && HXXFile::IsPlusURL(pPath))
+                if (m_pPlayerSession && HXXFile::IsPlusURL(m_pURL->full))
                 {
                     hResult = FindStatic("application/x-pn-plusurl", NULL);
                 }
                 else
                 {
-                    hResult = FindStatic(NULL, pExt);
+                    hResult = FindStatic(NULL, m_pURL->ext);
                 }
 
-                if(m_pSession && !m_pSession->m_pClient->m_bIsAProxy)
+                if(m_pPlayerSession && !m_pPlayerSession->m_pClient->m_bIsAProxy)
                 {
                     if (HXR_NOT_SUPPORTED == hResult || HXR_FAIL == hResult)
                     {
-                        // if not a switch request then terminate the session
-                        if (!bSwitchRequest || hResult == HXR_FAIL)
-                        {
-                            m_pSession->SendAlert(SE_DATATYPE_UNSUPPORTED);
-                        }
+                        m_pPlayerSession->SendAlert(SE_DATATYPE_UNSUPPORTED);
                     }
                     // XXXAAK, XXXSMP - quick fix for now -- need to handle errors
                     else if (HXR_OK != hResult)
                     {
-                        m_pSession->SendAlert(SE_INTERNAL_ERROR);
+                        m_pPlayerSession->SendAlert(SE_INTERNAL_ERROR);
                     }
                 }
                 else if (HXR_OK != hResult)
@@ -408,9 +387,6 @@ BasicSourceFinder::MimeTypeFound(HX_RESULT status, const char* pMimeType)
 {
     // XXXSMP This isn't good enough, what if the fileobject doesn't know
     //  This is possible
-    const char* pExt = NULL;
-    
-
     if (SF_CLOSED == m_findState)
     {
         return HXR_OK;
@@ -420,14 +396,13 @@ BasicSourceFinder::MimeTypeFound(HX_RESULT status, const char* pMimeType)
 
     m_CurrentSourceType = pMimeType;
 
-    m_pURL->GetExt(pExt);
     if (pMimeType)
     {
         FindStatic(pMimeType, NULL);
     }
     else
     {
-        FindStatic(NULL, pExt);
+        FindStatic(NULL, m_pURL->ext);
     }
 
     return HXR_OK;
@@ -473,11 +448,19 @@ BasicSourceFinder::BroadcastTypeFound(HX_RESULT status, const char* pType)
     IHXPSourceControl* pSource = NULL;
     IHXValues* pVal = NULL;
     IHXBuffer* pBuf = NULL;
-    const char* pName = NULL;
-    m_pURL->GetPath(pName);
 
-    const char* pFileName = pName + m_pFSManager->m_mount_point_len - 1;
+    const char* pFileName = m_pURL->name + m_pFSManager->m_mount_point_len - 1;
     UINT32     bUseSourceContainer = FALSE;
+    BOOL       bUseMediaDeliveryPipeline = FALSE;
+
+    /* XXDWL
+     * For live (broadcast) sessions, the media delivery pipeline needs to be turned off.
+     * This is a temporary solution until a number of issues dealing with timestamp
+     * dependent media, and ASM rule handling are worked out.
+     * See also: server/engine/session/player.cpp:1947
+
+     bUseMediaDeliveryPipeline = m_pPlayerSession->m_bUseMediaDeliveryPipeline;
+    */
 
 #if NOTYET
     /* XXTDM
@@ -504,8 +487,8 @@ BasicSourceFinder::BroadcastTypeFound(HX_RESULT status, const char* pType)
 
     HX_ASSERT(pFileName);
     theErr = m_pProc->pc->broadcast_manager->GetStream(pType, pFileName,
-                           pSource, m_pProc,
-                           m_pSession ? m_pSession->GetSessionStats()
+                           pSource, m_pProc, bUseMediaDeliveryPipeline,
+                           m_pPlayerSession ? m_pPlayerSession->GetSessionStats()
                                             : NULL);
     if (HXR_OK == theErr)
     {
@@ -528,16 +511,8 @@ BasicSourceFinder::BroadcastTypeFound(HX_RESULT status, const char* pType)
         }
     }
 
-    // Create and attach CASMStreamFilter to BroadcastStreamer
-    IUnknown* pNewSource = NULL;
-    if (HXR_OK == theErr)
-    {
-        theErr = HandleFilters((IHXServerPacketSource*)pSource, pNewSource);
-    }
+    FindSourceDone(theErr, pSource);
 
-    FindSourceDone(theErr, pNewSource);
-
-    HX_RELEASE(pNewSource);
     HX_RELEASE(pSource);
     HX_RELEASE(pVal);
     HX_RELEASE(pBuf);
@@ -605,40 +580,9 @@ BasicSourceFinder::FindFileFormat(const char* pMimeType,
     // Init the FF plugin with the server context
     if (HXR_OK == theErr)
     {
-                theErr = pPlugin->InitPlugin(m_pProc->pc->server_context);
+        theErr = pPlugin->InitPlugin(m_pProc->pc->server_context);
     }
-    if (HXR_OK == theErr && m_pFSManager)
-    {
-        IHXValues *pOptionInfo=NULL;
-        PluginHandler::FileSystem::PluginInfo* pPluginInfo=NULL;
-        m_pFSManager->GetLastPlugin( pPluginInfo );
-        if (pPluginInfo)
-        {
-            pPluginInfo->GetOptions(pOptionInfo);
-        }
-        ULONG32 ulValue;
-        if (pOptionInfo)
-        {
-            IHXRegistry *pRegistry=NULL;
-            m_pProc->pc->server_context->QueryInterface(IID_IHXRegistry, (void**)&pRegistry);
-            INT32 iLicenseContentMarker=0;
-            if (!pRegistry || pRegistry->GetIntByName(REGISTRY_CDIST_PUBLISHER, iLicenseContentMarker) != HXR_OK)
-            {
-                iLicenseContentMarker = 0;
-            }
-            if (iLicenseContentMarker && HXR_OK == pOptionInfo->GetPropertyULONG32("ContentMarker", ulValue))
-            { 
-                IHXContentRecordability *pContRecord=NULL;
-                pPlugin->QueryInterface(IID_IHXContentRecordability, (void**)&pContRecord );
-                if (pContRecord)
-                {
-                    pContRecord->SetContentMarker((UINT8)ulValue);
-                    HX_RELEASE(pContRecord);
-                }
-            }
-            HX_RELEASE(pOptionInfo);
-        }
-    }
+
     HX_RELEASE(pPlugin);
     HX_RELEASE(pInstance);
     return theErr;
@@ -699,9 +643,9 @@ BasicSourceFinder::FindStatic(const char* pMimeType,
 
     if (HXR_OK == theErr)
     {
-        DPRINTF(D_INFO, ("Found handler for %s\n", pExt));
+        DPRINTF(D_INFO, ("Found handler for %s\n", m_pURL->ext));
 
-        if (m_pSession->m_bUseMDP)
+        if (m_pPlayerSession->m_bUseMediaDeliveryPipeline)
         {
             type = STATIC_PUSH;
         }
@@ -817,25 +761,13 @@ BasicSourceFinder::FindStatic(const char* pMimeType,
 
     if (HXR_OK != theErr)
     {
-        const char* pExtension = NULL;
-        m_pURL->GetExt(pExtension);
-        ERRMSG(m_pProc->pc->error_handler, "No handler for \"%s\"\n",
-               pExtension?pExtension:"(null)");
-        if(m_pSession &&
-            !m_pSession->m_pClient->m_bIsAProxy &&
+        ERRMSG(m_pProc->pc->error_handler, "No handler for %s\n",
+               m_pURL->ext?m_pURL->ext:"(null)");
+        if(m_pPlayerSession &&
+            !m_pPlayerSession->m_pClient->m_bIsAProxy &&
             HXR_NOT_SUPPORTED == theErr)
         {
-#ifdef HELIX_FEATURE_SERVER_FCS
-            // if it was a switch request then do not terminate the session
-            if (m_pSession->m_pStack->GetSize())
-            {
-                FindSourceDone(theErr, NULL);
-            }
-            else
-#endif //HELIX_FEATURE_SERVER_FCS
-            {
-                m_pSession->SendAlert(SE_DATATYPE_UNSUPPORTED);
-            }
+            m_pPlayerSession->SendAlert(SE_DATATYPE_UNSUPPORTED);
         }
     }
 
@@ -952,8 +884,8 @@ BasicSourceFinder::AttachASMFilter(IUnknown* pPushSource, REF(IUnknown*) pOut)
     CASMStreamFilter* pASMFilter = NULL;
     if (HXR_OK == theErr)
     {
-        HX_ASSERT(m_pSession->m_pStats);
-        pASMFilter = new CASMStreamFilter(m_pProc, m_pSession->m_pStats, m_pConfig);
+        HX_ASSERT(m_pPlayerSession->m_pStats);
+        pASMFilter = new CASMStreamFilter(m_pProc, m_pPlayerSession->m_pStats, m_pConfig);
         pASMFilter->AddRef();
     }
 
@@ -996,6 +928,34 @@ BasicSourceFinder::AttachASMFilter(IUnknown* pPushSource, REF(IUnknown*) pOut)
         theErr = pASMFilter->SetControlSource(pCtrlSource);
     }
 
+#if 1 // initial rate hack
+    // Allow the initial rate to be set via the URL
+    if (HXR_OK == theErr)
+    {
+        const char* pcURL = NULL;
+        const char* pc = NULL;
+        const char* pcir = NULL;
+
+        UINT32 ulInitialVal = 0;
+
+        theErr = m_pRequest->GetURL(pcURL);
+        if (HXR_OK == theErr)
+        {
+            pc = strstr(pcURL, "?");
+        }
+        if (pc)
+        {
+            pcir = strstr(pc, "ir=");
+        }
+        if (pcir)
+        {
+            pcir+=3;
+            ulInitialVal = atoi(pcir);
+            pASMFilter->SetInitial(0, ulInitialVal);
+        }
+    }
+#endif
+
     HX_RELEASE(pCtrlSource);
     HX_RELEASE(pPacketSource);
     HX_RELEASE(pCtrlSink);
@@ -1013,11 +973,11 @@ BasicSourceFinder::AttachASMFilter(IUnknown* pPushSource, REF(IUnknown*) pOut)
 HX_RESULT
 BasicSourceFinder::GetClientProfileInfo()
 {
-    HX_ASSERT(m_pSession);
+    HX_ASSERT(m_pPlayerSession);
     HX_ASSERT(!m_pClientProfile);
-    if(m_pSession->m_pStats)
+    if(m_pPlayerSession->m_pStats)
     {
-        return m_pSession->m_pStats->
+        return m_pPlayerSession->m_pStats->
             GetClientProfileInfo(m_pClientProfile);
     }
 

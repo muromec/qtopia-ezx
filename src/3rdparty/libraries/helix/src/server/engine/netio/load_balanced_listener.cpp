@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: load_balanced_listener.cpp,v 1.6 2008/07/03 21:54:18 dcollins Exp $
+ * Source last modified: $Id: load_balanced_listener.cpp,v 1.5 2004/07/24 23:10:19 tmarshall Exp $
  *
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.
  *
@@ -36,7 +36,6 @@
  * ***** END LICENSE BLOCK ***** */
 
 #include <stdio.h>
-#include "hlxclib/signal.h"
 
 #include "hxtypes.h"
 #include "hxcom.h"

@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: pkthndlr.cpp,v 1.12 2009/03/17 16:40:10 jgordon Exp $
+ * Source last modified: $Id: pkthndlr.cpp,v 1.9 2005/08/02 18:00:48 albertofloyd Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -180,8 +180,7 @@ RTCPUnPacker::~RTCPUnPacker()
 	for (i = m_PktList.Begin(); i != m_PktList.End(); ++i)
 	{
 	    delete (RTCPPacket*)(*i);
-        }
-        m_PktList.RemoveAll();
+	}	
     }
 
     HX_ASSERT(m_PktList.IsEmpty());
@@ -211,28 +210,23 @@ RTCPUnPacker::Get(REF(RTCPPacket*) pPkt)
 HX_RESULT
 RTCPUnPacker::UnPack(IHXBuffer* pCompound)
 {
-    //We shouldn't call RTCPUnPacker::Validate here. Validate throws out all 
-    //packets even if only one of them is bad. Besides, RTCPPacket::unpack has 
-    //pretty good error check to detect bad packets.
-
+    if (HXR_OK != Validate(pCompound))
+    {
+	return HXR_FAIL;	
+    }
+    
     BYTE* pFirst = pCompound->GetBuffer();
     BYTE* pNext = pFirst;
     RTCPPacket*	pPkt = NULL;
 
     
-    while (pNext < (pFirst + pCompound->GetSize()))
+    while (pNext && pNext < (pFirst + pCompound->GetSize()))
     {
-        pPkt = new RTCPPacket();
+	pPkt = new RTCPPacket();
+	
+	pNext = pPkt->unpack(pNext, (UINT32)((pFirst + pCompound->GetSize()) - pNext));
 
-        pNext = pPkt->unpack(pNext, (UINT32)((pFirst + pCompound->GetSize()) - pNext));
-        
-        if(pNext == NULL)
-        {
-            //the packet is bad, we better bail out here.
-            delete pPkt;
-            break;
-        }
-        m_PktList.AddTail(pPkt);	
+	m_PktList.AddTail(pPkt);	
     }
 
     return HXR_OK;
@@ -256,23 +250,23 @@ RTCPUnPacker::Validate(IHXBuffer* pCompound)
     UINT8  uchVer = 0;
     do
     {
-        pcTemp = pc;
-        uchVer		= (UINT8)((*pcTemp++ & 0xc0) >> 6);
-
+	pcTemp = pc;
+	uchVer		= (UINT8)((*pcTemp++ & 0xc0) >> 6);
+	
         // skip type
         ++pcTemp;
 
-        unPktLen	= (UINT16)(*pcTemp++ << 8);
-        unPktLen	|= *pcTemp++;
+	unPktLen	= (UINT16)(*pcTemp++ << 8);
+	unPktLen	|= *pcTemp++;
 
-        pc = (pc + ((unPktLen + 1) * 4));
+	pc = (pc + ((unPktLen + 1) * 4));
     } while (pc < end && 2 == uchVer);
-
+    
     if (pc != end)
     {
-        /* something is wrong */
-        HX_ASSERT(!"RTCPUnPacker::Validate() failed");	
-        return HXR_FAIL;
+	/* something is wrong */
+	HX_ASSERT(!"RTCPUnPacker::Validate() failed");	
+	return HXR_FAIL;
     }
 
     return HXR_OK;

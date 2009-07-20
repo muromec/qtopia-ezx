@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: mixengine.cpp,v 1.23 2009/05/01 17:32:06 sfu Exp $
+ * Source last modified: $Id: mixengine.cpp,v 1.19 2005/05/05 09:32:46 kross Exp $
  *
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  *
@@ -18,7 +18,7 @@
  * contents of the file.
  *
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -343,30 +343,9 @@ INT32 HXAudioSvcMixEngine::HXVolume2TenthOfDB(INT32 vol)
       return -(INT32)vol2TenthOfDb[vol] ;
 }
 #endif
-HX_RESULT HXAudioSvcMixEngine::MixIntoBuffer(void* pPlayerbuf0, UINT32 ulBufSizeInBytes_4, 
-                        HXBOOL &bIsMixBufferDirty, HXBOOL bOpaqueStream)
-{
-   HXBOOL bOptimizedMixing = FALSE;
-   return MixIntoBuffer(pPlayerbuf0, ulBufSizeInBytes_4, bIsMixBufferDirty, bOptimizedMixing, bOpaqueStream);
-}
 
-HX_RESULT HXAudioSvcMixEngine::MixIntoBuffer(void* pPlayerbuf0, UINT32 ulBufSizeInBytes_4, 
-                        HXBOOL &bIsMixBufferDirty, HXBOOL& bOptimizedMixing, HXBOOL bOpaqueStream)
+HX_RESULT HXAudioSvcMixEngine::MixIntoBuffer(void* pPlayerbuf0, UINT32 ulBufSizeInBytes_4, HXBOOL &bIsMixBufferDirty, HXBOOL bOpaqueStream)
 {
-    if (bOptimizedMixing)
-    {
-       bOptimizedMixing = FALSE;
-       //we'll enable optimized mixing (caller can directly return the data in the range)
-       //when we see fit
-       if (m_pResampler == NULL && m_ulSampleRate_1_2 == m_ulSampleRate_3_4 && m_nChannels_1 == m_nChannels_4)
-       {
-          //XXFXD: TODO -- should dynamically detect conditions
-#if !defined(HELIX_FEATURE_CROSSFADE) && !defined(HELIX_FEATURE_GAINTOOL) && !defined(HELIX_FEATURE_LIMITER)
-           bOptimizedMixing = TRUE;
-#endif
-       }
-    }
-
     // our caller's sense of "dirty" is inverted
     bIsMixBufferDirty = !bIsMixBufferDirty ;
 
@@ -377,7 +356,7 @@ HX_RESULT HXAudioSvcMixEngine::MixIntoBuffer(void* pPlayerbuf0, UINT32 ulBufSize
     // We only allocate the sample buffers when we really need them (the first
     // time MixIntoBuffer() is called)
 
-    if (!m_pBuffer_1 && !bOptimizedMixing)
+    if (!m_pBuffer_1)
     {
         // allocate both buffers
         m_pBuffer_1 = new tAudioSample[m_ulChunkSize_1] ;
@@ -427,11 +406,7 @@ HX_RESULT HXAudioSvcMixEngine::MixIntoBuffer(void* pPlayerbuf0, UINT32 ulBufSize
         //
 
         // get input
-        HXBOOL bHaveInput = TRUE;
-        if (!bOptimizedMixing)
-        {
-            bHaveInput = m_pCvt->ConvertIntoBuffer(m_pBuffer_1, nSamples_1, m_llTimestamp_1);
-        }
+        HXBOOL bHaveInput = m_pCvt->ConvertIntoBuffer(m_pBuffer_1, nSamples_1, m_llTimestamp_1);
 
         // update the time stamp.
         m_llTimestamp_1 += nSamples_1 ;
@@ -489,10 +464,6 @@ HX_RESULT HXAudioSvcMixEngine::MixIntoBuffer(void* pPlayerbuf0, UINT32 ulBufSize
             m_ulResamplerPhase -= sampleFramesOut * m_ulSampleRate_1_2 ;
 
             m_nOutputSamplesLeft_3 += sampleFramesOut * m_nChannels_2_3 ;
-
-            //make sure there are enough 'fake' resampled samples
-            m_nOutputSamplesLeft_3 = MAX(m_nOutputSamplesLeft_3, ulSamples_3);
-
             pResampOutput_3 = m_pResampler ? m_pBuffer_3 : m_pBuffer_1 ; // pass-through
         }
 
@@ -582,26 +553,20 @@ HX_RESULT HXAudioSvcMixEngine::MixIntoBuffer(void* pPlayerbuf0, UINT32 ulBufSize
             {
                 // if we did not have input earlier, but we now receive data, we need to clean out
                 // the parts that have not been touched so far.
-                if (!bOptimizedMixing)
-                {
-                   memset(pPlayerbuf0,0,pPlayerbuf - (char*)pPlayerbuf0) ;
-                }
+                memset(pPlayerbuf0,0,pPlayerbuf - (char*)pPlayerbuf0) ;
             }
 
             // and mix into output (mix) buffer
-            if (!bOptimizedMixing)
+            switch (m_ulBytesPerSample)
             {
-                switch (m_ulBytesPerSample)
-                {
-                case 2:
-                    upmix(pResampOutput_3, (INT16*)pPlayerbuf, m_upmixMachine, ulSamples_3, bOpaqueStream ? TRUE : bIsMixBufferDirty) ;
-                    break ;
-                case 4:
-                    upmix(pResampOutput_3, (INT32*)pPlayerbuf, m_upmixMachine, ulSamples_3, bOpaqueStream ? TRUE : bIsMixBufferDirty) ;
-                    break ;
-                }
+            case 2:
+                upmix(pResampOutput_3, (INT16*)pPlayerbuf, m_upmixMachine, ulSamples_3, bOpaqueStream ? TRUE : bIsMixBufferDirty) ;
+                break ;
+            case 4:
+                upmix(pResampOutput_3, (INT32*)pPlayerbuf, m_upmixMachine, ulSamples_3, bOpaqueStream ? TRUE : bIsMixBufferDirty) ;
+                break ;
             }
-            
+
             // if we have input anywhere, the buffer is not "dirty" anymore.
             bHadInput = TRUE ;
         }
@@ -611,10 +576,7 @@ HX_RESULT HXAudioSvcMixEngine::MixIntoBuffer(void* pPlayerbuf0, UINT32 ulBufSize
             {
                 // if we did have input earlier, but do not now, we need to clean the output
                 // buffer (because it will not be marked "dirty" anymore).
-                if (!bOptimizedMixing)
-                {
-                    memset(pPlayerbuf, 0, nSamples_4 * m_ulBytesPerSample) ;
-                }
+                memset(pPlayerbuf, 0, nSamples_4 * m_ulBytesPerSample) ;
             }
         }
 
@@ -624,15 +586,10 @@ HX_RESULT HXAudioSvcMixEngine::MixIntoBuffer(void* pPlayerbuf0, UINT32 ulBufSize
 
         // if there is no resampler, there should be no left-over samples
         if (!m_pResampler) HX_ASSERT(m_nOutputSamplesLeft_3 == 0) ;
-        
 
         // if left-over samples
         if (m_nOutputSamplesLeft_3)
-        {
-            // there should be no left-over in optimized mixing
-            HX_ASSERT(!bOptimizedMixing);
             memcpy(m_pBuffer_3, m_pBuffer_3 + ulSamples_3, m_nOutputSamplesLeft_3 * sizeof(*m_pBuffer_3)) ;
-        }
 
         nSamplesOutput_4 -= nSamples_4 ;
         pPlayerbuf += nSamples_4 * m_ulBytesPerSample ;

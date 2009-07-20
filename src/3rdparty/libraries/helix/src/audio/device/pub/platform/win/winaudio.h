@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: winaudio.h,v 1.9 2007/11/02 09:28:09 lovish Exp $
+ * Source last modified: $Id: winaudio.h,v 1.6 2006/02/16 23:04:51 ping Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -238,9 +238,6 @@ protected:
 	HX_RESULT 	    _Imp_GetCurrentTime( ULONG32& ulCurrentTime);
 	INT16		    _Imp_GetAudioFd(void) {return 0;};
 	UINT16		    _NumberOfBlocksRemainingToPlay(void);
-#ifdef DONT_WRITE_WHILE_PAUSE_AT_RESET
-	UINT16		    _NumberOfBlocksPlaying(void);
-#endif
 	HXBOOL		    _IsWaveOutDevice(void) { return TRUE; };
 
 private:
@@ -270,10 +267,6 @@ private:
 	IHXMutex*	    m_pMutex;
 	
 	HXBOOL		    m_bIsFirstPacket;
-#ifdef DONT_WRITE_WHILE_PAUSE_AT_RESET
-	HXBOOL		    m_bPausedAtReset;
-	HXBOOL		    m_bPausedForRestart;
-#endif //DONT_WRITE_WHILE_PAUSE_AT_RESET
 
 	HXBOOL		    AllocateBuffers(UINT16 unNumBuffers, UINT16 unBufSize);
 
@@ -284,12 +277,12 @@ private:
 	UINT32		    m_ulOriginalThreadId;
 #endif
 
-#if defined(_WIN32)
+#if !defined(_WINCE) && ( !defined(_WINDOWS) || defined(_WIN32) ) 
 	void		    CheckForVolumeSupport(void);
 
         HMIXER               m_hMixer;
         MIXERCONTROLDETAILS  m_VolumeControlDetails;
-#endif 
+#endif // !defined(_WINDOWS) || defined(_WIN32) 
 
 	HX_RESULT	    Register();
 	void		    UnRegister();

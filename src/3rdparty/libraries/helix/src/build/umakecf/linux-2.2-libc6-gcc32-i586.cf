@@ -68,7 +68,6 @@ exec_config_file('linux-2.2-libc6-gcc32.cf')
 ## list of PCF files to run
 platform.pcf_prefix_list = ["unix", "linux2", "linux-2.2-libc6-gcc32-i586"]
 
-
 platform.cxx.args["default"] = platform.cxx.args["default"] + " " + \
     "-march=pentium -mcpu=pentium" 
 platform.cc.args["default"] = platform.cc.args["default"] + " " + \

@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: bwcalc.cpp,v 1.5 2007/05/24 08:38:12 ckarusala Exp $ 
+ * Source last modified: $Id: bwcalc.cpp,v 1.4 2004/12/06 03:37:05 jc Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -133,7 +133,15 @@ BWCalculator::RecalcAvgBandwidth()
 {
     m_ulScheduledSendID = 0;
 
-    UINT32 ulTmpAvgBandwidth = m_ulAvgBandwidth;
+    // Don't adjust our bandwidth if we received a NULL setup (RTSP),
+    // or we are still waiting for a play request. If we never receive
+    // a play request, the content is being served from a downstream
+    // cache via PNA.
+    if (!m_bNullSetup && !m_bBandwidthPending)
+    {
+	m_pProc->pc->server_info->
+	    ChangeBandwidthUsage(-1 * (INT32)m_ulAvgBandwidth, m_pProc);
+    }
 
     if(m_ulElapsedTime)
     {
@@ -147,7 +155,7 @@ BWCalculator::RecalcAvgBandwidth()
     // cache via PNA.
     if (!m_bNullSetup && !m_bBandwidthPending)
     {
-	m_pProc->pc->server_info->ChangeBandwidthUsage(((INT32)(m_ulAvgBandwidth - ulTmpAvgBandwidth)), m_pProc);
+	m_pProc->pc->server_info->ChangeBandwidthUsage(m_ulAvgBandwidth, m_pProc);
     }
 
     // Schedule another callback

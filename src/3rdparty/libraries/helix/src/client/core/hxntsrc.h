@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxntsrc.h,v 1.56 2008/06/19 22:52:23 ping Exp $
+ * Source last modified: $Id: hxntsrc.h,v 1.52 2007/04/27 20:16:14 ping Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -234,7 +234,6 @@ public:
 
 	virtual HXBOOL		IsLocalSource() { return FALSE; };
 	virtual HXBOOL		IsPNAProtocol()  {return (HXBOOL) (!m_bRTSPProtocol);};
-	virtual HXBOOL		IsNetworkAccess()  { return TRUE; };
 
 	virtual	void		StartDataWait(HXBOOL bConnectionWait = FALSE);
 	virtual void		StopDataWait();
@@ -340,12 +339,7 @@ protected:
 	HXBOOL		IsPrefetchEnded(void);
 
 	HX_RESULT	GetEventFromProtocol(UINT16 usStreamNumber, STREAM_INFO* pStreamInfo, CHXEvent*& theEvent);
-	HX_RESULT	GetEventFromRecordControl(UINT16 usStreamNumber, 
-						  STREAM_INFO* pSteamInfo, 
-						  CHXEvent*& theEvent,
-						  HXBOOL bForce = FALSE,
-						  UINT32 ulLoopEntryTime = 0,
-						  UINT32 ulProcessingTimeAllowance = 0);
+	HX_RESULT	GetEventFromRecordControl(UINT16 usStreamNumber, STREAM_INFO* pSteamInfo, CHXEvent*& theEvent);
         HX_RESULT       HandleOutOfPackets(STREAM_INFO* pStreamInfo);
 	
         HX_RESULT       UpdateEvent(UINT16 usStreamNumber, CHXEvent*& theEvent);
@@ -541,7 +535,7 @@ public:
 	void		ReportError (HX_RESULT theErr);
         void            ActualReportError(HX_RESULT theErr);
 
-	HX_RESULT	switch_to_next_transport(HX_RESULT incomingError);
+	HX_RESULT	switch_to_next_transport(HX_RESULT incomingError, HXBOOL bAttemptReconnect = TRUE);
 	void		set_transport(TransportMode mode);
 
 	void		WritePerfectPlayToRegistry();

@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: statsmgr.cpp,v 1.10 2008/01/25 05:21:31 vkathuria Exp $
+ * Source last modified: $Id: statsmgr.cpp,v 1.8 2004/07/09 18:42:32 hubbe Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -50,8 +50,8 @@
 #include "hxtypes.h"
 #include "hxcom.h"
 
-#include "hlxclib/stdio.h"
-#include "hlxclib/stdlib.h"
+#include <stdio.h>
+#include <stdlib.h>
 #include "hxcomm.h"
 #include "hxengin.h"
 #include "hxmon.h"

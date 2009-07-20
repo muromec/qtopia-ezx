@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: ihxpckts.h,v 1.23 2009/03/26 23:47:02 cbailey Exp $
+ * Source last modified: $Id: ihxpckts.h,v 1.15 2007/03/07 13:59:18 ehyche Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -59,12 +59,6 @@
 #define HX_ASM_SWITCH_ON	 0x01
 #define HX_ASM_SWITCH_OFF	 0x02
 #define HX_ASM_DROPPED_PKT	 0x04
-/*
- * HX_ASM_SIDE_EFFECT is used with HX_ASM_SWITCH_ON to
- * indicate that that HX_ASM_SWITCH_ON is not the cause of the sync.
- * mainly used in mp4 fileformat to indicate the end of the keyframe.
- */
-#define HX_ASM_SIDE_EFFECT	 0x08
 
 
 /****************************************************************************
@@ -375,7 +369,6 @@ DECLARE_INTERFACE_(IHXRTPPacket, IHXPacket)
  */
 DEFINE_GUID(IID_IHXRTPPacketInfo, 
     0xec7d67bb, 0x2e79, 0x49c3, 0xb6, 0x67, 0xba, 0x8a, 0x93, 0x8d, 0xbc, 0xe0);
-
 
 #undef  INTERFACE
 #define INTERFACE   IHXRTPPacketInfo
@@ -740,10 +733,9 @@ DEFINE_GUID(IID_IHXValuesRemove, 0x00001303, 0x901, 0x11d1, 0x8b, 0x6, 0x0,
 			0xa0, 0x24, 0x40, 0x6d, 0x59);
 
 /*
- *  The IHXCommonClassFactory supports creating an instance
+ *  The IHXCommonClassFactory does not support creating an instance
  *  of this object.
  */
-#define CLSID_IHXValuesRemove IID_IHXValuesRemove
 
 #undef  INTERFACE
 #define INTERFACE   IHXValuesRemove
@@ -854,127 +846,6 @@ DECLARE_INTERFACE_(IHXBroadcastDistPktExt, IUnknown)
     STDMETHOD(SetRuleSeqNoArray) (THIS_ UINT16* pRuleSeqNoArray, UINT16 uSize) PURE;
 };
 
-DEFINE_GUID(IID_IHXServerPacketExt, 0x0d861964, 0xd789, 0x4c2b, 0x8f, 0x21, 0x6c,
-                                    0x3c, 0x67, 0x52, 0x1c, 0xcc);
-
-#undef  INTERFACE
-#define INTERFACE  IHXServerPacketExt 
-
-DECLARE_INTERFACE_(IHXServerPacketExt, IHXRTPPacket)
-{
-    /*
-     *	IUnknown methods
-     */
-    STDMETHOD(QueryInterface)	(THIS_
-				REFIID riid,
-				void** ppvObj) PURE;
-
-    STDMETHOD_(ULONG32,AddRef)	(THIS) PURE;
-
-    STDMETHOD_(ULONG32,Release)	(THIS) PURE;
-
-    /*
-     *	IHXPacket methods
-     */
-    STDMETHOD(Get)			(THIS_
-					REF(IHXBuffer*)    pBuffer, 
-					REF(UINT32)	    ulTime,
-					REF(UINT16)	    unStreamNumber,
-					REF(UINT8)	    unASMFlags,
-					REF(UINT16)	    unASMRuleNumber
-					) PURE;
-
-    STDMETHOD_(IHXBuffer*,GetBuffer)	(THIS) PURE;
-
-    STDMETHOD_(ULONG32,GetTime)		(THIS) PURE;
-
-    STDMETHOD_(UINT16,GetStreamNumber)	(THIS) PURE;
-
-    STDMETHOD_(UINT8,GetASMFlags)	(THIS) PURE;
-
-    STDMETHOD_(UINT16,GetASMRuleNumber)	(THIS) PURE;
-
-    STDMETHOD_(HXBOOL,IsLost)		(THIS) PURE;
-
-    STDMETHOD(SetAsLost)		(THIS) PURE;
-
-    STDMETHOD(Set)			(THIS_
-					IHXBuffer* 	    pBuffer,
-					UINT32	    	    ulTime,
-					UINT16	    	    uStreamNumber,
-					UINT8	    	    unASMFlags,
-					UINT16	    	    unASMRuleNumber
-					) PURE;
-
-    /*
-     *	IHXRTPPacket methods
-     */
-    STDMETHOD_(ULONG32,GetRTPTime)	(THIS) PURE;
-
-    STDMETHOD(GetRTP)			(THIS_
-					REF(IHXBuffer*)    pBuffer, 
-					REF(UINT32)	    ulTime,
-					REF(UINT32)	    ulRTPTime,
-					REF(UINT16)	    unStreamNumber,
-					REF(UINT8)	    unASMFlags,
-					REF(UINT16)	    unASMRuleNumber
-					) PURE;
-
-    STDMETHOD(SetRTP)			(THIS_
-					IHXBuffer* 	    pBuffer,
-					UINT32	    	    ulTime,
-					UINT32		    ulRTPTime,
-					UINT16	    	    uStreamNumber,
-					UINT8	    	    unASMFlags,
-					UINT16	    	    unASMRuleNumber
-					) PURE;
-
-    /*
-     *	IHXServerPacketExt methods
-     */
-    /* Set IHXPacket/IHXRTPPacket values individually */
-    STDMETHOD(SetDeliveryTime)          (THIS_ UINT32 ulTime) PURE;
-    STDMETHOD(SetRTPTime)               (THIS_ UINT32 ulTimeStamp) PURE;
-    STDMETHOD(SetBuffer)                (THIS_ IHXBuffer* pBuffer) PURE;
-    STDMETHOD(SetStreamNumber)          (THIS_ UINT16 unStreamNum) PURE;
-    STDMETHOD(SetASMFlags)              (THIS_ UINT8 uASMFlags) PURE;
-    STDMETHOD(SetASMRuleNumber)         (THIS_ UINT16 unRuleNum) PURE;
-
-    /* New values (Get/Set) */
-    // TimeStamp in synced milliseconds units
-    STDMETHOD_(UINT32,GetMilliSecondTS) (THIS) PURE;
-    STDMETHOD(SetMilliSecondTS)         (THIS_ UINT32 ulTimeStamp) PURE;
-
-    // TimeStamp in synced microseconds units
-    // NOT IMPLEMENTED
-    STDMETHOD_(UINT64,GetMicroSecondTS) (THIS) PURE;
-    STDMETHOD(SetMicroSecondTS)         (THIS_ UINT64 ullTimeStamp) PURE;
-
-    STDMETHOD_(HXBOOL, IsRTP)             (THIS) PURE;
-
-    /*
-     * IHXBroadcastDistPktExt replacement methods
-     */
-    STDMETHOD_(UINT32,GetSeqNo)  (THIS) PURE;
-    STDMETHOD_(UINT32,GetStreamSeqNo)  (THIS) PURE;
-    STDMETHOD_(HXBOOL,GetIsLostRelaying)  (THIS) PURE;
-    STDMETHOD_(HXBOOL,SupportsLowLatency)  (THIS) PURE;
-    STDMETHOD_(UINT16,GetRuleSeqNoArraySize) (THIS) PURE;
-    STDMETHOD_(UINT16*,GetRuleSeqNoArray) (THIS) PURE;
-
-    STDMETHOD(SetSeqNo)  (THIS_ UINT32 ulSeqNo) PURE;
-    STDMETHOD(SetStreamSeqNo)  (THIS_ UINT32 ulStreamSeqNo) PURE;
-    STDMETHOD(SetIsLostRelaying)  (THIS_ HXBOOL bLostRelay) PURE;
-    STDMETHOD(SetRuleSeqNoArray) (THIS_ UINT16* pRuleSeqNoArray, UINT16 uSize) PURE;
-    
-};
-
-#define CLSID_IHXServerPacketExt IID_IHXServerPacketExt
-
-// {FF22A738-9B39-4584-A92B-1C19BA91A410}
-DEFINE_GUID(CLSID_IHXServerPacketRTP, 
-    0xff22a738, 0x9b39, 0x4584, 0xa9, 0x2b, 0x1c, 0x19, 0xba, 0x91, 0xa4, 0x10);
-
 // $EndPrivate.
 
 #include "hxcomptr.h"
@@ -988,7 +859,6 @@ DEFINE_SMART_PTR(IHXValues2)
 DEFINE_SMART_PTR(IHXValuesRemove)
 DEFINE_SMART_PTR(IHXClientPacket)
 DEFINE_SMART_PTR(IHXBroadcastDistPktExt)
-DEFINE_SMART_PTR(IHXServerPacketExt)
 
 #endif /* _IHXPCKTS_H_ */
 

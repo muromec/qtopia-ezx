@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: sink.h,v 1.14 2009/03/31 20:29:35 jzeng Exp $ 
+ * Source last modified: $Id: sink.h,v 1.10 2005/10/10 20:03:36 jzeng Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -282,9 +282,9 @@ DECLARE_INTERFACE_(IHXLivePacketBufferProvider, IUnknown)
     STDMETHOD_(ULONG32,Release) (THIS) PURE;
 
     STDMETHOD(GetPacketBufferQueue)    (THIS_
+                                        UINT16 strmNum,
+                                        UINT16 ruleNum,
                                         IHXLivePacketBufferQueue*& pQueue) PURE;
-    STDMETHOD(GetLongPacketBufferQueue) (THIS_
-                                         IHXLivePacketBufferQueue*& pQueue) PURE;
 };
 
 /****************************************************************************
@@ -328,37 +328,6 @@ DECLARE_INTERFACE_(IHXTokenBufferFilter, IUnknown)
     
     STDMETHOD(UpdateTokens)     (THIS) PURE;
 
-};
-
-/****************************************************************************
- *
- *  Interface:
- *
- *     IHXLiveSourceWrapper
- *
- *  Purpose:
- *   
- *   An interface for packet source to tell wire-payload or not.
- *
- *
- *  IID_IHXLiveSourceWrapper:
- *
- *     0xb10d2398, 0xa300, 0x41c0, 0xb9ea, 0xafc2ca9b512b
- *
- */
-DEFINE_GUID(IID_IHXLiveSourceWrapper, 0xb10d2398, 0xa300, 0x41c0, 0xb9, 0xea,
-        0xaf, 0xc2, 0xca, 0x9b, 0x51, 0x2b);
-#undef  INTERFACE
-#define INTERFACE   IHXLivePacketBufferProvider
-
-DECLARE_INTERFACE_(IHXLiveSourceWrapper, IUnknown)
-{
-    STDMETHOD_(BOOL, IsPayloadWirePacket) (THIS) PURE;
-    STDMETHOD_(INT32, GetRTPTimeOffset) (THIS_ UINT16 usStrm) PURE;
-    //STDMETHOD_(UINT32, GetStartingRTPTime) (THIS_ UINT16 usStrm) PURE;
-
-    STDMETHOD(SetAudioAheadDuration)     (THIS_ UINT32 ulAudioAhead) PURE;
-    STDMETHOD_(IHXPacket*, GetFirstAudioPacket) (THIS) PURE;
 };
 
 #endif /* _SINK_H_ */

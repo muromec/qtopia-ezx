@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: fbbufctl.h,v 1.8 2007/11/14 05:48:51 junhliu Exp $
+ * Source last modified: $Id: fbbufctl.h,v 1.6 2007/01/11 19:53:31 milko Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -57,7 +57,6 @@
 #include "hxerror.h"
 #include "hxprefs.h" // IHXPreferences
 #include "hxpends.h" // IHXPendingStatus
-#include "ihxrateadaptctl.h"
 
 class HXFeedbackControl
 {
@@ -272,7 +271,6 @@ private:
 
     HXBOOL m_bPaused;
     ControlState m_state;
-    IHXClientRateAdaptControl* m_pRateAdaptCtl;
 };
 
 #endif /* FBBUFCTL_H */

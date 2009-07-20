@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxaudstr_new.cpp,v 1.47 2009/05/01 14:09:35 sfu Exp $
+ * Source last modified: $Id: hxaudstr_new.cpp,v 1.43 2007/03/23 00:42:08 milko Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -180,15 +180,11 @@ CHXAudioStream::CHXAudioStream(CHXAudioPlayer* owner, IUnknown* pContext)
     ,m_ulLastNHeadTime(0)
     ,m_ulLastNTailTime(0)
     ,m_ulStartTime(0)
-    ,m_ulSeekTime(0)
-    ,m_ulLiveJoiningTime(0)
-    ,m_bLiveJoiningTimeSet(FALSE)
     ,m_eState(E_STOPPED)
     ,m_bIsRewound(TRUE)
     ,m_bBeyondStartTime(FALSE)
     ,m_bHasStartTime(FALSE)
     ,m_piPendingAudioData(NULL)
-    ,m_pSilenceBuffer(NULL)
 {
     m_Owner = owner;
     if (m_Owner)
@@ -230,7 +226,6 @@ CHXAudioStream::~CHXAudioStream()
     HX_DELETE(m_DryNotificationMap);
     ResetStream();
     HX_RELEASE(m_piPendingAudioData);
-    HX_RELEASE(m_pSilenceBuffer);
 }
  
 /////////////////////////////////////////////////////////////////////////
@@ -1382,7 +1377,7 @@ HX_RESULT CHXAudioStream::ProcessInfo(void)
 	UINT32 ulDelay = 0;
 	if (m_pValues->GetPropertyULONG32("Delay", ulDelay) == HXR_OK)
 	{
-	    UpdateStreamLastWriteTime(FALSE, TRUE, TRUE);
+	    UpdateStreamLastWriteTime(FALSE, TRUE);
 	    if (m_bHasStartTime && (!m_bIsRewound))
 	    {
 		// We determined this stream has start-time and it can be
@@ -1511,9 +1506,6 @@ void CHXAudioStream::ResetStream()
     m_bGotHooks = FALSE;
 
     m_ulStartTime = 0;
-    m_ulSeekTime = 0;
-    m_ulLiveJoiningTime = 0;
-    m_bLiveJoiningTimeSet = FALSE;
     m_llLastWriteTime = 0;
     m_ulLastAdjustedTimeDiff = 0;
     m_ulTSRollOver = 0;
@@ -1800,7 +1792,6 @@ STDMETHODIMP CHXAudioStream::Flush()
 	m_bIsRewound = TRUE;
 	m_bBeyondStartTime = FALSE;
 	m_ulStartTime = 0;
-	m_ulSeekTime = 0;
     }
 
     return HXR_OK;
@@ -1897,6 +1888,7 @@ STDMETHODIMP_(HXBOOL) CHXAudioStream::IsRewound()
     return m_bIsRewound;
 }
 
+
 /************************************************************************
  *  CHXAudioStream methods
  */
@@ -1911,13 +1903,11 @@ HX_RESULT CHXAudioStream::MixIntoBuffer( UCHAR*   pPlayerBuf,
                                          ULONG32  ulBufSize,
                                          ULONG32& ulBufTime,
                                          HXBOOL&  bIsMixBufferDirty,
-                                         HXBOOL&  bOptimizedMixing,
-                                         CHXSimpleList* pStreamBufferList,
                                          HXBOOL   bGetCrossFadeData
                                          )
 {
     HX_RESULT res = HXR_OK;
-    
+
     if (!m_bInited)
     {
         return HXR_NOT_INITIALIZED;
@@ -1957,10 +1947,6 @@ HX_RESULT CHXAudioStream::MixIntoBuffer( UCHAR*   pPlayerBuf,
 
     m_pMixEngine->GetMixRange(ulBufSize, llStartMix, llEndMix) ;
     UINT32 nSamplesNeeded = INT64_TO_UINT32(llEndMix - llStartMix) ; // always fits into UINT32
-
-    // Keep a copy since EnoughDataAvailable can change llStartMix and nSamplesNeeded
-    INT64 llStartMix0 = llStartMix;
-    UINT32 nSamplesNeeded0 = nSamplesNeeded;
 
     if (!EnoughDataAvailable(llStartMix, nSamplesNeeded))
     {
@@ -2020,9 +2006,7 @@ HX_RESULT CHXAudioStream::MixIntoBuffer( UCHAR*   pPlayerBuf,
     }
 
     // this call does all the mixing.
-    res = m_pMixEngine->MixIntoBuffer(pPlayerBuf, ulBufSize, 
-                           bIsMixBufferDirty, bOptimizedMixing, m_bIsOpaqueStream);
-                           
+    res = m_pMixEngine->MixIntoBuffer(pPlayerBuf, ulBufSize, bIsMixBufferDirty, m_bIsOpaqueStream) ;
     if( m_wLastError == HXR_OUTOFMEMORY )
     {
         return m_wLastError;
@@ -2031,13 +2015,6 @@ HX_RESULT CHXAudioStream::MixIntoBuffer( UCHAR*   pPlayerBuf,
     if (FAILED(res))
     {
         return res ; 
-    }
-
-    // if we are still in optimized mode, it means that mix engine doesn't fill the pPlayerBuf
-    // we'll create the pStreamBufferList directly
-    if (bOptimizedMixing)
-    {
-        CreateDirectOutput(pStreamBufferList, llStartMix0, nSamplesNeeded0);
     }
 
 #if defined(HELIX_FEATURE_AUDIO_INACCURATESAMPLING)
@@ -2080,183 +2057,6 @@ HX_RESULT CHXAudioStream::MixIntoBuffer( UCHAR*   pPlayerBuf,
     return HXR_OK;
 }
 
-// helper method to remove old packets
-HX_RESULT CHXAudioStream::RemoveOldPackets(INT64 llStartTimeInSamples)
-{
-    // remove old packets. Old packets are packets that have an end time that is
-    // before our current mix time.
-    HXAudioInfo* pInfo = NULL;
-    LISTPOSITION lp = m_pDataList->GetHeadPosition();
-    while( lp )
-    {
-        LISTPOSITION lastlp = lp;
-        pInfo   = (HXAudioInfo*) m_pDataList->GetNext(lp);
-
-        if (pInfo->llEndTimeInSamples < llStartTimeInSamples)
-        {
-            HXLOGL4(HXLOG_ADEV,
-                    "CHXAudioStream[%p]::RemoveOldPackets: reaping packet: start = %lu; end = %lu",
-                    this,
-                    INT64_TO_UINT32(pInfo->llStartTimeInSamples),
-                    INT64_TO_UINT32(pInfo->llEndTimeInSamples));
-
-            FreeInfo(pInfo);
-            m_pDataList->RemoveAt(lastlp);
-            if( m_wLastError == HXR_OUTOFMEMORY )
-            {
-                return FALSE;
-            }
-        }
-        else 
-        {
-            // if monotonous and non-overlapping
-            break ;
-        }
-    }
-    return HXR_OK;
-}
-
-HX_RESULT CHXAudioStream::AddSilenceBuffer(CHXSimpleList* pStreamBufferList, UINT32 ulSizeInBytes)
-{
-    //on-demand create/enlarge the silence buffer. this may not be
-    //the best strategy
-    if (!m_pSilenceBuffer)
-    {
-      HX_ASSERT(m_pCommonClassFactory);
-      IUnknown* pUnk = NULL;
-      if (HXR_OK == m_pCommonClassFactory->CreateInstance(CLSID_IHXBuffer, (void**)&pUnk))
-      {
-          pUnk->QueryInterface(IID_IHXBuffer, (void**)&m_pSilenceBuffer);
-          HX_RELEASE(pUnk);
-      }
-      else
-      {
-          return HXR_OUTOFMEMORY;
-      }
-    }
-    
-    if (m_pSilenceBuffer->GetSize() < ulSizeInBytes)
-    {
-        m_pSilenceBuffer->SetSize(ulSizeInBytes);
-        
-        if (m_pSilenceBuffer->GetSize() != ulSizeInBytes)
-        {
-           //cannot resize because refcount > 1, create a new buffer
-           HX_RELEASE(m_pSilenceBuffer);
-           HX_ASSERT(m_pCommonClassFactory);
-           IUnknown* pUnk = NULL;
-           if (HXR_OK == m_pCommonClassFactory->CreateInstance(CLSID_IHXBuffer, (void**)&pUnk))
-           {
-               pUnk->QueryInterface(IID_IHXBuffer, (void**)&m_pSilenceBuffer);
-               HX_RELEASE(pUnk);
-               m_pSilenceBuffer->SetSize(ulSizeInBytes);
-           }
-           else
-           {
-               return HXR_OUTOFMEMORY;
-           }
-        }     
-        HX_ASSERT(m_pSilenceBuffer->GetBuffer() && m_pSilenceBuffer->GetSize() == ulSizeInBytes);
-        memset(m_pSilenceBuffer->GetBuffer(), 0, ulSizeInBytes);
-    }	            
-    
-    IHXBuffer* pSilenceBuffer = (IHXBuffer*) m_pSilenceBuffer;     
-    if (ulSizeInBytes < m_pSilenceBuffer->GetSize())
-    {
-        pSilenceBuffer = (IHXBuffer*) new CHXBufferFragment(m_pSilenceBuffer, 
-                                                            m_pSilenceBuffer->GetBuffer(),
-                                                            ulSizeInBytes);
-        if (pSilenceBuffer == NULL)
-        {
-           return HXR_OUTOFMEMORY;
-        }
-    }
-    pSilenceBuffer->AddRef();
-    pStreamBufferList->AddTail(pSilenceBuffer);
-
-    return HXR_OK;
-}             
-
-// This method creates a list of data buffers with the total requested size.
-// It avoids memcpy by using CHXBufferFragment
-HX_RESULT CHXAudioStream::CreateDirectOutput(CHXSimpleList* pStreamBufferList, INT64 llStartTimeInSamples, UINT32 nSamples)
-{
-    HXAudioInfo* pInfo              = 0;
-    LISTPOSITION lp                 = 0;
-    INT32        nBytesPerSample    = m_AudioFmt.uBitsPerSample>>3 ;
-
-    HXLOGL4(HXLOG_ADEV, "CHXAudioStream[%p]::CreateDirectOutput(): start samples = %lu; sample count = %lu", this, INT64_TO_UINT32(llStartTimeInSamples), nSamples);
- 
-    // there are two lists of packets here: timed audio and instantaneous audio.
-    // We only look into the list for timed buffers -- Instantaneoue audio is ignored
-    // (it never properly worked anyway, so support is discontinued).
-
-    // remove old packets. Old packets are packets that have an end time that is
-    // before our current mix time.
-    if (RemoveOldPackets(llStartTimeInSamples) != HXR_OK) 
-    {
-        return FALSE;
-    }
-    
-    // now go through the entire list of packets
-    // assume the packet timestamps are monotonously increase and non-overlapping
-    // we'll fill the gaps with silent packets
-    // the start and end points likely need 'partial' packets 
-
-    lp = m_pDataList->GetHeadPosition();
-    while( lp && nSamples > 0)
-    {
-        pInfo = (HXAudioInfo*) m_pDataList->GetNext(lp);
-        
-        if (pInfo->llStartTimeInSamples > llStartTimeInSamples)
-        {
-            //there is a gap, fill with a silence buffer
-            UINT32 gap = INT64_TO_UINT32(pInfo->llStartTimeInSamples - llStartTimeInSamples);
-            AddSilenceBuffer(pStreamBufferList, gap * nBytesPerSample);     
-            llStartTimeInSamples += gap;
-            nSamples -= gap;
-        }
-        
-        IHXBuffer* pBuffer = pInfo->pBuffer;
-
-        UINT32 ulStartSamples = 0;
-        if (pInfo->llStartTimeInSamples < llStartTimeInSamples)
-        {
-            // skip some data from the beginning
-            ulStartSamples = INT64_TO_UINT32(llStartTimeInSamples - pInfo->llStartTimeInSamples);
-        }
-
-        UINT32 ulSizeSamples = pInfo->pBuffer->GetSize()/nBytesPerSample - ulStartSamples;
-        if (ulSizeSamples > nSamples)
-        {
-           //enough data, this is the last packet
-           ulSizeSamples = nSamples;
-        }
-        
-        if (ulStartSamples > 0 || ulSizeSamples * nBytesPerSample != pInfo->pBuffer->GetSize())
-        {
-           //we need only part of the packet
-           pBuffer = (IHXBuffer*) new CHXBufferFragment(
-                            pInfo->pBuffer,
-                            pInfo->pBuffer->GetBuffer() + ulStartSamples * nBytesPerSample,
-                            ulSizeSamples * nBytesPerSample);
-        }
-    
-        pBuffer->AddRef();
-        pStreamBufferList->AddTail(pBuffer);
-        
-        llStartTimeInSamples += ulSizeSamples;
-        nSamples -= ulSizeSamples;
-    }
-
-    if (nSamples > 0)
-    {
-       //use used all the buffers, fill some silence data at the end
-       AddSilenceBuffer(pStreamBufferList, nSamples * nBytesPerSample);
-    }
-    
-    return HXR_OK;        
-}
 
 // This is the callback function that m_pMixEngine->MixIntoBuffer() will call to
 // read new samples.
@@ -2276,9 +2076,32 @@ HXBOOL CHXAudioStream::ConvertIntoBuffer(tAudioSample* buffer, UINT32 nSamples, 
 
     // remove old packets. Old packets are packets that have an end time that is
     // before our current mix time.
-    if (RemoveOldPackets(llStartTimeInSamples) != HXR_OK) 
+    lp = m_pDataList->GetHeadPosition();
+    while( lp )
     {
-        return FALSE;
+        LISTPOSITION lastlp = lp;
+        pInfo   = (HXAudioInfo*) m_pDataList->GetNext(lp);
+
+        if (pInfo->llEndTimeInSamples < llStartTimeInSamples)
+        {
+            HXLOGL4(HXLOG_ADEV,
+                    "CHXAudioStream[%p]::ConvertIntoBuffer(): reaping packet: start = %lu; end = %lu",
+                    this,
+                    INT64_TO_UINT32(pInfo->llStartTimeInSamples),
+                    INT64_TO_UINT32(pInfo->llEndTimeInSamples));
+
+            FreeInfo(pInfo);
+            m_pDataList->RemoveAt(lastlp);
+            if( m_wLastError == HXR_OUTOFMEMORY )
+            {
+                return FALSE;
+            }
+        }
+        else 
+        {
+            // if monotonous and non-overlapping
+            break ;
+        }
     }
 
     // now go through the entire list of packets, and look for overlap with the
@@ -2364,6 +2187,8 @@ HXBOOL CHXAudioStream::ConvertIntoBuffer(tAudioSample* buffer, UINT32 nSamples, 
 
 
 
+
+
 /************************************************************************
  *  Method:
  *              CHXAudioStream::Bytes2Samples
@@ -2389,18 +2214,11 @@ UINT64 CHXAudioStream::Samples2Ms( INT64 nSamples,
                                    HXBOOL bRoundUp
                                    )
 {
-    INT32 lDenom = fmt->uChannels * fmt->ulSamplesPerSec;
-    INT64 q = nSamples / lDenom;
-    INT64 r = nSamples - q * lDenom;
+    UINT32 ulDenom = fmt->uChannels * fmt->ulSamplesPerSec;
+    UINT64 q = nSamples / ulDenom;
+    UINT64 r = nSamples - q * ulDenom;
 
-    if (nSamples > 0)
-    {
-	return q * 1000 + (r * 1000 + (bRoundUp ? (lDenom - 1) : 0)) / lDenom;
-    }
-    else
-    {
-	return q * 1000 + (r * 1000 + (bRoundUp ? 0 : (1 - lDenom))) / lDenom;
-    }
+    return q * 1000 + (r * 1000 + (bRoundUp ? (ulDenom - 1) : 0)) / ulDenom;
 }
 
 
@@ -2582,6 +2400,7 @@ CHXAudioStream::EnoughDataAvailable(INT64& llStartTimeInSamples, UINT32& nSample
 
     return bDataAvailable;
 }
+
 
 HX_RESULT    
 CHXAudioStream::StartCrossFade(CHXAudioStream*  pFromStream, 
@@ -2938,7 +2757,7 @@ void CHXAudioStream::MapFudgedTimestamps(void)
 // XXX wschildbach: How to implement this with the 64-bit timestamps?
 
 void
-CHXAudioStream::UpdateStreamLastWriteTime(HXBOOL bForceUpdate /*= FALSE*/, HXBOOL bOnResume /*= FALSE*/, HXBOOL bNotRealResume /*= FALSE*/)
+CHXAudioStream::UpdateStreamLastWriteTime(HXBOOL bForceUpdate /*= FALSE*/, HXBOOL bOnResume /*= FALSE*/)
 {
     UINT32 ulDelay = 0;
     HXBOOL bHasDelay = FALSE;
@@ -2970,8 +2789,6 @@ CHXAudioStream::UpdateStreamLastWriteTime(HXBOOL bForceUpdate /*= FALSE*/, HXBOO
 	    return;
 	}
 
-	UINT32 ulCurrentPlayBackTime = m_Owner->GetCurrentPlayBackTime();
-
         if (!m_pValues || m_pValues->GetPropertyULONG32("LiveSyncStartTime", m_ulBaseTime) != HXR_OK)
         {
             if (bForceUpdate)
@@ -2982,8 +2799,9 @@ CHXAudioStream::UpdateStreamLastWriteTime(HXBOOL bForceUpdate /*= FALSE*/, HXBOO
             }
 	    if (m_bIsRewound)
 	    {
-		m_ulStartTime = HX_MAX(ulDelay, ulCurrentPlayBackTime);
+		UINT32 ulCurrentPlayBackTime = m_Owner->GetCurrentPlayBackTime();
 		m_llLastWriteTime = CAST_TO_INT64 ulCurrentPlayBackTime;
+		m_ulStartTime = ulDelay;
 		m_bHasStartTime = bHasDelay;
 		SetLastAdjustedTimeDiff();
 		bUpdateOccured = TRUE;
@@ -2996,28 +2814,15 @@ CHXAudioStream::UpdateStreamLastWriteTime(HXBOOL bForceUpdate /*= FALSE*/, HXBOO
 
 	    if (bHasDelay)
 	    {
-		// Delay is provided.  Assume strong synchronzation and thus
-		// that steart of live stream is mapped to playback time of zero.
-		if (!m_bLiveJoiningTimeSet)
-		{
-		    m_ulLiveJoiningTime = 0;
-		    m_bLiveJoiningTimeSet = (bOnResume && (!bNotRealResume));
-		}
-
+		// We have mapping of live time-base to playback time.
+		// We must obey the specified synchronization.
 		m_ulLiveDelay = ulDelay;
 	    }
 	    else
 	    {
 		// Mapping from live time-base to playback time is not
 		// provided.  Assume, the stream is not strongly synchronized.
-		// This is on the fly live stream addition.
-		if (!m_bLiveJoiningTimeSet)
-		{
-		    m_ulLiveJoiningTime = ulCurrentPlayBackTime;
-		    m_bLiveJoiningTimeSet = (bOnResume && (!bNotRealResume));
-		}
-
-		m_ulLiveDelay = m_ulLiveJoiningTime;
+		m_ulLiveDelay = ulCurrentPlayBackTime;
 
 		// if we are not rewound, make it so we start playing at the
 		// back of the pushdown queue so we do not clip any data.
@@ -3034,17 +2839,6 @@ CHXAudioStream::UpdateStreamLastWriteTime(HXBOOL bForceUpdate /*= FALSE*/, HXBOO
 		}
 	    }
 	    
-	    // Adjust the base time based on current and joining times
-	    HX_ASSERT(ulCurrentPlayBackTime >= m_ulLiveJoiningTime);
-	    if (ulCurrentPlayBackTime > m_ulLiveJoiningTime)
-	    {
-		UINT32 ulTimeSinceJoining = ulCurrentPlayBackTime - m_ulLiveJoiningTime;
-
-		m_ulBaseTime += ulTimeSinceJoining;
-		m_ulLiveDelay += ulTimeSinceJoining;
-	    }
-
-	    // Determine how much we need to delay the audio stream
 	    ulStartDelayFromNow = m_ulLiveDelay - ulCurrentPlayBackTime;
 
 	    // If we are not rewound, we obtained the synhronization information
@@ -3079,9 +2873,8 @@ CHXAudioStream::UpdateStreamLastWriteTime(HXBOOL bForceUpdate /*= FALSE*/, HXBOO
     }
     else if (m_bIsRewound)
     {
-	UINT32 ulCurrentPlayBackTime =  m_Owner->GetCurrentPlayBackTime();
-	m_llLastWriteTime = ulCurrentPlayBackTime;
-	m_ulStartTime = HX_MAX(ulDelay, ulCurrentPlayBackTime);
+	m_llLastWriteTime = m_Owner->GetCurrentPlayBackTime();
+	m_ulStartTime = ulDelay;
 	m_bHasStartTime = TRUE;	// If the stream is not live, we always know the start-time
 	SetLastAdjustedTimeDiff();
 	bUpdateOccured = TRUE;
@@ -3329,7 +3122,7 @@ HX_RESULT CHXAudioStream::Seek(UINT32 ulSeekTime)
     if (SUCCEEDED(retVal))
     {
 	retVal = Flush();
-	m_ulSeekTime = ulSeekTime;
+	m_ulStartTime = ulSeekTime;
     }
 
     return retVal;

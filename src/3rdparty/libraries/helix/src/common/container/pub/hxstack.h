@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxstack.h,v 1.6 2009/05/19 12:30:56 jain_1982s Exp $
+ * Source last modified: $Id: hxstack.h,v 1.3 2004/07/09 18:21:27 hubbe Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -63,14 +63,5 @@ protected:
 	int top;	  // Index of next available slot.
 	int zero;	  // Initial index 
 };	
-
-extern "C"
-{ 
-    void* CreateHXStack();
-    void PushOnHXStack(void*, UINT32 ulData);
-    UINT32 PopFromHXStack(void*);
-    void HXStack_Delete(void* pobjStack);
-}
-	
 #endif
 

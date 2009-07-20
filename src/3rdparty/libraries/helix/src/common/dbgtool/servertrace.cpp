@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: servertrace.cpp,v 1.5 2008/07/03 21:53:47 dcollins Exp $
+ * Source last modified: $Id: servertrace.cpp,v 1.1 2006/09/19 20:24:41 dcollins Exp $
  * 
  * Portions Copyright (c) 1995-2006 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -67,10 +67,8 @@
 #include <sys/types.h>
 #include <linux/unistd.h>
 #include <errno.h>
-#if !defined(_LSB)
 _syscall0(pid_t,gettid)
 pid_t gettid(void);
-#endif
 #endif
 
 extern "C" char* get_trace();
@@ -126,7 +124,7 @@ ServerTrace::PrintThreadId(void)
 {
 #ifdef _WIN32
     printf("TID %lu\n", GetCurrentThreadId());
-#elif defined(_LINUX) && !defined(_LSB)
+#elif defined(_LINUX)
     printf("TID %lu/%lu\n", pthread_self(), (UINT32)gettid());
 #else
     printf("TID %lu\n", pthread_self());

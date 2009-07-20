@@ -157,7 +157,7 @@ HX_RESULT (STDAPICALLTYPE* const AudioPluginFactory::m_fpUnloadArray[])()={
     NULL
 };
 
-STDAPI ENTRYPOINTCALLTYPE ENTRYPOINT(HXCREATEINSTANCE)(IUnknown** ppIUnknown)
+STDAPI HXEXPORT ENTRYPOINT(HXCREATEINSTANCE)(IUnknown** ppIUnknown)
 {
     *ppIUnknown = (IUnknown*)(IHXPlugin*)new AudioPluginFactory();
     if (*ppIUnknown)
@@ -168,7 +168,7 @@ STDAPI ENTRYPOINTCALLTYPE ENTRYPOINT(HXCREATEINSTANCE)(IUnknown** ppIUnknown)
     return HXR_OUTOFMEMORY;
 }
 
-STDAPI ENTRYPOINTCALLTYPE ENTRYPOINT(CanUnload2)(void)
+STDAPI HXEXPORT ENTRYPOINT(CanUnload2)(void)
 {
     for( int i=0; AudioPluginFactory::m_fpUnloadArray[i]; i++ )
     {

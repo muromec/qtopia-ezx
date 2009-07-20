@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: tbitpack.cpp,v 1.4 2008/11/11 15:17:15 alokjain Exp $
+ * Source last modified: $Id: tbitpack.cpp,v 1.2 2004/07/09 18:31:01 hubbe Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -163,23 +163,14 @@ bool RunTest(int run)
 
     Bitstream unpack;
 
-    unpack.SetBuffer(buf, BUFFER_SIZE);
-    UINT32 ulLeft = 0; 
+    unpack.SetBuffer(buf);
 
     for (int j = 0; !failed && (j < VALUE_CT); j++)
     {
 	int bitCount = GetBitCount(31);
 	int expected = GetValue(j, bitCount);
-
-	int peekVal = 0;	
-	int getVal = 0;
-	ulLeft = unpack.BitsLeft();
-
-	if ( ulLeft >= (UINT32) bitCount )
-	{
-	    peekVal = unpack.PeekBits(bitCount);
-	    getVal = unpack.GetBits(bitCount);
-	}	
+	int peekVal = unpack.PeekBits(bitCount);
+	int getVal = unpack.GetBits(bitCount);
 
 	if (expected != peekVal)
 	{
@@ -220,8 +211,8 @@ bool RunTest2(int run)
     Bitstream baseStream;
     Bitstream expectStream;
 
-    baseStream.SetBuffer(buf, MaxBufferSize);
-    expectStream.SetBuffer(buf, MaxBufferSize);
+    baseStream.SetBuffer(buf);
+    expectStream.SetBuffer(buf);
     
 
     int bitCount = 0;
@@ -230,27 +221,14 @@ bool RunTest2(int run)
 	int maxBits = (bitsLeft > MaxBitCount) ? MaxBitCount : bitsLeft;
 
 	bitCount = GetBitCount(maxBits);
-	UINT32 ulLeft = baseStream.BitsLeft();
-	if ( ulLeft >= (UINT32) bitCount )
-	{
-	    baseStream.GetBits(bitCount, tmpBuffer);
-	}
-	else
-	{
-	    failed = TRUE;
-	}
+	
+	baseStream.GetBits(bitCount, tmpBuffer);
 
 	int tmpBitCount = bitCount;
 	for (int i = 0; !failed && tmpBitCount; i++)
 	{
 	    int a = (tmpBitCount > 8) ? 8 : tmpBitCount;
-	    ulLeft = expectStream.BitsLeft();
-	    ULONG32 expect = 0;
-	    if ( ulLeft >= (UINT32) a )
-	    {
-	        expect = expectStream.GetBits(a);
-	    }
-
+	    ULONG32 expect = expectStream.GetBits(a);
 	    ULONG32 result = tmpBuffer[i];
 
 	    if (a < 8)
@@ -331,82 +309,13 @@ bool RunTest3(int run)
 	pack.PackBits(src, bitCount, 0);
 	
 	Bitstream expectStream;
-	expectStream.SetBuffer(dst, MaxBufSize);
+	expectStream.SetBuffer(dst);
 	
-	UINT32 ulLeft = expectStream.BitsLeft();
-	if ( ulLeft >= offset )
-	{
-	    expectStream.GetBits(offset);
-	}
-
-	ulLeft = expectStream.BitsLeft();
-	if ( ulLeft >= (UINT32) bitCount )
-	{
-	    expectStream.GetBits(bitCount, expectBuf);
-	}
+	expectStream.GetBits(offset);
+	expectStream.GetBits(bitCount, expectBuf);
 	
 	failed = !CompareBuffers(src, expectBuf, bitCount);
     }
-
-    return !failed;
-}
-
-bool RunTest4(int run)
-{
-    printf ("RunTest4(%d)\n", run);
-
-    bool failed = false;
-
-    // This tests the buffer BitsLeft(), PeekBits() operation
-    const int MaxBufferSize = 100;
-    const int MaxBufferBits = 8 * MaxBufferSize;
-    const int MaxByteCount = MaxBufferSize / 2;
-    const int MaxBitCount = MaxByteCount * 8;
-	UINT32 BitsLeft = MaxBufferBits;
-
-    UINT8 buf[MaxBufferSize];
-    GenBuffer(buf, MaxBufferSize);
-
-    Bitstream baseStream0;
-    Bitstream baseStream1;
-
-    baseStream0.SetBuffer(buf, MaxBufferSize);
-    baseStream1.SetBuffer(buf, MaxBufferSize);
-    
-
-    int bitCount = 0;
-    for (int bitsLeft = MaxBufferBits; !failed && bitsLeft; bitsLeft -= bitCount)
-    {
-	int maxBits = (bitsLeft > MaxBitCount) ? MaxBitCount : bitsLeft;
-
-	bitCount = GetBitCount(maxBits);
-	bitCount = (bitCount > 32) ? (bitCount-8) : bitCount;
-    if (bitCount >32) 
-	{
-		bitCount = 32;
-	}
-	UINT32 ulLeft = baseStream0.BitsLeft();
-
-	if ( ulLeft >= (UINT32) bitCount )
-	{
-	    baseStream0.GetBits(bitCount);
-        BitsLeft -= bitCount;
-	}
-	ulLeft = baseStream1.BitsLeft();
-
-	if ( ulLeft >= (UINT32) bitCount )
-	{
-		baseStream1.PeekBits(bitCount);
-	}
-    ulLeft = baseStream0.BitsLeft();
-	UINT32 ulLeft1 = baseStream1.BitsLeft();
-	if ((BitsLeft != ulLeft) && (ulLeft1 != MaxBufferBits) )
-	{
-		printf ("bits left %d expect %02x got %02x\n",
-			run, BitsLeft, ulLeft);
-		failed = true;
-	}
-   }
 
     return !failed;
 }
@@ -419,8 +328,7 @@ int main (int argc, char* argv[])
     {
 	if (!RunTest(i) ||
 	    !RunTest2(i) ||
-	    !RunTest3(i) ||
-	    !RunTest4(i))
+	    !RunTest3(i))
 	{
 	    ret = -1;
 	    break;

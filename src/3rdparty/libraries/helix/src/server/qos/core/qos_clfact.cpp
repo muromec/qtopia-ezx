@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: qos_clfact.cpp,v 1.17 2007/07/30 17:38:13 hdeware Exp $ 
+ * Source last modified: $Id: qos_clfact.cpp,v 1.12 2004/07/08 22:07:27 ghori Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -133,18 +133,18 @@ HXQoSClassFactory::Release()
 
 STDMETHODIMP 
 HXQoSClassFactory::CreateInstance(THIS_ 
-                  IHXQoSSignalBus* pSignalBus,
+				  IHXQoSProfileConfigurator* pConfig,
 				  REFCLSID /*IN*/ rclsid,
 				  void** /*OUT*/ ppUnknown)
 {
-    if (!pSignalBus)
+    if (!pConfig)
     {
-        *ppUnknown = NULL;
-        return HXR_INVALID_PARAMETER;
+	*ppUnknown = NULL;
+	return HXR_INVALID_PARAMETER;
     }
 
 #ifdef HELIX_FEATURE_QOS
-    return m_pRNQoSClassFactory->CreateInstance(pSignalBus, rclsid, ppUnknown);
+    return m_pRNQoSClassFactory->CreateInstance(pConfig, rclsid, ppUnknown);
 #else
     if (IsEqualCLSID(rclsid, CLSID_IHXQoSCongestionControl))
     {
@@ -160,22 +160,12 @@ HXQoSClassFactory::CreateInstance(THIS_
 	((IUnknown*)*ppUnknown)->AddRef();
 	return HXR_OK;
     }
-
-    IHXQoSProfileConfigurator* pConfig = NULL;
-    pSignalBus->QueryInterface(IID_IHXQoSProfileConfigurator, (void**)&pConfig);
-    HX_ASSERT(pConfig);
-    if(!pConfig)
-    {
-        *ppUnknown = NULL;
-        return HXR_FAILED;
-    }
-
-    if (IsEqualCLSID(rclsid, CLSID_IHXQoSCongestionEquation))
+    else if (IsEqualCLSID(rclsid, CLSID_IHXQoSCongestionEquation))
     {
 	HX_RESULT hRes = HXR_NOINTERFACE; 
       	IHXBuffer* pCCType = NULL;
 
-	if ((SUCCEEDED(pConfig->GetConfigBuffer(QOS_CFG_RC_TYPE, pCCType))) &&
+	if ((SUCCEEDED(pConfig->GetConfigBuffer(QOS_CFG_CC_TYPE, pCCType))) &&
 	    pCCType && pCCType->GetBuffer())
 	{
 	    if (!strcasecmp("AIMD", (const char*)pCCType->GetBuffer()))
@@ -192,7 +182,6 @@ HXQoSClassFactory::CreateInstance(THIS_
 	}
 
 	HX_RELEASE(pCCType);
-    HX_RELEASE(pConfig);
 	return hRes;
     }
     else if (IsEqualCLSID(rclsid, CLSID_IHXQoSRateManager))
@@ -200,7 +189,7 @@ HXQoSClassFactory::CreateInstance(THIS_
 	HX_RESULT hRes = HXR_NOINTERFACE; 
       	IHXBuffer* pType = NULL;
 
-	if ((SUCCEEDED(pConfig->GetConfigBuffer(QOS_CFG_RA_TYPE, pType))) &&
+	if ((SUCCEEDED(pConfig->GetConfigBuffer(QOS_CFG_RM_TYPE, pType))) &&
 	    pType && pType->GetBuffer())
 	{
 	    if (!strcasecmp("CBR", (const char*)pType->GetBuffer()))
@@ -210,33 +199,17 @@ HXQoSClassFactory::CreateInstance(THIS_
 		((IUnknown*)*ppUnknown)->AddRef();
 		hRes = HXR_OK;
 	    }
-            else if (!strcasecmp("none", (const char*)pType->GetBuffer()))
-            {
-                *ppUnknown = NULL;
-                hRes = HXR_NOINTERFACE;
-            }
 	    else
 	    {
-		*ppUnknown = (IUnknown*)(IHXQoSRateManager*) 
-		    (new CCBRRateMgr(m_proc));
-		((IUnknown*)*ppUnknown)->AddRef();
-		hRes = HXR_OK;
+		*ppUnknown = NULL;
+		hRes = HXR_NOINTERFACE; 
 	    }
-	}
-	else
-	{
-	    *ppUnknown = (IUnknown*)(IHXQoSRateManager*) 
-		(new CCBRRateMgr(m_proc));
-	    ((IUnknown*)*ppUnknown)->AddRef();
-	    hRes = HXR_OK;
 	}
 
 	HX_RELEASE(pType);
-    HX_RELEASE(pConfig);
 	return hRes;
     }
 
-    HX_RELEASE(pConfig);
     *ppUnknown = NULL;
     return HXR_NOINTERFACE; 
 #endif

@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: proc.cpp,v 1.5 2009/05/27 17:45:08 atin Exp $
+ * Source last modified: $Id: proc.cpp,v 1.4 2006/07/27 20:56:03 atin Exp $
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -38,25 +38,8 @@
 #include "hxtypes.h"
 #include "proc.h"
 
-/*
- * \brief  On RHEL4 having these functions inlined doesn't work.
- *    
- * The get_procnum() worked when inlined, but the get_proc() didn't.
- * That is why even tho' they are simple and non-virtual functions
- * they are non-inline.
- *
- * xxx aak: need to investigate further post-release why the inlining
- * of get_proc() causes CAs when used inside cloaking code.
- */
-
 int
 Process::get_procnum()
 {
     return g_nTLSProcnum;
-}
-
-Process*
-Process::get_proc()
-{
-    return g_pTLSProc;
 }

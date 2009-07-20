@@ -17,7 +17,7 @@
 @  contents of the file.
 @
 @  Alternatively, the contents of this file may be used under the
-@  terms of the GNU General Public License Version 2 (the
+@  terms of the GNU General Public License Version 2 or later (the
 @  "GPL") in which case the provisions of the GPL are applicable
 @  instead of those above. If you wish to allow use of your version of
 @  this file only under the terms of the GPL, and not to allow others

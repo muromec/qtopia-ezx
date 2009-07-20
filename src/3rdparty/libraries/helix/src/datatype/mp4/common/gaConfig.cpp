@@ -263,8 +263,6 @@ HX_RESULT CAudioSpecificConfig::Read(struct BITSTREAM &bs)
 {
 	HX_RESULT res = HXR_OK;
 
-        m_ulExtendedSize = bitsLeftInBitstream(&bs);
-
 	AudioObjectType.Read(bs) ;
 	samplingFrequencyIndex.Read(bs) ;
 	extensionSamplingFrequencyIndex = samplingFrequencyIndex ;
@@ -282,21 +280,11 @@ HX_RESULT CAudioSpecificConfig::Read(struct BITSTREAM &bs)
 	}
 	extensionSamplingFrequency = samplingFrequency ;
 
-  channelConfiguration.Read(bs) ;
+	channelConfiguration.Read(bs) ;
 
-  m_nSBRPresentFlag = -1; // UNKNOWN
-  m_nPSPresentFlag = -1; // UNKNOWN
-  m_bSBR = FALSE;
-
-  if (AudioObjectType == AACSBR ||
-      AudioObjectType == AACPS)
+	m_bSBR = (AudioObjectType == AACSBR) ;
+	if (m_bSBR)
 	{
-    m_bSBR = TRUE;
-    m_nSBRPresentFlag = 1; // TRUE
-    if ( AudioObjectType == AACPS )
-    {
-      m_nPSPresentFlag = 1; // TRUE
-    }
 		extensionSamplingFrequencyIndex.Read(bs) ;
 		switch (extensionSamplingFrequencyIndex)
 		{
@@ -324,19 +312,14 @@ HX_RESULT CAudioSpecificConfig::Read(struct BITSTREAM &bs)
 		return HXR_FAIL ;
 	}
 
-        UINT32 ulBitsLeft = bitsLeftInBitstream(&bs);
-        m_ulCoreConfigSize = m_ulExtendedSize - ulBitsLeft;
-
-	if (!m_bSBR && ulBitsLeft >= 16)
+	if (!m_bSBR && bitsLeftInBitstream(&bs) >= 16)
 	// if SBR info has not been read before, but there are more bytes to follow...
 	{
 		if (readBits(&bs,11) == 0x2b7)
 		{
-      if (readBits(&bs,5) == AACSBR)
+			if (readBits(&bs,5) == 5)
 			{
 				m_bSBR = readBits(&bs,1) ;
-                m_nSBRPresentFlag = (m_bSBR) ? 1 : 0;
-
 				if (m_bSBR)
 				{
 					extensionSamplingFrequencyIndex.Read(bs) ;
@@ -350,16 +333,6 @@ HX_RESULT CAudioSpecificConfig::Read(struct BITSTREAM &bs)
 						break ;
 					default: // the normal case
 						extensionSamplingFrequency = aSampleRate[extensionSamplingFrequencyIndex] ;
-          }
-
-          if ( bitsLeftInBitstream(&bs) >= 12 )
-          // if PS info has not been read before, but there are more bytes to follow...
-          {
-            // 0x548 is constant from specification ISO/IEC 14496-3:2005/FPDAM 5
-            if (readBits(&bs,11) == 0x548)
-            { 
-              m_nPSPresentFlag = readBits(&bs,1) ? 1 : 0;
-            }
 					}
 				}
 			}
@@ -367,11 +340,6 @@ HX_RESULT CAudioSpecificConfig::Read(struct BITSTREAM &bs)
 	}
 
 	return HXR_OK ;
-}
-
-UINT32 CAudioSpecificConfig::GetCoreConfigSize() const
-{
-	return m_ulCoreConfigSize;
 }
 
 UINT32 CAudioSpecificConfig::GetSampleRate() const

@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: memorymonitor.h,v 1.4 2008/05/28 22:46:16 ashkunar Exp $
+ * Source last modified: $Id: memorymonitor.h,v 1.2 2006/03/07 21:18:12 rrajesh Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -52,8 +52,7 @@
 
 #include "globals/hxglobals.h"
 #include "hxerror.h"
-#include <e32base.h>
-#include <e32std.h>
+
 class SymbianMemoryMonitor
 {
 private:
@@ -70,18 +69,12 @@ public:
     ~SymbianMemoryMonitor();
 
     //NOTE: If Init API is called, the caller must call Close API
-    HXBOOL  Init(IUnknown *pContext, const TUint32 buffersize);
+    HXBOOL  Init(IUnknown *pContext);
     void    SendEvent(MemoryEvent event);
     void    Close();
-    static TInt _Callback(TAny *p);
-    void    Callback();
-    void AllocateTempMem(const TUint32 buffersize);
-    void RelaseTempMem();
     
 private:
     IHXErrorMessages*       m_pErrorMessages;
-    CAsyncCallBack*         m_pCallback;
-    void*										m_TempMem;
 };
 
 #endif SYMBIAN_MEMORY_MONITOR_H

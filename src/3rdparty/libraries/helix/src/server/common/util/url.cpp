@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: url.cpp,v 1.20 2008/07/03 21:54:17 dcollins Exp $
+ * Source last modified: $Id: url.cpp,v 1.19 2007/04/26 18:18:16 darrick Exp $
  *
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.
  *
@@ -39,11 +39,8 @@
 #include <stdio.h>
 
 #ifdef _UNIX
-#include <pwd.h>
+#       include <pwd.h>
 #endif /* _UNIX */
-#if defined(_LSB)
-#include <arpa/inet.h>
-#endif
 
 #include "hxtypes.h"
 #include "hxcom.h"

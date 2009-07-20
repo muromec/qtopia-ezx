@@ -1,6 +1,6 @@
 # 
 # ***** BEGIN LICENSE BLOCK *****
-# Source last modified: $Id: Umakefil,v 1.15 2008/05/06 14:16:46 ehyche Exp $
+# Source last modified: $Id: Umakefil,v 1.12 2006/03/22 17:51:54 stanb Exp $
 # 
 # Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
 # 
@@ -19,7 +19,7 @@
 # contents of the file.
 # 
 # Alternatively, the contents of this file may be used under the
-# terms of the GNU General Public License Version 2 (the
+# terms of the GNU General Public License Version 2 or later (the
 # "GPL") in which case the provisions of the GPL are applicable
 # instead of those above. If you wish to allow use of your version of
 # this file only under the terms of the GPL, and not to allow others
@@ -52,56 +52,34 @@
 UmakefileVersion(2,2)
 
 project.AddModuleIncludes("common/include", 
-                          "common/container/pub",
+			  "common/container/pub",
                           "common/util/pub", 
-                          "common/dbgtool/pub",
+			  "common/dbgtool/pub",
                           "common/log/logutil/pub",
                           "common/system/pub", 
                           "common/fileio/pub", 
-                          "common/runtime/pub",
-                          "client/include",
-                          "client/common/util/pub",
-                          "common/log/logutil/pub")
+			  "common/runtime/pub",
+                          "client/include")
 
 project.AddSources("hxgrpen2.cpp",
                    "hxclreg.cpp", 
-                   "hxresmg.cpp",
-                   "medblock.cpp",
-                   "dbindex.cpp",
-                   "hxpropwclnt.cpp",
-                   "hxcontextusermixin.cpp",
-                   "chxlistcontainermixin.cpp",
-                   "chxlistiterator.cpp")
+		   "hxresmg.cpp",
+		   "medblock.cpp",
+		   "dbindex.cpp",
+		   "hxpropwclnt.cpp",
+		   "hxcontextusermixin.cpp")
 
-if project.IsDefined("HELIX_CONFIG_USE_EXTENDED"):
-    project.AddIncludes(GetSDKPath("boost_1_32_0"))
-    project.AddIncludes("pub/extended")
-    project.AddSources("extended/hxeventsendermixin.cpp",
-                       "extended/hxpropertybagmixin.cpp",
-                       "extended/chxconfigurator.cpp",
-                       "extended/chxconfiguratoriterator.cpp",
-                       "extended/chxpropertystore.cpp",
-                       "extended/hxstringutils.cpp",
-                       "extended/sphxstring.cpp",
-                       "extended/chxascii7string.cpp",
-                       "extended/chxunicodeucs2string.cpp",
-                       "extended/hxstringprivateutils.cpp")
-
-if project.IsDefined("HELIX_FEATURE_LITEPREFS"):
-    project.AddSources("chxliteprefs.cpp")
+if 'HELIX_FEATURE_LITEPREFS' in project.defines:
+        project.AddSources("chxliteprefs.cpp")
 else:
-    project.AddSources("playpref.cpp",
-                       "hxpref.cpp")
+        project.AddSources("playpref.cpp", "hxpref.cpp")
 
-if project.BuildOption("nodll") or not project.IsDefined("HELIX_FEATURE_PLUGINHANDLER2"):
-    if project.IsDefined('HELIX_CONFIG_CONSOLIDATED_CORE'):
-        project.AddSources("basehand.cpp")
-    else:
-        project.AddSources("hxpluginarchive.cpp",
-                           "hxplugin.cpp",
-                           "hxplugindll.cpp",
-                           "hxpluginmanager.cpp")
+if project.BuildOption("nodll") or not ('HELIX_FEATURE_PLUGINHANDLER2' in project.defines):
+        if project.IsDefined('HELIX_CONFIG_CONSOLIDATED_CORE'):
+            project.AddSources("basehand.cpp")
+        else:
+            project.AddSources("hxpluginarchive.cpp", "hxplugin.cpp", "hxplugindll.cpp", "hxpluginmanager.cpp")
 else:
-    project.AddSources("plghand2.cpp")
+        project.AddSources("plghand2.cpp")
 
 LibraryTarget("contclntlib")

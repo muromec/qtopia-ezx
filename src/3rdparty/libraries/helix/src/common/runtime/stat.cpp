@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: stat.cpp,v 1.9 2008/01/18 09:17:26 vkathuria Exp $
+ * Source last modified: $Id: stat.cpp,v 1.7 2004/07/09 18:21:24 hubbe Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -112,19 +112,7 @@ int __helix_fstat(int filedes, struct stat *buffer)
 	return ret;
 }
 
-#elif defined(_BREW)
 
-int __helix_stat(const char *path, struct stat *buffer)
-{
-    HX_ASSERT(0);
-    return 0;
-}
-
-int __helix_fstat(int filedes, struct stat *buffer)
-{
-    HX_ASSERT(0);
-    return 0;
-}
 
 #endif /* defined(WIN32_PLATFORM_PSPC) */
 

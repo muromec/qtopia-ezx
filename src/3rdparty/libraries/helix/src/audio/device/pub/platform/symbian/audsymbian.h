@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: audsymbian.h,v 1.21 2009/02/27 22:56:59 shivnani Exp $
+ * Source last modified: $Id: audsymbian.h,v 1.17 2007/04/03 18:21:57 rrajesh Exp $
  *
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  *
@@ -18,7 +18,7 @@
  * contents of the file.
  *
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -51,7 +51,7 @@
 #define _AUDSYMBIAN
 #include <stdio.h>
 #include <e32base.h>
-#include <mmf/common/Mmfbase.h>
+#include <mmf\common\Mmfbase.h>
 #include "hxengin.h"
 #include "hxcom.h"
 #include "hxausvc.h"
@@ -59,8 +59,9 @@
 #include "hxaudply.h"
 #include "chxmapptrtoptr.h"
 #include "AudDevStatusObserver.h"
-#include "hxmon.h"
 
+#define MINIMUM_AUDIO_PUSHDOWN 1000
+//#define ENFORCE_MINIMUM_PUSHDOWN 
 
 struct IHXAudioDeviceResponse;
 class CHXSimpleList;
@@ -72,7 +73,6 @@ _INTERFACE IHXErrorMessages;
 class CHXAudioDevice : public IHXAudioDevice
                        ,public CActive
                        ,public CHXAudDevStatusObserver
-                       ,public IHXPropWatchResponse
 {
   public:
     CHXAudioDevice();
@@ -117,11 +117,6 @@ class CHXAudioDevice : public IHXAudioDevice
     // CHXAudDevStatusObserver methods
     void OnAudDevStatusChange(TInt status);
 
-    //IHXPropWatchResponse methods
-	STDMETHOD(AddedProp)	(THIS_ const UINT32 ulId, const HXPropType propType, const UINT32 ulParentID);
-	STDMETHOD(ModifiedProp)	(THIS_ const UINT32	ulId, const HXPropType propType, const UINT32 ulParentID);
-	STDMETHOD(DeletedProp)	(THIS_ const UINT32	ulId, const UINT32 ulParentID);
-
   protected:
 
     //--------------------------------------------------
@@ -157,12 +152,6 @@ class CHXAudioDevice : public IHXAudioDevice
     RTimer                          m_iTimer;
     IUnknown*                       m_pContext;
     IHXErrorMessages*               m_pErrorMessages;
-
-	HXBOOL							m_bSecureOutputChanged;
-	UINT32							m_uSecureOutputChangeTime;
-	IHXPropWatch*					m_pPropWatch;
-    INT32               			m_lSecureOutputSetting;
-
 };
 
 #endif  //_AudioOutSYMBIAN

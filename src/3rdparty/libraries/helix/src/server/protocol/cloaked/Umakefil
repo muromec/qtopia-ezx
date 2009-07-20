@@ -1,6 +1,6 @@
 # -*- python -*-
 # ***** BEGIN LICENSE BLOCK *****  
-# Source last modified: $Id: Umakefil,v 1.10 2007/06/22 13:04:39 rasher Exp $ 
+# Source last modified: $Id: Umakefil,v 1.9 2006/12/21 05:13:53 tknox Exp $ 
 #   
 # Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
 #       
@@ -74,7 +74,8 @@ project.AddModuleIncludes('common/include',
                           'server/include')
 
 project.AddSources(
-		 'cloak_common.cpp'
+		'cloaked_guid_dict.cpp'
+		, 'cloak_common.cpp'
 		, 'basecloak.cpp'
 		, 'rn1cloak.cpp'
 		, 'qtcloak.cpp')

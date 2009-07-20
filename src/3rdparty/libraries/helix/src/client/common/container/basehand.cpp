@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: basehand.cpp,v 1.31 2008/03/28 08:58:36 lovish Exp $
+ * Source last modified: $Id: basehand.cpp,v 1.28 2007/04/13 17:57:19 ping Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -173,7 +173,6 @@ BEGIN_INTERFACE_LIST_NOCREATE( BaseHandler )
     INTERFACE_LIST_ENTRY_SIMPLE( IHXPluginEnumerator )
     INTERFACE_LIST_ENTRY_SIMPLE( IHXPlugin2Handler )
     INTERFACE_LIST_ENTRY_SIMPLE( IHXPluginHandler3 )
-    INTERFACE_LIST_ENTRY_SIMPLE( IHXPlugin2HandlerEnumeratorInterface )
 END_INTERFACE_LIST
 
 BaseHandler::BaseHandler() 
@@ -730,35 +729,6 @@ BaseHandler::RemovePluginMountPoint( const char* pName )
 	    }
 	}
 
-        // Clean up supported GUIDs
-        if (m_GUIDtoSupportList.GetCount())
-        {
-            CHXMapStringToOb::Iterator k;
-
-            for(k = m_GUIDtoSupportList.Begin(); k!=m_GUIDtoSupportList.End(); ++k)
-            {
-                CHXSimpleList* pSupportedList = (CHXSimpleList*) *k;
-
-                LISTPOSITION listPos = pSupportedList->GetHeadPosition();
-                while( listPos )
-                {
-                    // Save off current position for delete
-                    LISTPOSITION posAt = listPos;
-
-                    // Get current item, and increment position
-                    PluginSupportingGUID* pSupportItem = (PluginSupportingGUID*) pSupportedList->GetNext( listPos );
-
-                    // If this plugin belongs to the mountpoint, remove it.
-                    if( pSupportItem && ( pSupportItem->m_pMountPoint == pMountPoint ) )
-                    {
-                        // Delete from the saved position
-                        pSupportedList->RemoveAt( posAt );
-                        HX_DELETE( pSupportItem );
-                    }
-                }
-            }
-        }
-
 	// Remove mount point from list
 	m_MountPoints.RemoveKey( pName );
 	HX_RELEASE( pMountPoint );
@@ -1100,90 +1070,6 @@ BaseHandler::UnloadPackageByName(const char* pName)
     return HXR_NOTIMPL;
 }
 
-STDMETHODIMP BaseHandler::GetNumPluginsSupporting(REFIID iid, REF(UINT32) nNumPlugins)
-{
-    CHXString       sGUID;
-    CHXSimpleList*  pSupportList;
-
-    CHXuuid::HXUuidToString( (uuid_tt*) &iid, &sGUID);
-
-    if (!m_GUIDtoSupportList.Lookup(sGUID, (void*&)pSupportList))
-    {
-        return HXR_FAIL;
-    }
-
-    nNumPlugins = pSupportList->GetCount();
-    return HXR_OK;
-}
-
-STDMETHODIMP BaseHandler::GetPluginIndexSupportingIID(REFIID iid, UINT32 nPluginIndex, REF(UINT32) nIndexOut)
-{
-    CHXString       sGUID;
-    CHXSimpleList*  pSupportList;
-
-    CHXuuid::HXUuidToString( (uuid_tt*) &iid, &sGUID);
-
-    if (m_GUIDtoSupportList.Lookup(sGUID, (void*&)pSupportList))
-    {
-        if (nPluginIndex < (UINT32)pSupportList->GetCount())
-        {
-            LISTPOSITION pPos = pSupportList->FindIndex(nPluginIndex);
-            PluginSupportingGUID* pSupportItem = (PluginSupportingGUID*) pSupportList->GetAt(pPos);
-            if (FindPlugin(pSupportItem ->m_filename, pSupportItem->m_nIndexInDLL, nIndexOut))
-            {
-                return HXR_OK;
-            }
-        }
-    }
-    return HXR_FAIL;
-}
-
-STDMETHODIMP BaseHandler::AddSupportedIID(REFIID iid)
-{
-    //1st scan to see if this GUID is already supported...
-
-    CHXString       sGUID;
-    CHXSimpleList*  pSupportList;
-
-    CHXuuid::HXUuidToString( (uuid_tt*) &iid, &sGUID);
-
-    if (m_GUIDtoSupportList.Lookup(sGUID, (void*&)pSupportList))
-    {
-        return HXR_FAIL;    // hey! it is already in!
-    }
-
-    // Now create the new structure.
-    CHXSimpleList* pSimpleList = new CHXSimpleList();
-    m_GUIDtoSupportList.SetAt(sGUID, pSimpleList);
-
-    // now scan all of the Plugins to see if any of them support this interface,
-    for(CHXSimpleList::Iterator i = m_PluginList.Begin(); i!=m_PluginList.End(); ++i)
-    {
-        IUnknown*   pUnk = NULL;
-        IUnknown*   pQuery = NULL;
-        BaseHandler::Plugin* pPlugin = (BaseHandler::Plugin*) *i;
-
-        if (HXR_OK == pPlugin->GetPlugin(pUnk))
-        {
-            if(HXR_OK == pUnk->QueryInterface(iid, (void**)&pQuery))
-            {
-                PluginSupportingGUID* pSupportItem = new PluginSupportingGUID();
-
-                IHXBuffer* pBuffer = pPlugin->GetFileName();
-                pSupportItem->m_filename    = (char*) pBuffer->GetBuffer();
-                HX_RELEASE( pBuffer );
-                pSupportItem->m_pMountPoint = pPlugin->GetDLL()->GetMountPoint();
-                pSupportItem->m_nIndexInDLL = pPlugin->GetIndex();
-
-                pSimpleList->AddTail((void*)pSupportItem);
-                HX_RELEASE(pQuery);
-            }
-            HX_RELEASE(pUnk);
-        }
-    }
-
-    return HXR_OK;
-}
 
 //------------------------------------ Class Methods
 
@@ -1243,20 +1129,6 @@ STDMETHODIMP BaseHandler::Close ()
 	pMountPoint->Release();
     }
     m_MountPoints.RemoveAll();
-
-    // Release all of the GUID stuff
-    CHXMapStringToOb::Iterator j;
-    for(j = m_GUIDtoSupportList.Begin(); j!= m_GUIDtoSupportList.End(); ++j)
-    {
-        CHXSimpleList* pList = (CHXSimpleList*) *j;
-        for(i = pList->Begin(); i!=pList->End(); ++i)
-        {
-            PluginSupportingGUID* pSupportItem = (PluginSupportingGUID*) *i;
-            delete pSupportItem;
-        }
-        delete pList;
-    }
-    m_GUIDtoSupportList.RemoveAll();
 
     // release all of the CORE stuff...
     HX_RELEASE(m_pContext);
@@ -2264,7 +2136,7 @@ BaseHandler::PluginDLL::Load(IUnknown* pContext)
 	IHXComponentPlugin* pIPackage = NULL;
 	if (SUCCEEDED (pInstance->QueryInterface (IID_IHXComponentPlugin, (void**) &pIPackage)))
 	{
-#if !defined(_WINDOWS) &&  !defined(_UNIX) // XXXHP TEMPORARY - viper team has requested that this shouldn't assert for now on windows.
+#ifndef _WINDOWS // XXXHP TEMPORARY - viper team has requested that this shouldn't assert for now on windows.
 	    HX_ASSERT (m_fpShutdown);
 #endif
 	    pPlugin->InitPlugin (pContext);
@@ -2359,7 +2231,8 @@ BaseHandler::Errors	BaseHandler::PluginDLL::CreateInstance(IUnknown** ppUnk,
 	    HX_RELEASE(pPluginFactory);
 	}
     }
-
+    //m_pPlugin2Handler->AddtoLRU(this);
+    //m_pPlugin2Handler->UpdateCache();
     return NO_ERRORS;
 }
 

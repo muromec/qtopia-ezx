@@ -1,6 +1,6 @@
 # -*- python -*-
 # ***** BEGIN LICENSE BLOCK *****  
-# Source last modified: $Id: make_lib,v 1.6 2009/04/07 19:19:31 jgordon Exp $ 
+# Source last modified: $Id: make_lib,v 1.1 2006/09/19 20:06:16 dcollins Exp $ 
 #   
 # Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
 #       
@@ -84,12 +84,8 @@ project.AddSources(
 	, "pktreorderqueue.cpp"
 	, "packetreordershim.cpp"
 	, "packetreorderhelper.cpp"
-	, "livepacketq.cpp"
-	, "pktqmgr.cpp"
 	, "livekeyframe.cpp"
 	, "servertbf.cpp"
-	, "urlparser.cpp"
-	, "header_helper.cpp"
 	)
 
 LibraryTarget('servutillib')

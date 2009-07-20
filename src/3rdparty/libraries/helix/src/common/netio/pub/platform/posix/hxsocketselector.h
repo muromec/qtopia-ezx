@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: hxsocketselector.h,v 1.6 2008/08/27 09:59:48 lovish Exp $ 
+ * Source last modified: $Id: hxsocketselector.h,v 1.4 2006/02/16 23:03:05 ping Exp $ 
  *   
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -18,7 +18,7 @@
  * contents of the file. 
  *   
  * Alternatively, the contents of this file may be used under the 
- * terms of the GNU General Public License Version 2 (the 
+ * terms of the GNU General Public License Version 2 or later (the 
  * "GPL") in which case the provisions of the GPL are applicable 
  * instead of those above. If you wish to allow use of your version of 
  * this file only under the terms of the GPL, and not to allow others  
@@ -62,7 +62,7 @@
 #include "nettypes.h" //sockobj_t
 #include "chxmapptrtoptr.h"
 #include "hxrefcounted.h"
-#include "hxengin.h"
+
 class CHXSet;
 
 class HXSocketSelector
@@ -72,7 +72,7 @@ public:
     class EventHandler 
     {
     public:
-        virtual HX_RESULT OnSelectEvent(sockobj_t fd, UINT32 event /*HX_SOCK_XXX*/, HX_RESULT err)  = 0;
+        virtual void OnSelectEvent(sockobj_t fd, UINT32 event /*HX_SOCK_XXX*/, HX_RESULT err)  = 0;
     };
 public:
    

@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: cloaksock.cpp,v 1.5 2007/05/23 18:59:27 seansmith Exp $
+ * Source last modified: $Id: cloaksock.cpp,v 1.4 2004/06/18 19:31:49 tmarshall Exp $
  *
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.
  *
@@ -180,7 +180,7 @@ CloakedStreamTCPSocketContext::Read(UINT16 Size)
         IHXTCPSocketContext* currRcvr = CurrentReceiver();
         DPRINTF(0x00200000, ("ClkSTCPSC(%p)::Read -- proc(%p), "
                "currRcvr(%p)->Read()\n",
-               this, ((Client *)m_pTCPResponse)->m_pProc, currRcvr));
+               this, ((Client *)m_pTCPResponse)->proc, currRcvr));
         return currRcvr->Read(Size);
     }
     return 0;
@@ -191,7 +191,7 @@ CloakedStreamTCPSocketContext::Write(IHXBuffer* pBuffer)
 {
     DPRINTF(0x00200000, ("ClkSTCPSC(%p)::Write -- proc(%p), "
            "m_pToClient(%p)->Write()\n",
-           this, ((Client *)m_pTCPResponse)->m_pProc, m_pToClient));
+           this, ((Client *)m_pTCPResponse)->proc, m_pToClient));
     if (m_pToClient->SupportsBufferedSocket())
     {
         HX_RESULT res = m_pToClient->BufferedWrite(pBuffer);
@@ -209,7 +209,7 @@ CloakedStreamTCPSocketContext::BufferedWrite(IHXBuffer* pBuffer)
 {
     DPRINTF(0x00200000, ("ClkSTCPSC(%p)::Write -- proc(%p), "
            "m_pToClient(%p)->BufferedWrite()\n",
-           this, ((Client *)m_pTCPResponse)->m_pProc, m_pToClient));
+           this, ((Client *)m_pTCPResponse)->proc, m_pToClient));
     return m_pToClient->BufferedWrite(pBuffer);
 }
 
@@ -218,7 +218,7 @@ CloakedStreamTCPSocketContext::FlushWrite()
 {
     DPRINTF(0x00200000, ("ClkSTCPSC(%p)::Write -- proc(%p), "
            "m_pToClient(%p)->FlushWrite()\n",
-           this, ((Client *)m_pTCPResponse)->m_pProc, m_pToClient));
+           this, ((Client *)m_pTCPResponse)->proc, m_pToClient));
     return m_pToClient->FlushWrite();
 }
 
@@ -227,7 +227,7 @@ CloakedStreamTCPSocketContext::SetDesiredPacketSize(UINT32 size)
 {
     DPRINTF(0x00200000, ("ClkSTCPSC(%p)::Write -- proc(%p), "
            "m_pToClient(%p)->FlushWrite()\n",
-           this, ((Client *)m_pTCPResponse)->m_pProc, m_pToClient));
+           this, ((Client *)m_pTCPResponse)->proc, m_pToClient));
     return m_pToClient->SetDesiredPacketSize(size);
 }
 
@@ -417,7 +417,7 @@ CloakedStreamTCPSocketContext::DoRead()
     UINT32 len = head->RemainingDataLen();
     DPRINTF(0x00200000, ("%lu: ClkSTCPSC::DR -- currRcvr(%p), "
             "remainingDataLen(%lu)\n",
-            ((Client *)m_pTCPResponse)->m_ulConnId, currRcvr, len));
+            ((Client *)m_pTCPResponse)->conn_id, currRcvr, len));
 
     return m_pTCPResponse->ReadDone(HXR_OK, 0);
 }

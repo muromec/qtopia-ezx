@@ -286,7 +286,7 @@ HX_RESULT HXSockUtil::SetAddr(IHXSockAddr* pAddr /*modified*/,
 
 HX_RESULT HXSockUtil::SetAddrNetOrder(IHXSockAddr* pAddr /*modified*/,
                                 short family,
-                                const void* const pAddrData /*net order octets/hextets*/,
+                                const void* pAddrData /*net order octets/hextets*/,
                                 UINT16 port /*net order*/)
 {
     HX_ASSERT(pAddrData);
@@ -445,36 +445,4 @@ HX_RESULT HXSockUtil::CreateAddrIN4(IHXNetServices* pNetServices,
     return hxr;
 }
 
-HX_RESULT HXSockUtil::CreateAddrIN4(IHXNetServices* pNetServices,
-                     const struct sockaddr_in* psa,
-                     IHXSockAddr*& pAddrOut /*out*/)
-{
-    HX_ASSERT(pNetServices);
-    HX_ASSERT(psa);
-  
-    HX_RESULT hr = pNetServices->CreateSockAddr(HX_SOCK_FAMILY_IN4, &pAddrOut);
-    if(SUCCEEDED(hr))
-    {
-        UINT32 netAddr = DwToNet(psa->sin_addr.s_addr);
-        hr = HXSockUtil::SetAddrNetOrder(pAddrOut, AF_INET, &netAddr, psa->sin_port);
-    }
 
-    return hr;
-}
-
-HX_RESULT HXSockUtil::CreateAddrIN6(IHXNetServices* pNetServices,
-                     const struct sockaddr_in6* psa,
-                     IHXSockAddr*& pAddrOut /*out*/)
-{
-
-    HX_ASSERT(pNetServices);
-    HX_ASSERT(psa);
-
-    HX_RESULT hr = pNetServices->CreateSockAddr(HX_SOCK_FAMILY_IN6, &pAddrOut);
-    if (SUCCEEDED(hr))
-    {
-        HXSockUtil::SetAddrNetOrder(pAddrOut, AF_INET6, &psa->sin6_addr, psa->sin6_port);
-    }
-
-    return hr;
-}

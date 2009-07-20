@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: hxbsdsocketselector.h,v 1.6 2008/08/27 09:59:48 lovish Exp $ 
+ * Source last modified: $Id: hxbsdsocketselector.h,v 1.4 2006/02/16 23:03:05 ping Exp $ 
  *   
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -18,7 +18,7 @@
  * contents of the file. 
  *   
  * Alternatively, the contents of this file may be used under the 
- * terms of the GNU General Public License Version 2 (the 
+ * terms of the GNU General Public License Version 2 or later (the 
  * "GPL") in which case the provisions of the GPL are applicable 
  * instead of those above. If you wish to allow use of your version of 
  * this file only under the terms of the GPL, and not to allow others  
@@ -60,38 +60,21 @@
 #define	HX_BSDSOCKETSELECTOR_H__
 
 #include "hxsocketselector.h" 
-#include "hxengin.h"
-#include "hxclassdispatchtasks.h"
-#include "hxthreadtaskdriver.h"
-#include "chxmaplongtoobj.h"
 
-class CHXClientSocket;
 class HXBSDSocketSelector
 : public HXSocketSelector
 {
 public:
     HX_RESULT Init(IUnknown* pContext);
     HX_RESULT UpdateSocket(sockobj_t fd, UINT32 eventMask);
-    HX_RESULT ReEnableSocket(sockobj_t fd, UINT32 eventMask);	
     void RemoveSocket(sockobj_t fd);
 
     void ProcessSelect();
-    HX_RESULT ProcessIdle();
+
 private:
     friend HXSocketSelector* HXSocketSelector::AllocInstance();
     HXBSDSocketSelector();
     virtual ~HXBSDSocketSelector();
-    static void* ThreadProc_(void* pv);
-    void* ThreadProc();
-	
-    HX_RESULT SendWait(HXClassDispatchTask<HX_RESULT>* pTask);	
-
-protected:
-    IHXThread*   m_pSelectThread;
-    IHXEvent*		    m_pQuitEvent;
-    HXThreadTaskDriver*     m_pDriver; 
-    HXBOOL m_bThreadCreated;	
-    CHXMapLongToObj  m_SockEventPool;	
 };
 
 

@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: mmxresample.c,v 1.10 2007/07/06 20:21:29 jfinnecy Exp $
+ * Source last modified: $Id: mmxresample.c,v 1.9 2004/07/09 18:37:31 hubbe Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -59,7 +59,7 @@
 #include "allresamplers.h"
 
 /* leave a trace of the C source version in the object code */
-static const char VERSION[] = "$Revision: 1.10 $" ;
+static const char VERSION[] = "$Revision: 1.9 $" ;
 
 #define CLIP(s) ((s) > 32767 ? 32767 : ((s) < -32768 ? -32768 : (s)))
 

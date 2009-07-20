@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: profile_cache.cpp,v 1.5 2007/09/28 06:19:02 npatil Exp $
+ * Source last modified: $Id: profile_cache.cpp,v 1.4 2005/06/09 23:04:51 jgordon Exp $
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -149,22 +149,32 @@ StaticProfileCache::GetProfile(const char* szKey,
         return HXR_NOT_INITIALIZED;
     }
 
+    // XXXSCR - Turns out there are many, many Nokia User-Agents
+    // so we need to be able to match more.  I admit that iterating through
+    // removes all reasons for having this in a hash table, but
+    // in the interest of simplicity, I'll leave it.  We'll do a better
+    // job on the head.
     if(m_pCacheTable)
     {
-        Dict_entry* pEntry=NULL;
-        pEntry = m_pCacheTable->find(szKey);
-        if(pEntry)
+        Dict_iterator iterator(m_pCacheTable);
+        for(Dict_entry* pEntry=NULL; *iterator; ++iterator)
         {
-            ProfileData* pPrfData = (ProfileData*)pEntry->obj;
-            pProfile = pPrfData->pProfile;
-            if(pProfile)
+            pEntry = *iterator;
+            if (pEntry && pEntry->key && pEntry->obj && 
+                    !strncmp(pEntry->key, szKey, strlen(pEntry->key)))
             {
-                pProfile->AddRef();
-                ulMergeRule = pPrfData->ulMergeRule;
-                return HXR_OK;
+                ProfileData* pPrfData = (ProfileData*)pEntry->obj;
+                pProfile = pPrfData->pProfile;
+                if(pProfile)
+                {
+                    pProfile->AddRef();
+                    ulMergeRule = pPrfData->ulMergeRule;
+                    return HXR_OK;
+                }
             }
         }
     }
+
     return HXR_FAIL;
 }
 

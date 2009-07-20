@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxsmstr.cpp,v 1.25 2008/05/06 20:04:29 ping Exp $
+ * Source last modified: $Id: hxsmstr.cpp,v 1.22 2006/10/20 18:19:31 ping Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -76,7 +76,6 @@
 #include "rtspif.h"
 #include "rlstate.h"
 #include "hxmime.h"
-#include "hxtlogutil.h"
 
 #include "hxheap.h"
 
@@ -182,15 +181,12 @@ HXASMStream::HXASMStream(HXStream* pStream, HXSource* pSource)
         m_pRuleBook = new ASMRuleBook (m_pCCF, (const char *)pRuleBook->GetBuffer());
 
 	m_nNumRules = m_pRuleBook->GetNumRules();
-        if (m_nNumRules > 0)
-        {
-	    m_ulRuleBw = new UINT32[m_nNumRules];
-	    m_ulRulePreData = new UINT32[m_nNumRules];
-	    m_bRuleTimeStampDelivery = new HXBOOL[m_nNumRules];
-	    m_pSubInfo = new HXBOOL[m_nNumRules];
-	    m_pRuleSubscribeStatus = new HXBOOL[m_nNumRules];
-            m_pRuleEnableState = new RuleEnableState[m_nNumRules];
-        }
+	m_ulRuleBw = new UINT32[m_nNumRules];
+	m_ulRulePreData = new UINT32[m_nNumRules];
+	m_bRuleTimeStampDelivery = new HXBOOL[m_nNumRules];
+	m_pSubInfo = new HXBOOL[m_nNumRules];
+	m_pRuleSubscribeStatus = new HXBOOL[m_nNumRules];
+        m_pRuleEnableState = new RuleEnableState[m_nNumRules];
 
         for (UINT16 i = 0; i < m_nNumRules; i++)
         {
@@ -505,7 +501,7 @@ HXASMStream::Subscribe(UINT16 uRuleNumber)
 {
     HX_RESULT lResult = HXR_OK;
 
-    HXLOGL2(HXLOG_ASMX, "HXASMStream[%p]::Subscribe: Source=%p Stream=%d Rule=%d", this, m_pSource, m_uStreamNumber, uRuleNumber);
+    DEBUG_OUT(m_pEM, DOL_ASM, (s, "(%p)Subscribe: Stream=%d Rule=%d", m_pSource, m_uStreamNumber, uRuleNumber));
 
     if (m_pRuleSubscribeStatus)
     {
@@ -546,7 +542,7 @@ HXASMStream::Unsubscribe(UINT16	uRuleNumber)
 {
     HX_RESULT lResult = HXR_OK;
 
-    HXLOGL2(HXLOG_ASMX, "HXASMStream[%p]::Unsubscribe: Source=%p Stream=%d Rule=%d", this, m_pSource, m_uStreamNumber, uRuleNumber);
+    DEBUG_OUT(m_pEM, DOL_ASM, (s, "(%p)Unsubscribe: Stream=%d Rule=%d", m_pSource, m_uStreamNumber, uRuleNumber));
 
     if (m_pRuleSubscribeStatus)
     {

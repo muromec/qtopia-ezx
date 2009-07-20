@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: osxaudio.h,v 1.4 2007/07/06 20:21:18 jfinnecy Exp $
+ * Source last modified: $Id: osxaudio.h,v 1.3 2006/12/05 20:45:31 bobclark Exp $
  * 
  * Portions Copyright (c) 1995-2006 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others

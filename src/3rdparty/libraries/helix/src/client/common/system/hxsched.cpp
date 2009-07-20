@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxsched.cpp,v 1.37 2009/05/05 16:39:12 sfu Exp $
+ * Source last modified: $Id: hxsched.cpp,v 1.25 2006/12/06 09:27:27 gahluwalia Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -50,11 +50,11 @@
 #include "hxcom.h"
 #include "hxtypes.h"
 #include "hxresult.h"
-#include "hxthreadyield.h"
+
 #ifdef _WINDOWS
 #include "hlxclib/windows.h"
 #endif
-#include "hlxclib/stdlib.h"
+
 #include "timeval.h"
 #include "clientpq.h"
 #include "ihxpckts.h"
@@ -62,7 +62,6 @@
 #include "hxengin.h"
 #include "hxcore.h"
 #include "hxprefs.h"
-#include "hxprefutil.h"
 #include "timeline.h"
 #include "hxtick.h"
 #include "thrdutil.h"
@@ -92,8 +91,6 @@ static const char HX_THIS_FILE[] = __FILE__;
 #define MINIMUM_GRANULARITY   5
 #elif defined (_SYMBIAN)
 #define MINIMUM_GRANULARITY   20
-#elif defined (_BREW)
-#define MINIMUM_GRANULARITY   30
 #else					    /* ELSE */
 #define MINIMUM_GRANULARITY   5
 #endif 
@@ -108,7 +105,6 @@ HXScheduler::HXScheduler(IUnknown* pContext) :
     ,m_pInterruptTimeScheduler(0)
     ,m_pInterruptTimeOnlyScheduler(0)
     ,m_pID(0)
-    ,m_pPQMutex(NULL)
     ,m_pContext(pContext)
     ,m_bLocked(FALSE)
     ,m_ulLastUpdateTime(0)
@@ -127,35 +123,29 @@ HXScheduler::HXScheduler(IUnknown* pContext) :
 #endif 
     ,m_pTimeline(0)
     ,m_ulCurrentGranularity(0)
-    ,m_ulMinimumGranularity(MINIMUM_GRANULARITY)
     ,m_pWaitEvent(NULL)
     ,m_bWaitPending(FALSE)
     ,m_bWaitedEventFired(FALSE)
     ,m_ulThreadID(0)
 {
-    // obtain class factory
-    IHXCommonClassFactory* pCCF = NULL;
-    if (m_pContext)
-    {
-        m_pContext->QueryInterface(IID_IHXCommonClassFactory, (void**) &pCCF);
-    }
+    m_pID			= new CHXID(100);
+    m_pScheduler		= new ClientPQ(pContext, m_pID);
+    m_pInterruptTimeScheduler	= new ClientPQ(pContext, m_pID);
+    m_pInterruptTimeOnlyScheduler = new ClientPQ(pContext, m_pID);
 
-    // create priority queue mutex
-    if (pCCF)
-    {
-        pCCF->CreateInstance(CLSID_IHXMutex, (void**)&m_pPQMutex);
-    }
-
-    // create priority queues
-    m_pID = new CHXID(100);
-    m_pScheduler = new ClientPQ(pContext, m_pID, m_pPQMutex);
-    m_pInterruptTimeScheduler = new ClientPQ(pContext, m_pID, m_pPQMutex);
-    m_pInterruptTimeOnlyScheduler = new ClientPQ(pContext, m_pID, m_pPQMutex);
+    (void) gettimeofday(&m_CurrentTimeVal, 0);
+    m_ulLastUpdateTime = HX_GET_TICKCOUNT();
 
     // Create event that wil be used for scheduler waiting operation
-    if (pCCF)
+    if (m_pContext)
     {
-        pCCF->CreateInstance(IID_IHXEvent, (void**) &m_pWaitEvent);
+	IHXCommonClassFactory* pCCF = NULL;
+
+	m_pContext->QueryInterface(IID_IHXCommonClassFactory, (void**) &pCCF);
+	if (pCCF)
+	{
+	    pCCF->CreateInstance(IID_IHXEvent, (void**) &m_pWaitEvent);
+	}
 
 	if (m_pWaitEvent)
 	{
@@ -165,14 +155,9 @@ HXScheduler::HXScheduler(IUnknown* pContext) :
 	    }
 	}
 
-	ReadPrefUINT32(m_pContext, "SchedulerMinimumGranularity", m_ulMinimumGranularity);
+	HX_RELEASE(pCCF);
     }
 
-    // release class factory
-    HX_RELEASE(pCCF);
-
-    (void) gettimeofday(&m_CurrentTimeVal, 0);
-    m_ulLastUpdateTime = HX_GET_TICKCOUNT();
     m_ulThreadID = HXGetCurrentThreadID();
 
 }
@@ -185,7 +170,6 @@ HXScheduler::~HXScheduler()
     HX_DELETE(m_pInterruptTimeScheduler);
     HX_DELETE(m_pInterruptTimeOnlyScheduler);
     HX_DELETE(m_pID);
-    HX_RELEASE(m_pPQMutex);
 
 #if defined(_WIN32) || defined(THREADS_SUPPORTED)
     HX_DELETE(m_pAsyncTimer);
@@ -221,7 +205,6 @@ STDMETHODIMP HXScheduler::QueryInterface(REFIID riid, void** ppvObj)
         {
             { GET_IIDHANDLE(IID_IHXScheduler), (IHXScheduler*)this },
             { GET_IIDHANDLE(IID_IHXScheduler2), (IHXScheduler2*)this },
-            { GET_IIDHANDLE(IID_IHXScheduler3), (IHXScheduler3*)this },
             { GET_IIDHANDLE(IID_IUnknown), (IUnknown*)(IHXScheduler*)this },
         };
     
@@ -481,8 +464,7 @@ HX_RESULT HXScheduler::ExecuteCurrentFunctions(HXBOOL bAtInterrupt)
     HXBOOL bImmediatesPending = FALSE;
     HXBOOL bInterruptImmediatesPending = FALSE;
     HXBOOL bInterruptOnlyImmediatesPending = FALSE;
-    ULONG32 startime;
-    StartYield(&startime);
+
     HXBOOL bUpdateRet = UpdateCurrentTime(bAtInterrupt, 
 					  bShouldServiceSystem, 
 					  bShouldServiceInterrupt,
@@ -497,35 +479,17 @@ HX_RESULT HXScheduler::ExecuteCurrentFunctions(HXBOOL bAtInterrupt)
      */
     if (bShouldServiceInterrupt)
     {
-#ifdef HELIX_CONFIG_COOP_MULTITASK    
-        m_pInterruptTimeScheduler->m_lastTime = startime;
-#endif
 	_Execute(m_pInterruptTimeScheduler, bInterruptImmediatesPending);
-#ifdef HELIX_CONFIG_COOP_MULTITASK   
-	startime = m_pInterruptTimeScheduler->m_lastTime;
-#endif
     }
 
     if (bShouldServiceInterruptOnly)
     {
-#ifdef HELIX_CONFIG_COOP_MULTITASK      
-        m_pInterruptTimeOnlyScheduler->m_lastTime = startime;
-#endif
 	_Execute(m_pInterruptTimeOnlyScheduler, bInterruptOnlyImmediatesPending);
-#ifdef HELIX_CONFIG_COOP_MULTITASK  
-	startime = m_pInterruptTimeOnlyScheduler->m_lastTime;
-#endif
     }
 
     if (bShouldServiceSystem)
     {
-#ifdef HELIX_CONFIG_COOP_MULTITASK      
-       m_pScheduler->m_lastTime = startime;	   
-#endif
 	UINT32 ulElemsExecuted = _Execute(m_pScheduler, bImmediatesPending);
-#ifdef HELIX_CONFIG_COOP_MULTITASK  
-	startime = m_pScheduler->m_lastTime;
-#endif
 	
 #if defined(_WIN32) || defined(THREADS_SUPPORTED)
 	if (ulElemsExecuted != 0)
@@ -533,12 +497,12 @@ HX_RESULT HXScheduler::ExecuteCurrentFunctions(HXBOOL bAtInterrupt)
 	    HXBOOL bChange = FALSE;
 	    if (m_pScheduler->empty())
 	    {
-		if (m_ulCurrentGranularity < m_ulMinimumGranularity &&
-		    (m_ulMinimumGranularity - m_ulCurrentGranularity >= 
+		if (m_ulCurrentGranularity < MINIMUM_GRANULARITY &&
+		    (MINIMUM_GRANULARITY - m_ulCurrentGranularity >= 
 		     MINIMUM_DIFFERENCE))
 		{
 		    bChange = TRUE;
-		    m_ulCurrentGranularity = m_ulMinimumGranularity;
+		    m_ulCurrentGranularity = MINIMUM_GRANULARITY;
 		}
 	    }
 	    else if (m_ulCurrentGranularity > MINIMUM_DIFFERENCE)
@@ -705,7 +669,6 @@ HXScheduler::WaitForNextEvent(ULONG32 ulTimeout)
 {
     HX_RESULT retVal = HXR_FAIL;
     UINT32 ulTimeToNextEvent = ALLFS;
-    UINT32 ulWaitStartTime = 0;
 
     if (m_pWaitEvent)
     {
@@ -727,24 +690,7 @@ HXScheduler::WaitForNextEvent(ULONG32 ulTimeout)
 	    }
 	    if ((ulTimeout != 0) && (!m_bWaitedEventFired))
 	    {
-                UINT32 ulWaitTime;
-
-                if (ulWaitStartTime == 0)
-                {
-                    ulWaitStartTime  = HX_GET_BETTERTICKCOUNT();
-                }
-
 		retVal = m_pWaitEvent->Wait(ulTimeout);
-
-                ulWaitTime = HX_GET_BETTERTICKCOUNT() - ulWaitStartTime;
-                if (ulWaitTime < ulTimeout)
-                {
-                    ulTimeout -= ulWaitTime;
-                }
-                else
-                {
-                    ulTimeout = 0;
-                }
 	    }
 	} while ((!m_bWaitedEventFired) &&
 		 (ulTimeout != 0) &&
@@ -821,7 +767,7 @@ HX_RESULT    HXScheduler::StartSchedulerImplementation(HXBOOL TimerFixup)
 	    return HXR_OUTOFMEMORY;
 	}
 
-	m_pAsyncTimer->SetGranularity(m_ulMinimumGranularity);
+	m_pAsyncTimer->SetGranularity(MINIMUM_GRANULARITY);
         theErr = m_pAsyncTimer->StartTimer();
     }
 #endif // _WIN32 || THREADS_SUPPORTED
@@ -838,7 +784,7 @@ HX_RESULT    HXScheduler::StartSchedulerImplementation(HXBOOL TimerFixup)
 	m_pTimeline->SetCoreMutex(m_pCoreMutex);
 #endif
 	m_pTimeline->SetStartTime(0);
-	m_ulCurrentGranularity = m_ulMinimumGranularity;
+	m_ulCurrentGranularity = MINIMUM_GRANULARITY;
 	m_pTimeline->SetGranularity(m_ulCurrentGranularity);	
 	if (TimerFixup)
 	    m_pTimeline->SetTimerFixup(TRUE);
@@ -883,10 +829,7 @@ HXScheduler::OnTimeSync(HXBOOL bAtInterrupt)
     
     HX_RESULT theErr = HXR_OK;
     
-    if (m_pCoreMutex)
-    {
-	m_pCoreMutex->Lock();
-    }
+    HX_LOCK(m_pCoreMutex);
 
     if (!m_bLocked)
     {
@@ -895,10 +838,7 @@ HXScheduler::OnTimeSync(HXBOOL bAtInterrupt)
 	m_bLocked = FALSE;
     }
 
-    if (m_pCoreMutex)
-    {
-	m_pCoreMutex->Unlock();
-    }
+    HX_UNLOCK(m_pCoreMutex);
     return theErr;
 }
 
@@ -921,7 +861,7 @@ HXBOOL HXScheduler::UpdateCurrentTime(HXBOOL bAtInterrupt,
 {
     HXBOOL    bResult = TRUE;
 
-#if defined(_WINDOWS) || defined(_WIN32) || defined (_MACINTOSH) || defined(THREADS_SUPPORTED) || defined(_SYMBIAN)
+#if defined(_WINDOWS) || defined(_WIN32) || defined (_MACINTOSH) || defined(THREADS_SUPPORTED)
 
     UINT32 ulCurrentTime = HX_GET_TICKCOUNT();
     UINT32 ulElapsedTime = CALCULATE_ELAPSED_TICKS(m_ulLastUpdateTime, ulCurrentTime);
@@ -932,10 +872,6 @@ HXBOOL HXScheduler::UpdateCurrentTime(HXBOOL bAtInterrupt,
     if (ulElapsedTime >= m_ulInterruptNextDueTime)
     {
 	bShouldServiceInterrupt = TRUE;
-    }
-    else
-    {
-        m_ulInterruptNextDueTime -= ulElapsedTime;
     }
 
     // If threads are not enabled, interrupt time execution is not available and thus
@@ -948,10 +884,6 @@ HXBOOL HXScheduler::UpdateCurrentTime(HXBOOL bAtInterrupt,
     {
 	bShouldServiceInterruptOnly = TRUE;
     }
-    else
-    {
-        m_ulInterruptOnlyNextDueTime -= ulElapsedTime;
-    }
 #else	// THREADS_SUPPORTED
     if (bAtInterrupt)
     {
@@ -959,10 +891,6 @@ HXBOOL HXScheduler::UpdateCurrentTime(HXBOOL bAtInterrupt,
 	{
 	    bShouldServiceInterruptOnly = TRUE;
 	}
-	else
-        {
-            m_ulInterruptOnlyNextDueTime -= ulElapsedTime;
-        }
     }
     else
 #endif	// THREADS_SUPPORTED
@@ -971,15 +899,14 @@ HXBOOL HXScheduler::UpdateCurrentTime(HXBOOL bAtInterrupt,
 	{
 	    bShouldServiceSystem = TRUE;
 	}
-	else
-        {
-            m_ulSystemNextDueTime -= ulElapsedTime;
-        }
     }
 
 //{FILE* f1 = ::fopen("d:\\temp\\pq.txt", "a+"); ::fprintf(f1, "\nUpdateCurrentTime %d %lu", m_ulCoreThreadID == GetCurrentThreadId(), CALCULATE_ELAPSED_TICKS(m_ulLastUpdateTime, ulCurrentTime));::fclose(f1);}
-    m_CurrentTimeVal += (1000 * ulElapsedTime);
-    m_ulLastUpdateTime  = ulCurrentTime;
+    if (bShouldServiceSystem || bShouldServiceInterrupt || bShouldServiceInterruptOnly)
+    {
+	m_CurrentTimeVal += (1000 * ulElapsedTime);
+	m_ulLastUpdateTime  = ulCurrentTime;
+    }
 #else
     // If threads are not enabled, interrupt time execution is not available and thus
     // we execute all scheduled tasks regardless.
@@ -1017,7 +944,7 @@ HXBOOL HXScheduler::UpdateCurrentTime(HXBOOL bAtInterrupt,
 	    bResult = TRUE;
 	}
     }
-        
+
     return bResult;
 }
 
@@ -1026,16 +953,6 @@ HXScheduler::SetInterrupt(HXBOOL bInterruptenable)
 {
     m_bIsInterruptEnabled = bInterruptenable;
     return HXR_OK;
-}
-
-STDMETHODIMP_(HXBOOL)
-HXScheduler::IsInterruptEnabled(void)
-{
-#if defined(_WIN32) || defined(THREADS_SUPPORTED)
-    return m_bIsInterruptEnabled;
-#else
-    return FALSE;
-#endif
 }
 
 STDMETHODIMP
@@ -1088,7 +1005,7 @@ HXScheduler::NotifyPlayState(HXBOOL bInPlayingState)
 
 void HXScheduler::GetTime(Timeval* pCurrentTimeVal)
 {
-#if defined(_WINDOWS) || defined(_WIN32) || defined (_MACINTOSH) || defined(THREADS_SUPPORTED) || defined(_SYMBIAN)
+#if defined(_WINDOWS) || defined(_WIN32) || defined (_MACINTOSH) || defined(THREADS_SUPPORTED)
 
     UINT32 ulCurrentTime = HX_GET_TICKCOUNT();
     UINT32 ulElapsedTime = CALCULATE_ELAPSED_TICKS(m_ulLastUpdateTime, ulCurrentTime);
@@ -1109,33 +1026,7 @@ UINT32 HXScheduler::GetGranularity()
     return m_ulCurrentGranularity;
 }
 
-STDMETHODIMP HXScheduler::PauseScheduler()
-{
-    if(m_pTimeline != NULL)
-    {
-        m_pTimeline->Pause();
-    }
-    return HXR_OK;
-}
 
-STDMETHODIMP HXScheduler::ResumeScheduler()
-{
-    if(m_pTimeline != NULL)
-    {
-        m_pTimeline->Resume();
-    }
-    return HXR_OK;
-}
-
-STDMETHODIMP_(HXBOOL) HXScheduler::IsPaused()
-{
-    if(m_pTimeline != NULL)
-    {
-        return m_pTimeline->IsPaused();
-    }
-	
-    return FALSE;
-}
 
 HXSchedulerTimer::HXSchedulerTimer()
     : m_ulLastCallTime(0),

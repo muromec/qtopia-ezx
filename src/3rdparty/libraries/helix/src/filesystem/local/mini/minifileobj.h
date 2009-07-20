@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: minifileobj.h,v 1.11 2008/03/14 18:27:13 gajia Exp $
+ * Source last modified: $Id: minifileobj.h,v 1.7 2006/08/25 15:52:50 aperiquet Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -80,9 +80,6 @@ class CHXMiniFileObject :  public IHXFileObject,
 			   public IHXFileExists,
 			   public IHXFileStat,
 			   public IHXGetFileFromSamePool
-#if defined(HELIX_FEATURE_MMF_DATASOURCE)			   
-			  ,public IHXMMFDataSourceObserver
-#endif			   
 {
 public:
 
@@ -153,13 +150,6 @@ public:
      *  IHXGetFileFromSamePool Interface Methods
      */
     STDMETHOD(GetFileObjectFromPool) (THIS_ IHXGetFileFromSamePoolResponse* response);
-    
-#if defined(HELIX_FEATURE_MMF_DATASOURCE)
-    /************************************************************************
-     *  IHXMMFDataSourceObserver Interface Methods
-     */
-     void ReadDone(THIS_ IHXBuffer * pBuffer, ULONG32 ulCount);
-#endif
 
 protected:
 
@@ -183,13 +173,9 @@ protected:
     IUnknown*               m_pContext;
 #if defined(HELIX_FEATURE_MMF_DATASOURCE)
     IHXMMFDataSource*       m_pDataSource;
-    HXBOOL                  m_bAsyncReadSupported;
 #endif
     char*                   m_pProtocolString;
 
-#if defined(HELIX_FEATURE_MMF_DATASOURCE)    
-    IHXBuffer* 	       	    m_pPendingReadBufAsync;
-#endif
     /****** Protected Class Methods ******************************************/
     STDMETHOD(OpenFile             ) (THIS_ UINT32 fileMode);
     STDMETHOD(GetModeStr           ) (THIS_ UINT32 fileAccessMode, char* modeStr);
@@ -200,8 +186,6 @@ protected:
     STDMETHOD_(UINT32, DoRead      ) (THIS_ IHXBuffer* pBuffer);
     STDMETHOD(DoReadDone           ) (THIS_ HX_RESULT readResult, IHXBuffer* pBuffer);
     STDMETHOD_(void, ReadDoneError ) (THIS_ HX_RESULT theError);
-
-    HXBOOL IsReadError();
 };
 
 #endif  /* _MINIFILEOBJ_H_ */

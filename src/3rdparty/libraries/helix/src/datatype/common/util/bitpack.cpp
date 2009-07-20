@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: bitpack.cpp,v 1.6 2008/11/11 15:15:01 alokjain Exp $
+ * Source last modified: $Id: bitpack.cpp,v 1.4 2004/07/09 18:31:05 hubbe Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -96,33 +96,21 @@ void BitPacker::PackBits(UINT32 bits, ULONG32 bitCount)
     }
 }
 
-HX_RESULT BitPacker::PackBits(const UINT8* pBuf, ULONG32 bitCount,
+void BitPacker::PackBits(const UINT8* pBuf, ULONG32 bitCount,
 			 ULONG32 ulStartOffset)
 {
     // Reference implementation
     Bitstream bs;
-    ULONG32 ulSize = (bitCount + 7) / 8;
-    bs.SetBuffer(pBuf, ulSize);
+    bs.SetBuffer(pBuf);
 
-    UINT32 ulLeft = bs.BitsLeft();
-    if (ulLeft < ulStartOffset)	
-    {
-        return HXR_FAIL;
-    }
     bs.GetBits(ulStartOffset);
-	
+
     while(bitCount)
     {
 	int bits = (bitCount > 8) ? 8 : bitCount;
-	ulLeft = bs.BitsLeft();	
-	if (ulLeft < (UINT32) bits)
-	{
-	    return HXR_FAIL;
-	}	
-	PackBits(bs.GetBits(bits), bits);	
+	PackBits(bs.GetBits(bits), bits);
 	bitCount -= bits;
     }
-    return HXR_OK;
 }
 
 UINT32 BitPacker::ByteAlign()

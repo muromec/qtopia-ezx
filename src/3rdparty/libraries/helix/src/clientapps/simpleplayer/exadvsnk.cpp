@@ -92,8 +92,6 @@ void hookRealAudio_State(hookState newState);
 
 #endif // __TCS__
 
-const char*   g_pszRegistryPrefix = "PlaybackEngine";
-
 void PrintBuffer(const char* pszName,const unsigned char* pbBuf, unsigned int dwBytes);
 
 ExampleClientAdviceSink::ExampleClientAdviceSink(IUnknown* pUnknown, LONG32 lClientIndex)
@@ -521,6 +519,7 @@ void ExampleClientAdviceSink::GetAllStatistics(void)
     UINT32  unSourceIndex = 0;
     UINT32  unStreamIndex = 0;
 
+    char*   pszRegistryPrefix = "Statistics";
     char    szRegistryName[MAX_DISPLAY_NAME] = {0}; /* Flawfinder: ignore */
 
 #ifdef __TCS__    
@@ -531,7 +530,7 @@ void ExampleClientAdviceSink::GetAllStatistics(void)
     if (m_pRegistry)
     {
 	// ok, let's start from the top (player)
-        SafeSprintf(szRegistryName, MAX_DISPLAY_NAME, "%s%p.Player%ld", g_pszRegistryPrefix, GetGlobal()->pEngine, m_lClientIndex);
+	SafeSprintf(szRegistryName, MAX_DISPLAY_NAME, "%s.Player%ld", pszRegistryPrefix, m_lClientIndex);
 	if (PT_COMPOSITE == m_pRegistry->GetTypeByName(szRegistryName))
 	{
 	    // display player statistic
@@ -551,19 +550,19 @@ void ExampleClientAdviceSink::GetAllStatistics(void)
 
 		    unStreamIndex++;
 
-		    SafeSprintf(szRegistryName, MAX_DISPLAY_NAME, "%s%p.Player%ld.Source%ld.Stream%ld", 
-			g_pszRegistryPrefix, GetGlobal()->pEngine, unPlayerIndex, unSourceIndex, unStreamIndex);
+		    SafeSprintf(szRegistryName, MAX_DISPLAY_NAME, "%s.Player%ld.Source%ld.Stream%ld", 
+			pszRegistryPrefix, unPlayerIndex, unSourceIndex, unStreamIndex);
 		}
 
 		unSourceIndex++;
 
-		SafeSprintf(szRegistryName, MAX_DISPLAY_NAME, "%s%p.Player%ld.Source%ld",
-		    g_pszRegistryPrefix, GetGlobal()->pEngine, unPlayerIndex, unSourceIndex);
+		SafeSprintf(szRegistryName, MAX_DISPLAY_NAME, "%s.Player%ld.Source%ld",
+		    pszRegistryPrefix, unPlayerIndex, unSourceIndex);
 	    }
 
 	    unPlayerIndex++;
 
-	    SafeSprintf(szRegistryName, MAX_DISPLAY_NAME, "%s%p.Player%ld", g_pszRegistryPrefix, GetGlobal()->pEngine, unPlayerIndex);
+	    SafeSprintf(szRegistryName, MAX_DISPLAY_NAME, "%s.Player%ld", pszRegistryPrefix, unPlayerIndex);
 	}
     }
 }
@@ -589,7 +588,7 @@ STDMETHODIMP ExampleClientAdviceSink::OnStatisticsChanged(void)
     {
         STDOUT("OnStatisticsChanged():\n");
 
-        SafeSprintf(szBuff, 1024, "%s%p", g_pszRegistryPrefix, GetGlobal()->pEngine);        
+        SafeSprintf(szBuff, 1024, "Statistics");        
         res = DumpRegTree( szBuff );
     }
 

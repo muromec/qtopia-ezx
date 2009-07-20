@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: cfgreg.cpp,v 1.4 2009/05/14 15:03:37 ehyche Exp $ 
+ * Source last modified: $Id: cfgreg.cpp,v 1.3 2003/03/10 22:17:24 dcollins Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -82,11 +82,6 @@ ConfigRegistry::Init(IUnknown* pContext)
 {
     m_pContext = pContext;
     m_pContext->AddRef();
-
-    if (m_pPropDB)
-    {
-        m_pPropDB->Init(pContext);
-    }
 }
 
 void

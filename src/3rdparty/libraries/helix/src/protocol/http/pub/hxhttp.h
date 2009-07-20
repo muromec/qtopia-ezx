@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxhttp.h,v 1.5 2007/07/13 16:56:03 ping Exp $
+ * Source last modified: $Id: hxhttp.h,v 1.2 2005/06/15 02:40:24 rggammon Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -96,7 +96,7 @@ DECLARE_INTERFACE_(IHXHttp, IUnknown)
      *  Returns:
      *      TRUE if successful
      */
-    STDMETHOD_(HXBOOL,Initialize)     (THIS_ IUnknown* pObj) PURE;
+    STDMETHOD_(BOOL,Initialize)     (THIS_ IUnknown* pObj) PURE;
 
     /************************************************************************
      *  Method:
@@ -106,7 +106,7 @@ DECLARE_INTERFACE_(IHXHttp, IUnknown)
      *  Returns:
      *      TRUE if the Get operation was started
      */
-    STDMETHOD_(HXBOOL,Get)            (THIS_ const char* szURL) PURE;
+    STDMETHOD_(BOOL,Get)            (THIS_ const char* szURL) PURE;
 
     /************************************************************************
      *  Method:
@@ -245,7 +245,7 @@ DECLARE_INTERFACE_(IHXHttpResponse, IUnknown)
      *      Called when the entire get operation has been completed.  bSuccess
      *      is true if everything was successful
      */
-    STDMETHOD(OnGetDone)                (THIS_ HXBOOL bSuccess) PURE;
+    STDMETHOD(OnGetDone)                (THIS_ BOOL bSuccess) PURE;
 };
 
 /****************************************************************************
@@ -358,11 +358,6 @@ DECLARE_INTERFACE_(IHXHttpInitialize, IUnknown)
     STDMETHOD(Destroy)  (THIS) PURE;
 };
     
-#include "hxcomptr.h"
-DEFINE_SMART_PTR(IHXHttp)
-DEFINE_SMART_PTR(IHXHttp2)
-DEFINE_SMART_PTR(IHXHttpResponse)
-DEFINE_SMART_PTR(IHXHttpResponse2)
-DEFINE_SMART_PTR(IHXHttpInitialize)
+
 
 #endif //  _IHXHTTP_H_

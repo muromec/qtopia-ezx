@@ -85,12 +85,6 @@ if project.IsDefined("HELIX_FEATURE_MP4_FILEFORMAT_ALL") or \
 #   project.AddDefines("QTFORCE_AVG_BITRATE_DELIVERY")
     project.AddDefines("QTCONFIG_AUDIO_PACKETIZER")
     project.AddDefines("QTCONFIG_VIDEO_PACKETIZER")
-    project.AddDefines("QTCONFIG_PACKETIZE_LATM")
-    project.AddDefines("QTCONFIG_PACKETIZE_H263")
-    project.AddDefines("QTCONFIG_PACKETIZE_MP4V")
-    project.AddDefines("QTCONFIG_PACKETIZE_AMR_NB")
-    project.AddDefines("QTCONFIG_PACKETIZE_AMR_WB")
-    project.AddDefines("QTCONFIG_PACKETIZE_CHECKLICENSE")
     project.AddDefines("QTCONFIG_LEGACY_ALTERNATE_STREAMS")
     project.AddDefines("QTCONFIG_ALTERNATE_STREAMS")
     project.AddDefines("QTCONFIG_SWITCHABLE_STREAMS")
@@ -104,6 +98,26 @@ if project.IsDefined("QTCONFIG_AUDIO_PACKETIZER") or \
    project.IsDefined("QTCONFIG_TIMEDTEXT_PACKETIZER") or \
    project.IsDefined("QTCONFIG_CONCAT_PACKETIZER") :
     project.AddDefines("QTCONFIG_PACKETIZER_FACTORY")
+
+# ************************************************************************
+# - To invoke this packetizer "QTCONFIG_H264_PACKETIZER" must be defined
+# - This packetizer will generte by default Single NAL RTP packets
+# - For non-interleave mode "QTCONFIG_NON_INTERLEAVE_MODE" must be defined
+# - For Interleave mode "QTCONFIG_INTERLEAVE_MODE" must be defined and 
+#   any one of the following defines
+#    - Define "QTCONFIG_STAP_B_PACKET" to generate STAP-B type packets
+#    - Define "QTCONFIG_MTAP_16_PACKET" to generate MTAP-16 type packets
+#    - Define "QTCONFIG_MTAP_24_PACKET" to generate MTAP-24 type packets
+# ************************************************************************
+
+if project.IsDefined("QTCONFIG_H264_PACKETIZER"):
+	project.AddSources( 'h264packetizer.cpp')
+	project.AddModuleIncludes('protocol/common/util/pub',
+					"protocol/transport/common/system/pub")
+	project.AddDefines("QTCONFIG_INTERLEAVE_MODE")
+
+if project.IsDefined("QTCONFIG_INTERLEAVE_MODE"):
+	project.AddDefines("QTCONFIG_STAP_B_PACKET")   
 
 project.AddModuleIncludes(  "common/include",
 			    "common/system/pub",
@@ -131,22 +145,6 @@ project.AddModuleIncludes(  "common/include",
 			    );
 
 project.AddIncludes(".")
-
-# packetizers
-if project.IsDefined("QTCONFIG_PACKETIZE_LATM") or project.IsDefined("QTCONFIG_PACKETIZE_MP4V"):
-    project.AddModuleLibraries("datatype/mp4/payload[mp4pyldlib]")
-
-if project.IsDefined("QTCONFIG_PACKETIZE_H263"):
-    project.AddModuleLibraries( "datatype/h263/payload[h263pyldlib]")
-
-if project.IsDefined("QTCONFIG_PACKETIZE_AMR_NB") or \
-    project.IsDefined("QTCONFIG_PACKETIZE_AMR_WB"):
-    project.AddModuleLibraries( "datatype/amr/payload[amrpyldlib]",
-                                "datatype/amr/common[amrcomlib]")
-
-if project.IsDefined("QTCONFIG_PACKETIZE_CHECKLICENSE"):
-    project.AddModuleLibraries("datatype/common/packetizer[packetizerutil]")
-
 
 project.AddSources( 'qtbatom.cpp',
 		    'qtatoms.cpp',

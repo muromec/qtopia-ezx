@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: qtcloak.cpp,v 1.16 2009/05/13 21:03:48 dcollins Exp $
+ * Source last modified: $Id: qtcloak.cpp,v 1.10 2005/07/23 01:58:27 darrick Exp $
  *
  * Portions Copyright (c) 1995-2005 RealNetworks, Inc. All Rights Reserved.
  *
@@ -35,10 +35,11 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
+#include <signal.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "hlxclib/signal.h"
 
 #include "hxtypes.h"
 #include "hxcom.h"
@@ -63,7 +64,7 @@
 #include "url.h"
 #include "timerep.h"
 #include "plgnhand.h"
-#include "tsmap.h"
+#include "cloaked_guid_dict.h"
 #include "dict.h"
 #include "netbyte.h"
 #include "servbuffer.h"
@@ -78,8 +79,10 @@
 #include "http_demux.h"
 
 #include "httpclk.h"    // CloakedHTTPResponse
+#include "rtspprot.h"
 
 #include "servsockimp.h"
+#include "servlbsock.h"
 
 #include "cloak_common.h"
 #include "basecloak.h"
@@ -159,16 +162,14 @@ CQTCloakGETHandler::OnRequest(HTTPRequestMessage* pMsg)
     // addref and return CloakConn if there is one
     if (!m_pConn)
     {
-        IUnknown* pObj = NULL;
-        m_pCloakedGUIDDict->find(m_szCloakSessionId, pObj);
-        m_pConn = (CloakConn*)pObj;
+        m_pCloakedGUIDDict->find(m_szCloakSessionId, m_pConn);
     }
 
     if (!m_pConn)
     {
         m_pConn = new CloakConn();
         m_pConn->AddRef();
-        m_pConn->SetProcNum(m_pProc->pc->streamer_info->BestStreamer(m_pProc));
+        m_pConn->m_iProcNum = m_pProc->pc->streamer_info->BestStreamer(m_pProc);
         m_pCloakedGUIDDict->enter(m_szCloakSessionId, m_pConn);
     }
 
@@ -233,16 +234,14 @@ CQTCloakPOSTHandler::OnRequest(HTTPRequestMessage* pMsg)
 
     if (!m_pConn)
     {
-        IUnknown* pObj = NULL;
-        m_pCloakedGUIDDict->find(m_szCloakSessionId, pObj);
-        m_pConn = (CloakConn*)pObj;
+        m_pCloakedGUIDDict->find(m_szCloakSessionId, m_pConn);
     }
 
     if (!m_pConn)
     {
         m_pConn = new CloakConn();
         m_pConn->AddRef();
-        m_pConn->SetProcNum(m_pProc->pc->streamer_info->BestStreamer(m_pProc));
+        m_pConn->m_iProcNum = m_pProc->pc->streamer_info->BestStreamer(m_pProc);
         m_pCloakedGUIDDict->enter(m_szCloakSessionId, m_pConn);
     }
 
@@ -251,7 +250,7 @@ CQTCloakPOSTHandler::OnRequest(HTTPRequestMessage* pMsg)
 
     if (pSock)
     {
-        pSock->Dispatch(m_pConn->GetProcNum());
+        pSock->Dispatch(m_pConn->m_iProcNum);
         pSock->Release();
         pSock = NULL;
     }
@@ -286,14 +285,12 @@ CQTCloakPOSTHandler::OnData(IHXBuffer* pBuf)
         Release();
         return;
     }
-    HX_RELEASE(pGETHandler);
 
     IHXBuffer* pDecBuf = NULL;
     UINT32 n = decodeBuf(pData, uDataLen, pDecBuf);
     if (n == 0)
     {
         m_pDemux->Close(HXR_FAIL);
-        Release();      
         return;
     }
     if (m_pConn)
@@ -308,7 +305,6 @@ CQTCloakPOSTHandler::OnData(IHXBuffer* pBuf)
         // messages are never fragmented, but we should handle this case...
         HX_ASSERT(FALSE);
     }
-    Release();  
 }
 
 

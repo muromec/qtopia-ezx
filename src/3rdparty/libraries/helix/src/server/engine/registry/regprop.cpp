@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: regprop.cpp,v 1.3 2009/05/30 19:09:56 atin Exp $ 
+ * Source last modified: $Id: regprop.cpp,v 1.2 2003/01/23 23:42:57 damonlan Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -48,7 +48,7 @@
 HX_RESULT
 ServRegProperty::key_str(char* s)
 {
-    _prop_name = new ServRegKey((const char*)s);
+    _prop_name = new(_reg_mem_cache) ServRegKey((const char*)s, _reg_mem_cache);
     if (_prop_name)
 	return HXR_OK;
     else

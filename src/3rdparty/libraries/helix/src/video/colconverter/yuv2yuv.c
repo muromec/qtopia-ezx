@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: yuv2yuv.c,v 1.10 2009/01/06 14:33:46 gwright Exp $
+ * Source last modified: $Id: yuv2yuv.c,v 1.8 2006/02/07 21:16:00 bobclark Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -3711,11 +3711,16 @@ int UYVYtoYV12 (unsigned char *dest_ptr, int dest_width, int dest_height,
                            src_x, src_y, src_dx, src_dy);
 }
 
+/*** from XING" converters: Will only work on Win32 with _IX86 *******************************/
+
+#if defined(_WIN32) && defined(_M_IX86) && !defined(WINCE_EMULATOR)
+
 int XINGtoYV12  (unsigned char *dest_ptr, int dest_width, int dest_height,
     int dest_pitch, int dest_x, int dest_y, int dest_dx, int dest_dy,
     unsigned char *src_ptr, int src_width, int src_height, int src_pitch,
     int src_x, int src_y, int src_dx, int src_dy)
 {
+#if 1
     unsigned char *pU = src_ptr + (src_height+15 & 0xFFF0) *src_pitch,
                   *pV = pU + src_pitch/2;
 
@@ -3723,6 +3728,33 @@ int XINGtoYV12  (unsigned char *dest_ptr, int dest_width, int dest_height,
                        src_ptr, pU, pV, 
                        src_width, src_height, src_pitch, src_pitch, src_pitch,
                        src_x, src_y, src_dx, src_dy);
+#else
+    unsigned char *pDestY = dest_ptr;
+    unsigned char *pDestV = pDestY + (dest_pitch * src_height);
+    unsigned char *pDestU = pDestY + (dest_pitch * src_height * 5 / 4);
+
+    //XING_Opaque_Data*	pData	= (XING_Opaque_Data*)src_ptr;
+    UCHAR*		pSrcY	= src_ptr;//pData->pY;
+    UCHAR*		pSrcUV	= src_ptr + (src_height+15 & 0xFFF0) * src_pitch + (src_x/2 + src_y/2 * src_pitch);//pData->pUV;
+
+    put_yuv_init(src_x, src_y, src_width, src_height, dest_width, dest_height);
+
+    if (_x86_MMX_Available)
+    {
+        put_planar_mmx((DWORD)pSrcY, (DWORD)pSrcUV, (DWORD)pDestY, (DWORD)pDestU, (DWORD)pDestV, (DWORD)1, (DWORD)dest_pitch);
+        
+#if defined(_M_IX86) && !defined(WINCE_EMULATOR)               
+                __asm emms
+#elif defined(_USE_MMX_BLENDERS) && !defined(WINCE_EMULATOR)
+                __asm__ __volatile__ ( "emms" );
+#endif                    
+    }
+    else
+        put_planar((DWORD) 0, (LONG) pSrcY, (LONG) pSrcUV, (DWORD)0, (DWORD)dest_ptr, (DWORD)dest_pitch);
+
+
+    return 0;
+#endif
 }
 
 int XINGtoYUY2 (unsigned char *dest_ptr, int dest_width, int dest_height,
@@ -3730,6 +3762,7 @@ int XINGtoYUY2 (unsigned char *dest_ptr, int dest_width, int dest_height,
     unsigned char *src_ptr, int src_width, int src_height, int src_pitch,
     int src_x, int src_y, int src_dx, int src_dy)
 {
+#if 1
     unsigned char *pU = src_ptr + (src_height+15 & 0xFFF0) *src_pitch,
                   *pV = pU + src_pitch/2;
 
@@ -3737,6 +3770,34 @@ int XINGtoYUY2 (unsigned char *dest_ptr, int dest_width, int dest_height,
                        src_ptr, pU, pV, 
                        src_width, src_height, src_pitch, src_pitch, src_pitch,
                        src_x, src_y, src_dx, src_dy);
+#else
+
+    unsigned char *pDestY = dest_ptr;
+    unsigned char *pDestV = pDestY + (dest_pitch * src_height);
+    unsigned char *pDestU = pDestY + (dest_pitch * src_height * 5 / 4);
+    
+    //XING_Opaque_Data*	pData	= (XING_Opaque_Data*)src_ptr;
+    UCHAR*		pSrcY	= src_ptr;//pData->pY;
+    UCHAR*		pSrcUV	= src_ptr + (src_height+15 & 0xFFF0) * src_pitch + (src_x/2 + src_y/2 * src_pitch);//pData->pUV;
+
+    /* MessageBeep(-1); */
+
+    put_yuv_init(src_x, src_y, src_width, src_height, dest_width, dest_height);
+    
+    if (_x86_MMX_Available)
+    {
+        put_yuy2_mmx((DWORD)pSrcY, (DWORD)pSrcUV, (DWORD)pDestY, (DWORD)pDestU, (DWORD)pDestV, (DWORD)1, (DWORD)dest_pitch);
+#if defined(_M_IX86) && !defined(WINCE_EMULATOR)                
+                __asm emms
+#elif defined(_USE_MMX_BLENDERS) && !defined(WINCE_EMULATOR)
+                __asm__ __volatile__ ( "emms" );
+#endif                    
+    }
+    else
+        put_yuy2((DWORD)0, (LONG) pSrcY, (LONG) pSrcUV, (DWORD)0, (DWORD)dest_ptr, (DWORD)dest_pitch);
+
+    return 0;
+#endif
 }
 
 int XINGtoUYVY  (unsigned char *dest_ptr, int dest_width, int dest_height,
@@ -3744,6 +3805,7 @@ int XINGtoUYVY  (unsigned char *dest_ptr, int dest_width, int dest_height,
     unsigned char *src_ptr, int src_width, int src_height, int src_pitch,
     int src_x, int src_y, int src_dx, int src_dy)
 {
+#if 1
     unsigned char *pU = src_ptr + (src_height+15 & 0xFFF0) *src_pitch,
                   *pV = pU + src_pitch/2;
 
@@ -3751,7 +3813,59 @@ int XINGtoUYVY  (unsigned char *dest_ptr, int dest_width, int dest_height,
                        src_ptr, pU, pV, 
                        src_width, src_height, src_pitch, src_pitch, src_pitch,
                        src_x, src_y, src_dx, src_dy);
+#else
+    
+    unsigned char *pDestY = dest_ptr;
+    unsigned char *pDestV = pDestY + (dest_pitch * src_height);
+    unsigned char *pDestU = pDestY + (dest_pitch * src_height * 5 / 4);
+
+    //XING_Opaque_Data*	pData	= (XING_Opaque_Data*)src_ptr;
+    UCHAR*		pSrcY	= src_ptr;//pData->pY;
+    UCHAR*		pSrcUV	= src_ptr + (src_height+15 & 0xFFF0) * src_pitch + (src_x/2 + src_y/2 * src_pitch);//pData->pUV;
+
+    /* MessageBox(NULL, "yuy2","",0);    */
+    put_yuv_init(src_x, src_y, src_width, src_height, dest_width, dest_height);
+
+    if (_x86_MMX_Available)
+    {
+        put_uyvy_mmx((DWORD)pSrcY, (DWORD)pSrcUV, (DWORD)pDestY, (DWORD)pDestU, (DWORD)pDestV, (DWORD)1, (DWORD)dest_pitch);
+#if defined(_M_IX86) && !defined(WINCE_EMULATOR)                
+                __asm emms
+#elif defined(_USE_MMX_BLENDERS) && !defined(WINCE_EMULATOR)
+                __asm__ __volatile__ ( "emms" );
+#endif                    
+    }
+    else
+        put_uyvy((DWORD)0, (LONG) pSrcY, (LONG) pSrcUV, (DWORD)0, (DWORD)dest_ptr, (DWORD)dest_pitch);
+    
+    return 0;
+#endif
 }
+#else
+int XINGtoYV12  (unsigned char *dest_ptr, int dest_width, int dest_height,
+    int dest_pitch, int dest_x, int dest_y, int dest_dx, int dest_dy,
+    unsigned char *src_ptr, int src_width, int src_height, int src_pitch,
+    int src_x, int src_y, int src_dx, int src_dy)
+{
+    return 0;
+}
+
+int XINGtoYUY2 (unsigned char *dest_ptr, int dest_width, int dest_height,
+    int dest_pitch, int dest_x, int dest_y, int dest_dx, int dest_dy,
+    unsigned char *src_ptr, int src_width, int src_height, int src_pitch,
+    int src_x, int src_y, int src_dx, int src_dy)
+{
+    return 0;
+}
+
+int XINGtoUYVY  (unsigned char *dest_ptr, int dest_width, int dest_height,
+    int dest_pitch, int dest_x, int dest_y, int dest_dx, int dest_dy,
+    unsigned char *src_ptr, int src_width, int src_height, int src_pitch,
+    int src_x, int src_y, int src_dx, int src_dy)
+{
+    return 0;
+}
+#endif
 
 /*
  * Test program and demo:

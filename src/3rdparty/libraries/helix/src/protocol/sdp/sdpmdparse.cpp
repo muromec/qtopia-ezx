@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: sdpmdparse.cpp,v 1.46 2009/03/14 01:35:32 ckarusala Exp $
+ * Source last modified: $Id: sdpmdparse.cpp,v 1.42 2006/11/14 21:25:17 milko Exp $
  *
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  *
@@ -18,7 +18,7 @@
  * contents of the file.
  *
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -408,9 +408,6 @@ SDPMediaDescParser::fromExternalRep(char* pData, UINT32 ulDataLen)
                         res = HXR_OK;
                         break;
                     case 'o':
-                        res = HandleOLine(pLine, pHdr);
-                        break;
-
                     case 't':
                         // ignore these lines
                         res = HXR_OK;
@@ -1110,100 +1107,6 @@ HX_RESULT SDPMediaDescParser::HandleCLine(char* pLine, IHXValues* pHdr) const
     return res;
 }
 
-HX_RESULT
-SDPMediaDescParser::HandleOLine(char* pLine, IHXValues* pHdr) const
-{
-    /**
-     * o=<username> <session id> <version> <network type> <address type>
-     * <address>
-     */
-
-    HX_RESULT res = HXR_FAILED;
-
-    char* pUsername = NULL;
-    char* pSessionID = NULL;
-    char* pAddressType = NULL;
-    char* pAddress = NULL;
-
-    char* pCur = pLine;
-  
-    if (*pCur && ScanForDelim(pCur, ' '))
-    {
-        //Null terminate Username
-        *pCur++ = '\0';
-
-        if (!strcasecmp(pLine, "-"))
-        {
-            //IGNORE - NO USERNAME
-        }
-        else
-        {
-            pUsername = pLine;
-        }
-        res = HXR_OK;
-    }
-
-    if (*pCur)
-    {
-        SkipSpaces(pCur);
-        pLine = pCur;
-        if (*pCur && ScanForDelim(pCur, ' '))
-        {
-            pSessionID = pLine;
-            //Null Terminate SessionID 
-            *pCur++ = '\0';
-            res = HXR_OK;
-        }
-    }
-    if (*pCur)
-    {
-        SkipSpaces(pCur);
-        pLine = pCur;
-        if (*pCur && ScanForDelim(pCur, ' '))
-        {
-           //Origin Version 
-           res = HXR_OK;
-        }
-    }
-    if (*pCur)
-    {
-        SkipSpaces(pCur);
-        pLine = pCur;
-        if (*pCur && ScanForDelim(pCur, ' '))
-        {
-            //Network Type - IN
-            res = HXR_OK;
-        }
-    }
-    if (*pCur)
-    {
-        SkipSpaces(pCur);
-        pLine = pCur;
-        if (*pCur && ScanForDelim(pCur, ' '))
-        {        
-            //Null Terminate AddressType
-            *pCur++ = '\0';
-            if (!strcasecmp(pLine, "IP4") || !strcasecmp(pLine, "IP6"))
-            {
-                pAddressType = pLine;    
-            }
-            res = HXR_OK;
-        }
-    }
-    if (*pCur)
-    {
-        pAddress = pCur;
-        res = HXR_OK;
-    } 
-
-    AddString(pHdr,"OriginUsername", pUsername);
-    AddString(pHdr,"OriginSessionID", pSessionID);
-    AddString(pHdr,"OriginAddressType", pAddressType);
-    AddString(pHdr,"OriginAddress",pAddress);
-
-    return res;
-}
-
 HX_RESULT SDPMediaDescParser::HandleBLine(char* pLine, IHXValues* pHdr) const
 {
     HX_RESULT res = HXR_FAILED;
@@ -1507,29 +1410,21 @@ HX_RESULT SDPMediaDescParser::HandleSpecialFields(SDPParseState* pState,
         AddString(pHdr, "Control", pFieldValue);
         res = HXR_OK;
     }
-    else if (!strcasecmp("cliprect", pFieldName))
-    {
-        res = HandleClipRectField(pFieldValue , pHdr);
-    }
-    else if (!strcasecmp("framesize", pFieldName))
-    {
-        //3GPP TS 26.234  a=framesize <payload> <width> <height>
-        res = HandleFramesizeField( pFieldValue , pHdr);
-    }
-    else if (!strcasecmp("framerate", pFieldName))
-    {
-        res = HandleFramerateField( pFieldValue , pHdr);
-    }
-    else if (!strcasecmp("3GPP-Asset-Information", pFieldName))
-    {        
-        res = Handle3GPPAssetInformationField( pFieldValue , pHdr);
-    }
-    else if(!strcasecmp("ssrc", pFieldName))
-    {
-        AddULONG32(pHdr, "SSRC", strtoul(pFieldValue, 0, 10));
-        res = HXR_OK;
-    }
-    else
+        else if (!strcasecmp("framesize", pFieldName))
+        {
+                //3GPP TS 26.234  a=framesize <payload> <width> <height>
+                res = HandleFramesizeField( pFieldValue , pHdr);
+        }
+        else if (!strcasecmp("framerate", pFieldName))
+        {
+                res = HandleFramerateField( pFieldValue , pHdr);
+        }
+        else if (!strcasecmp("3GPP-Asset-Information", pFieldName))
+        {
+                
+                res = Handle3GPPAssetInformationField( pFieldValue , pHdr);
+        }
+        else
     {
         res = HXR_NOT_SUPPORTED;
     }
@@ -1770,30 +1665,6 @@ HX_RESULT SDPMediaDescParser::HandleFMTPField(char* pFieldValue,
 
             CHXFMTPParser fmtp(m_pCCF);
             res = fmtp.Parse(pCur, pHdr);
-            if ( res == HXR_OK )
-            {
-                IHXBuffer* pFieldValue = NULL;
-                if ( SUCCEEDED(pHdr->GetPropertyCString( "FMTPframesize", pFieldValue ) ) )
-                {
-                    // FMTPframesize (<width>-<height>) example: 176-144
-                    const char* cpFieldValue = (const char*)pFieldValue->GetBuffer();
-                    char* pFieldRemain = NULL;
-                    char* pEnd = NULL;
-                    //get <width> from the pFieldValue
-                    UINT32 ulWidth  = (UINT32) strtoul(cpFieldValue , &pFieldRemain , 10);
-
-                    //get <height> from pFieldRemain + 1. (use +1 to skip '-' symbol)
-                    UINT32 ulHeight = (UINT32) strtoul(pFieldRemain+1 , &pEnd , 10);
-
-                    if ( ulWidth != 0 && ulHeight != 0 )
-                    {
-                        //Add Values to Header
-                        AddULONG32(pHdr, "FrameWidth",ulWidth);
-                        AddULONG32(pHdr, "FrameHeight",ulHeight);
-                    }
-                    HX_RELEASE(pFieldValue);
-                }
-            }            
         }
     }
 
@@ -2231,60 +2102,6 @@ SDPMediaDescParser::HandleFramesizeField(char* pFieldValue, IHXValues* pHdr) con
 
         return res;
         
-}
-
-HX_RESULT
-SDPMediaDescParser::HandleClipRectField(char* pFieldValue, IHXValues* pHdr) const
-{
-    HX_RESULT res = HXR_FAILED;
-
-    //if the framewidth and frameheight are already present, then ignore this
-    UINT32 ulTmp = 0;
-    if (HXR_OK == pHdr->GetPropertyULONG32("FrameWidth", ulTmp) &&
-        HXR_OK == pHdr->GetPropertyULONG32("FrameHeight", ulTmp))
-    {
-        return HXR_OK;
-    }
-
-    UINT32 ulTop = 0;
-    UINT32 ulLeft = 0;
-    UINT32 ulBottom = 0;
-    UINT32 ulRight = 0;
-    char* pStart = pFieldValue;
-
-    //cliprect value is in the form top,left,bottom,right
-    if (pStart && *pStart)
-    {
-        ulTop = (UINT32)atoi(pStart);
-        pStart = strchr(pStart,',');
-    }
-    if (pStart && *pStart)
-    {
-        ulLeft = (UINT32)atoi(++pStart);
-        pStart = strchr(pStart,',');
-    }
-    if (pStart && *pStart)
-    {
-        ulBottom = (UINT32)atoi(++pStart);
-        pStart=strchr(pStart,',');
-    }
-    if (pStart && *pStart)
-    {
-        ulRight = (UINT32)atoi(++pStart);
-    }
-    
-    UINT32 uFrameWidth = ulRight-ulLeft;
-    UINT32 uFrameHeight = ulBottom-ulTop;
-    
-    if (uFrameWidth != 0 && uFrameHeight != 0)
-    {
-        //Add Values to Header
-        AddULONG32(pHdr, "FrameWidth", uFrameWidth);
-        AddULONG32(pHdr, "FrameHeight", uFrameHeight);
-        res = HXR_OK;
-    }
-
-    return res;
 }
 
 HX_RESULT

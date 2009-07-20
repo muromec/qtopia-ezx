@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
-* Source last modified: $Id: hxcleng.cpp,v 1.136 2009/05/08 03:43:27 jain_1982s Exp $
+* Source last modified: $Id: hxcleng.cpp,v 1.122 2007/04/14 04:36:12 ping Exp $
 * 
 * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
 * 
@@ -18,7 +18,7 @@
 * contents of the file.
 * 
 * Alternatively, the contents of this file may be used under the
-* terms of the GNU General Public License Version 2 (the
+* terms of the GNU General Public License Version 2 or later (the
 * "GPL") in which case the provisions of the GPL are applicable
 * instead of those above. If you wish to allow use of your version of
 * this file only under the terms of the GPL, and not to allow others
@@ -344,6 +344,8 @@ m_lRefCount (0)
 ,m_pAsyncIOSelection(NULL)
 ,m_bNetworkThreading(TRUE)
 #endif
+,m_pCookies(NULL)
+,m_pCookiesHelper(NULL)
 ,m_pProxyAutoConfig(NULL)
 ,m_pValidator(NULL)
 ,m_pASM(NULL)
@@ -360,6 +362,10 @@ m_lRefCount (0)
 ,m_pOverlayManager(NULL)
 ,m_pMultiPlayPauseSupport(NULL)
 ,m_pConnBWInfo(NULL)
+#if !defined(HELIX_FEATURE_LOGLEVEL_NONE) && defined(HELIX_FEATURE_CORE_LOG)
+,m_pDllAccess(NULL)
+,m_pLogSystem(NULL)
+#endif
 ,m_pPlugin2Handler(NULL)
 ,m_lROBActive(0)
 ,m_LastError (0)
@@ -559,10 +565,7 @@ m_lRefCount (0)
     SymbianMemoryMonitor *pMonitor = SymbianMemoryMonitor::Instance();
     if (pMonitor)
     {
-        UINT32 ulSize = 1024*512; //default Mem out buffersize
-        //Read from config file
-        ReadPrefUINT32(m_pPreferences, "MemoryProtection", ulSize);
-        pMonitor->Init((IUnknown*) (IHXClientEngine*)this, ulSize);
+       pMonitor->Init((IUnknown*) (IHXClientEngine*)this);
     }
 #endif
 }
@@ -667,7 +670,7 @@ void HXClientEngine::_Initialize(void)
     m_pAllocator = new CMediumBlockAllocator((IUnknown*)(IHXClientEngine*)this);
     HX_ADDREF(m_pAllocator);
     CHXBuffer::SetAllocator(m_pAllocator);
-    m_pAllocator->SetScheduler((IUnknown*)(IHXScheduler*)m_pScheduler);
+    m_pAllocator->SetScheduler((IUnknown*)m_pScheduler);
 #endif
 
 #if defined(HELIX_FEATURE_AUTHENTICATION)
@@ -799,7 +802,6 @@ void HXClientEngine::_Initialize(void)
             }
 
             ulMinBandwidth = ::atoi((const char*)pValue->GetBuffer());
-        HX_TRACE( "Bandwidth=%d b (%d kb)", ulMinBandwidth, ulMinBandwidth/1024 );
 
             HX_RELEASE(pValue);
         }
@@ -853,14 +855,13 @@ void HXClientEngine::_Initialize(void)
 
     InitializeThreadedObjects();
 
+    InitLogging();
+
 #if defined(HELIX_FEATURE_AUDIO)
-    if (m_pAudioSession)
-    {
     if (!m_LastError)
     {
         m_LastError = m_pAudioSession->Init((IUnknown*) (IHXClientEngine*)this);
         m_pAudioSession->SetCoreMutex(m_pCoreMutex);
-    }
     }
 #endif /* HELIX_FEATURE_AUDIO */
 
@@ -886,38 +887,6 @@ void HXClientEngine::_Initialize(void)
     }
 #endif /* #if defined(HELIX_FEATURE_AUTO_BANDWIDTH_DETECTION) */
 
-#if defined(HELIX_FEATURE_VIEWSOURCE)
-    IHXPluginSearchEnumerator* pPluginEnumerator = NULL;
-    IHXPluginHandler3* pPluginHandler3 = NULL;
-    m_pPlugin2Handler->QueryInterface(IID_IHXPluginHandler3, (void**) &pPluginHandler3);
-    if(pPluginHandler3 != NULL)
-    {
-        HX_RESULT rc = pPluginHandler3->FindGroupOfPluginsUsingStrings(PLUGIN_LOAD_AT_STARTUP, 
-                                                                       PLUGIN_CLIENT_ENGINE,
-                                                                       NULL,
-                                                                       NULL,
-                                                                       NULL, 
-                                                                       NULL, 
-                                                                       pPluginEnumerator);
-        if (SUCCEEDED(rc))
-        {
-            IUnknown* pUnknown = NULL;
-            while (HXR_OK == pPluginEnumerator->GetNextPlugin(pUnknown, NULL))
-            {
-                IHXPlugin* pPlugin = NULL;
-                if (HXR_OK == pUnknown->QueryInterface(IID_IHXPlugin, (void**)&pPlugin))
-                {
-                    pPlugin->InitPlugin((IHXClientEngine*)this);
-                    HX_RELEASE(pPlugin);
-                }
-                HX_RELEASE(pUnknown);
-            }
-            HX_RELEASE(pPluginEnumerator);
-        } 
-        HX_RELEASE(pPluginHandler3);
-    } 
-#endif /*HELIX_FEATURE_VIEWSOURCE*/
-
 #if defined(HELIX_FEATURE_HELIXSIM)
         ReadPrefBOOL(m_pPreferences, "HelixsimLoadTest",  g_bHelixsimLoadTest);
 #endif /*HELIX_FEATURE_HELIXSIM*/
@@ -925,6 +894,90 @@ void HXClientEngine::_Initialize(void)
     {
         m_bInitialized = TRUE;
     }
+}
+
+void HXClientEngine::InitLogging()
+{
+#if !defined(HELIX_FEATURE_LOGLEVEL_NONE) && defined(HELIX_FEATURE_CORE_LOG)
+    if (!m_pLogSystem)
+    {
+        IHXCommonClassFactory* pCCF = NULL;
+        QueryInterface(IID_IHXCommonClassFactory, (void**) &pCCF);
+        if (pCCF)
+        {
+            pCCF->CreateInstance(CLSID_IHXDllAccess, (void**) &m_pDllAccess);
+            if (m_pDllAccess)
+            {
+                // Create the dll name
+                // MAXDLLSUFFIXLEN is defined in hxtlogutil.h
+                CHXString strDllName = "log";
+                strDllName += HXLOG_DLLSUFFIX;
+
+                // Attempt to get the RMAGetLogSystemInterface entry point
+                m_pDllAccess->Open((const char*) strDllName, HXDLLTYPE_PLUGIN);
+                if(m_pDllAccess->IsOpen())
+                {
+                    FPCREATELOGSYSTEMINTERFACE fpCreateLogSystem =
+                        (FPCREATELOGSYSTEMINTERFACE)(m_pDllAccess->GetSymbol("RMACreateLogSystem"));
+                    if(fpCreateLogSystem != NULL)
+                    {
+                        HX_RESULT res = (*fpCreateLogSystem)(&m_pLogSystem);
+                        if (SUCCEEDED(res))
+                        {
+                            // Call InitPlugin() on the log system plugin we just loaded
+                            IHXPlugin* pPlug = 0;
+                            res = m_pLogSystem->QueryInterface(IID_IHXPlugin, (void**)&pPlug);
+                            if (HXR_OK == res)
+                            {
+                                res = pPlug->InitPlugin((IHXClientEngine*)this);
+                                HX_RELEASE(pPlug);
+                            }
+                        } // End of if (SUCCEEDED(res))
+                        
+                    } // End of if(fpCreateLogSystem != NULL)
+                    
+                } // End of if(m_pDllAccess->IsOpen())
+                
+            } // End of if (m_pDllAccess)
+            HX_RELEASE(pCCF);
+        } // End of if (pCCF)
+        
+    } // End of if (!m_pLogSystem)
+
+
+    
+
+#if defined(_SYMBIAN) && !defined(HELIX_FEATURE_PLUGINHANDLER2) && !defined(HELIX_FEATURE_LOGLEVEL_NONE)
+    // For Symbian we need to explictly init the logging plugin since
+    // we don't interate through all plugins and call InitPlugin at 
+    // startup as is the case when HELIX_FEATURE_PLUGINHANDLER2 is defined.
+    //
+    CHXString logDllName = "logobserverfile.dll";
+    ReadPrefCSTRING(m_pPreferences, "HXLogDllName", logDllName);
+
+    IHXPluginSearchEnumerator* pPluginEnumerator = NULL;
+    HX_RESULT rc = m_pPlugin2Handler->FindGroupOfPluginsUsingStrings(PLUGIN_FILENAME, (char*)(const char*)logDllName, NULL, NULL, NULL, NULL, pPluginEnumerator);
+    //HX_ASSERT(SUCCEEDED(rc)); // logobserverfile.dll missing?
+    if (SUCCEEDED(rc))
+    {
+        IUnknown* pUnknown = NULL;
+        while (HXR_OK == pPluginEnumerator->GetNextPlugin(pUnknown, NULL))
+        {
+            IHXPlugin* pPlugin = NULL;
+            if (HXR_OK == pUnknown->QueryInterface(IID_IHXPlugin, (void**)&pPlugin))
+            {
+                pPlugin->InitPlugin((IHXClientEngine*)this);
+                HX_RELEASE(pPlugin);
+            }
+            HX_RELEASE(pUnknown);
+        }
+        HX_RELEASE(pPluginEnumerator);
+    } 
+#endif
+#endif // End of #if !defined(HELIX_FEATURE_LOGLEVEL_NONE) && defined(HELIX_FEATURE_CORE_LOG)
+
+    HX_ENABLE_LOGGING((IHXClientEngine*)this);
+    HXLOGL3( HXLOG_CORE, "UseCoreThread: %d", m_bUseCoreThread );
 }
 
 /*
@@ -946,8 +999,19 @@ STDMETHODIMP HXClientEngine::QueryInterface(REFIID riid, void** ppvObj)
         return m_LastError;
 
     // create the following objects only if needed
+    if (!m_pCookiesHelper && IsEqualIID(riid, IID_IHXCookiesHelper))
+    {        
+#if defined(HELIX_FEATURE_COOKIES)
+        m_pCookiesHelper = new HXCookiesHelper((IUnknown*)(IHXClientEngine*)this);
+
+        if (m_pCookiesHelper)
+        {
+            m_pCookiesHelper->AddRef();
+        }
+#endif /* defined(HELIX_FEATURE_COOKIES) */
+    }
 #if defined(HELIX_FEATURE_META)
-    if (!m_pValidator && IsEqualIID(riid, IID_IHXValidator))
+    else if (!m_pValidator && IsEqualIID(riid, IID_IHXValidator))
     {
         m_pValidator = new HXValidator((IUnknown*) (IHXClientEngine*)this);
 
@@ -958,7 +1022,7 @@ STDMETHODIMP HXClientEngine::QueryInterface(REFIID riid, void** ppvObj)
     }
 #endif /* HELIX_FEATURE_META */
 #if defined(HELIX_FEATURE_VIEWSOURCE)
-    else if (!m_pViewSource && (IsEqualIID(riid, IID_IHXClientViewSourceSink) || IsEqualIID(riid, IID_IHXClientViewSource)))
+    else if (!m_pViewSource && IsEqualIID(riid, IID_IHXClientViewSourceSink))
     {
         m_pViewSource = new HXViewSource((IUnknown*) (IHXClientEngine*)this);
         
@@ -969,7 +1033,7 @@ STDMETHODIMP HXClientEngine::QueryInterface(REFIID riid, void** ppvObj)
     }
 #endif /* HELIX_FEATURE_VIEWSOURCE */
 
-#if defined(HELIX_FEATURE_PAC)
+#if defined(HELIX_FEATURE_PAC) && defined(HELIX_FEATURE_PLUGINHANDLER2)
     else if (!m_pProxyAutoConfig && IsEqualIID(riid, IID_IHXProxyAutoConfig))
     {
         IUnknown*   pUnknown = NULL;
@@ -986,13 +1050,20 @@ STDMETHODIMP HXClientEngine::QueryInterface(REFIID riid, void** ppvObj)
         }
         HX_RELEASE(pUnknown);
     }
-#endif /* HELIX_FEATURE_PAC */
+#endif /* HELIX_FEATURE_PAC && HELIX_FEATURE_PLUGINHANDLER2 */
 #if defined(_MACINTOSH) && defined(_CARBON) && defined(THREADS_SUPPORTED)
     else if (!m_pMacBlitMutex && IsEqualIID(riid, IID_IHXMacBlitMutex))
     {
 	CreateInstanceCCF(CLSID_IHXMutex, (void**)&m_pMacBlitMutex, m_pContext);  
     }
 #endif
+#if defined (HELIX_FEATURE_COOKIES)
+    else if (!m_pCookies && (IsEqualIID(riid, IID_IHXCookies) || IsEqualIID(riid, IID_IHXCookies2)))
+    {
+        m_pCookies = NewCookies();
+        HX_ADDREF(m_pCookies);
+    }
+#endif /* defined (HELIX_FEATURE_COOKIES) */
 
     QInterfaceList qiList[] =
     {
@@ -1115,7 +1186,7 @@ STDMETHODIMP HXClientEngine::QueryInterface(REFIID riid, void** ppvObj)
     {
         return HXR_OK;
     }
-#endif /* HELIX_FEATURE_PREFERENCES */
+#endif /* HELIX_FEATURE_AUDIO */
     else if (m_pPlugin2Handler &&
         m_pPlugin2Handler->QueryInterface(riid, ppvObj) == HXR_OK)
     {
@@ -1154,6 +1225,18 @@ STDMETHODIMP HXClientEngine::QueryInterface(REFIID riid, void** ppvObj)
         return HXR_OK;
     }
 #endif /* HELIX_FEATURE_AUTHENTICATION */
+#if defined (HELIX_FEATURE_COOKIES)
+    else if (m_pCookies &&
+        m_pCookies->QueryInterface(riid, ppvObj) == HXR_OK)
+    {
+        return HXR_OK;
+    }
+    else if (m_pCookiesHelper &&
+        m_pCookiesHelper->QueryInterface(riid, ppvObj) == HXR_OK)
+    {
+        return HXR_OK;
+    }
+#endif /* HELIX_FEATURE_COOKIES */
 #if defined(_MEDIUM_BLOCK)
     else if (m_pAllocator &&
         m_pAllocator->QueryInterface(riid, ppvObj) == HXR_OK)
@@ -1215,6 +1298,13 @@ STDMETHODIMP HXClientEngine::QueryInterface(REFIID riid, void** ppvObj)
         return HXR_OK;
     }
 #endif /* #if defined(HELIX_FEATURE_AUTO_BANDWIDTH_DETECTION) */
+
+#if !defined(HELIX_FEATURE_LOGLEVEL_NONE) && defined(HELIX_FEATURE_CORE_LOG)
+    else if(m_pLogSystem && m_pLogSystem->QueryInterface(riid, ppvObj) == HXR_OK)
+    {
+        return HXR_OK;
+    }
+#endif
     else if (m_pContext &&
 	     (m_pContext->QueryInterface(riid, ppvObj) == HXR_OK))
     {
@@ -1330,8 +1420,6 @@ STDMETHODIMP HXClientEngine::CreatePlayer(IHXPlayer* &pPlayer)
 #endif /* HELIX_FEATURE_REGISTRY */
 
 #if defined(HELIX_FEATURE_AUDIO)
-    if (m_pAudioSession)
-    {
     theErr = m_pAudioSession->CreateAudioPlayer(&pAudioPlayer);
 
     if (theErr == HXR_OK)
@@ -1341,7 +1429,6 @@ STDMETHODIMP HXClientEngine::CreatePlayer(IHXPlayer* &pPlayer)
 
         /* HXPlayer will keep it around */
         HX_RELEASE(pAudioPlayer);
-    }
     }
 #endif /* HELIX_FEATURE_AUDIO */
 
@@ -1374,6 +1461,18 @@ HXPlayer*
 HXClientEngine::NewPlayer()
 {
     return (new HXPlayer());
+}
+
+HXCookies*
+HXClientEngine::NewCookies()
+{
+    HXCookies* pRet = NULL;
+
+#if defined(HELIX_FEATURE_COOKIES)
+    pRet = (new HXCookies((IUnknown*) (IHXClientEngine*) this));
+#endif /* defined(HELIX_FEATURE_COOKIES) */
+
+    return pRet;
 }
 
 /************************************************************************
@@ -2006,6 +2105,9 @@ HXClientEngine::Close()
     HX_RELEASE(m_pExternalResourceManager);
     HX_DELETE(m_pResMgr);
 #endif /* HELIX_FEATURE_RESOURCEMGR */
+#if defined (HELIX_FEATURE_COOKIES)
+    HX_RELEASE(m_pCookiesHelper);
+#endif /* HELIX_FEATURE_COOKIES */
 #if defined(HELIX_FEATURE_VIEWSOURCE)
     HX_RELEASE(m_pViewSource);
 #endif /* HELIX_FEATURE_VIEWSOURCE */
@@ -2013,6 +2115,14 @@ HXClientEngine::Close()
     HX_RELEASE(m_pSystemRequired);
 #endif /* HELIX_FEATURE_SYSTEMREQUIRED */
     HX_RELEASE(m_pMultiPlayPauseSupport);
+
+#if defined(HELIX_FEATURE_COOKIES)
+    if (m_pCookies)
+    {
+        m_pCookies->Close();
+        HX_RELEASE(m_pCookies);
+    }
+#endif /* defined(HELIX_FEATURE_COOKIES) */
 
 #if defined(HELIX_FEATURE_PROXYMGR)
     if (m_pProxyManager)
@@ -2059,6 +2169,8 @@ HXClientEngine::Close()
     HX_DELETE(m_pCoreComm);
 #endif /* HELIX_FEATURE_CORECOMM */
 
+    HX_DISABLE_LOGGING();
+
 #ifdef _WIN32
     HXCloseLibrary();
 #endif
@@ -2069,9 +2181,6 @@ HXClientEngine::Close()
 
 #endif
 
-// XXXHP 
-// Moved maintenance of singleton ThreadEngine object to Media Platform   
-#if 0
 #if defined(HELIX_FEATURE_NETSERVICES)
 #if defined(HELIX_FEATURE_NETSERVICES_SHIM)
 #ifdef THREADS_SUPPORTED
@@ -2085,7 +2194,8 @@ HXClientEngine::Close()
 #endif
 #endif //HELIX_FEATURE_NETSERVICES_SHIM
 #endif /* HELIX_FEATURE_NETSERVICES */
-#endif
+
+
 
     CHXBuffer::ReleaseAllocator();
 #ifdef _MEDIUM_BLOCK
@@ -2121,6 +2231,11 @@ HXClientEngine::Close()
     HX_DELETE(m_select_callbacks);
 
 #endif /* _UNIX */
+
+#if !defined(HELIX_FEATURE_LOGLEVEL_NONE) && defined(HELIX_FEATURE_CORE_LOG)
+    HX_RELEASE(m_pLogSystem);
+    HX_RELEASE(m_pDllAccess);
+#endif
 
     HX_RELEASE(m_pCommonClassFactory);
     HX_RELEASE(m_pCoreMutex);
@@ -2263,21 +2378,6 @@ HXClientEngine::InitializeThreadedObjects()
     m_pContext->QueryInterface(IID_IHXOptimizedScheduler, (void**)&m_pOptimizedScheduler);
 #endif /* HELIX_FEATURE_OPTIMIZED_SCHEDULER */
 
-    // find out if scheduler support interrupt (aka core thread)
-    HXBOOL bInterruptEnabled = TRUE;
-    IHXSchedulerInterruptSupport* pInterruptSupport = NULL;
-    if (SUCCEEDED(m_pScheduler->QueryInterface(IID_IHXSchedulerInterruptSupport, 
-                                               (void**)&pInterruptSupport)))
-    {
-         bInterruptEnabled = pInterruptSupport->IsInterruptEnabled();
-         HX_RELEASE(pInterruptSupport);
-    }
-    //if scheduler doesn't support core thread, nothing we can do
-    if (!bInterruptEnabled)
-    {
-        m_bUseCoreThread = FALSE; 
-    }
-
     CHXSimpleList::Iterator ndx = m_PlayerList.Begin();
     for (; ndx != m_PlayerList.End(); ++ndx)
     {
@@ -2323,6 +2423,29 @@ HXClientEngine::InitializeRegistry()
         pStats->InitializeStatistics(m_unRegistryID);
     }
     HX_RELEASE(pStats);
+
+    // generate client ID
+    // Get the platform information for use in the client ID
+    strTemp.Format("%s.%s",HXREGISTRY_PREFPROPNAME,CLIENT_ID_REGNAME);
+    if(m_pRegistry->GetStrByName(strTemp,pBuffer) != HXR_OK)
+    {
+        HXVERSIONINFO verInfo;
+        HXGetWinVer(&verInfo);
+
+        // Encode the client ID with the pieces of interest.
+        const char* pszClientID = HXGetVerEncodedName
+            (&verInfo,
+            PRODUCT_ID,
+            TARVER_STRING_VERSION,
+            LANGUAGE_CODE,
+            "RN01");
+
+        // Set clientID
+        pBuffer = CreateBufferAndSetToString(pszClientID);
+        m_pRegistry->AddStr(strTemp,pBuffer);
+    }
+
+    HX_RELEASE(pBuffer);
 
     // RegionData
     strTemp.Format("%s.%s",HXREGISTRY_PREFPROPNAME,"RegionData");
@@ -2551,6 +2674,12 @@ HXClientEngine::OverrideServices(IUnknown* pContext)
         DPRINTF(D_INFO, ("HXClientEngine::OverrideServices(): DPRINTF initialized\n"));
     }
 
+#if !defined(HELIX_FEATURE_LOGLEVEL_NONE) && defined(HELIX_FEATURE_CORE_LOG)
+    // Override LogSystem and logobserver
+    // Assumption : LogObserver already created and intialized.
+    HX_RELEASE(m_pLogSystem);
+    pContext->QueryInterface(IID_IHXTLogSystem, (void **) &m_pLogSystem);
+#endif
     return HXR_OK;
 }
 

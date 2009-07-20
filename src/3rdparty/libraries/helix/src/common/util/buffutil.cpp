@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: buffutil.cpp,v 1.11 2007/10/10 00:50:08 qluo Exp $
+ * Source last modified: $Id: buffutil.cpp,v 1.9 2006/01/30 21:08:11 ping Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -215,44 +215,6 @@ HX_RESULT PXUtilities::GetURLOrRequestParam(IHXRequest*     pRequest,
             retVal = PXUtilities::GetRequestParam(pRequest, pContext,
                                                   pszParamName, rpParamValue);
         }
-    }
-
-    return retVal;
-}
-
-HX_RESULT PXUtilities::GetNullTerminatedBuffer(IUnknown* pContext, IHXBuffer* pInBuffer, REF(IHXBuffer*) pOutBuffer)
-{
-    HX_RESULT retVal = HXR_FAIL;
-
-    if (pInBuffer && pContext)
-    {
-	if ( *((char*)(pInBuffer->GetBuffer() + pInBuffer->GetSize() - 1)) == 0)
-	{
-	    pOutBuffer = pInBuffer;
-	    pOutBuffer->AddRef();
-	    retVal = HXR_OK;
-	}
-	else
-	{
-	    IHXBuffer* pBuffer = NULL;
-	    IHXCommonClassFactory* pFactory = NULL;
-	    retVal = pContext->QueryInterface(IID_IHXCommonClassFactory, (void**) &pFactory);
-	    if (SUCCEEDED(retVal))
-	    {
-		retVal = pFactory->CreateInstance(CLSID_IHXBuffer, (void**) &pBuffer);
-		if (SUCCEEDED(retVal))
-		{
-		    // add termination
-		    pBuffer->Set(pInBuffer->GetBuffer(), pInBuffer->GetSize() + 1);
-		    *((UCHAR*)(pBuffer->GetBuffer() + pInBuffer->GetSize())) = 0;
-		    pOutBuffer = pBuffer;
-		    pOutBuffer->AddRef();
-		    HX_RELEASE(pBuffer);
-		    retVal = HXR_OK;
-		}
-		HX_RELEASE(pFactory);
-	    }
-	}
     }
 
     return retVal;

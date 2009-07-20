@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: rn1cloak.cpp,v 1.24 2009/05/13 21:03:48 dcollins Exp $
+ * Source last modified: $Id: rn1cloak.cpp,v 1.19 2005/09/01 19:08:34 srobinson Exp $
  *
  * Portions Copyright (c) 1995-2005 RealNetworks, Inc. All Rights Reserved.
  *
@@ -38,7 +38,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "hlxclib/signal.h"
 
 #include "hxtypes.h"
 #include "hxcom.h"
@@ -63,7 +62,7 @@
 #include "url.h"
 #include "timerep.h"
 #include "plgnhand.h"
-#include "tsmap.h"
+#include "cloaked_guid_dict.h"
 #include "netbyte.h"
 #include "servbuffer.h"
 #include "hxprot.h"
@@ -73,7 +72,9 @@
 #include "tsid.h"
 #include "http_demux.h"
 #include "httpclk.h"    // CloakedHTTPResponse
+#include "rtspprot.h"
 #include "servsockimp.h"
+#include "servlbsock.h"
 #include "cloak_common.h"
 #include "rn1cloak.h"
 
@@ -195,16 +196,14 @@ CRN1CloakGETHandler::OnRequest(HTTPRequestMessage* pMsg)
     // addref and return CloakConn if there is one
     if (!m_pConn)
     {
-        IUnknown* pObj = NULL;
-        m_pCloakedGUIDDict->find(m_szCloakSessionId, pObj);
-        m_pConn = (CloakConn*)pObj;
+        m_pCloakedGUIDDict->find(m_szCloakSessionId, m_pConn);
     }
 
     if (!m_pConn)
     {
         m_pConn = new CloakConn();
         m_pConn->AddRef();
-        m_pConn->SetProcNum(m_pProc->pc->streamer_info->BestStreamer(m_pProc));
+        m_pConn->m_iProcNum = m_pProc->pc->streamer_info->BestStreamer(m_pProc);
         m_pCloakedGUIDDict->enter(m_szCloakSessionId, m_pConn);
     }
 
@@ -452,16 +451,14 @@ CRN1CloakPOSTHandler::SetupPOSTChannel(IHXBuffer* pBuf)
     // addref and return CloakedGUIDDictEntry if there is one
     if (!m_pConn)
     {
-        IUnknown* pObj = NULL;
-        m_pCloakedGUIDDict->find(m_szCloakSessionId, pObj);
-        m_pConn = (CloakConn*)pObj;
+        m_pCloakedGUIDDict->find(m_szCloakSessionId, m_pConn);
     }
 
     if (m_pConn == NULL)
     {
         m_pConn = new CloakConn();
         m_pConn->AddRef();
-        m_pConn->SetProcNum(m_pProc->pc->streamer_info->BestStreamer(m_pProc));
+        m_pConn->m_iProcNum = m_pProc->pc->streamer_info->BestStreamer(m_pProc);
         // remember to Release CloakConn when the CloakedGUIDDictEntry is
         // removed from the cloaked_guid_dict
         // ignoring the returned unique id of the cloaked_guid_dict entry
@@ -504,7 +501,7 @@ CRN1CloakPOSTHandler::SetupPOSTChannel(IHXBuffer* pBuf)
 
     // Dispatch to the streamer
     CHXServSocket* pSock = m_pDemux->GetSock();
-    pSock->Dispatch(m_pConn->GetProcNum());
+    pSock->Dispatch(m_pConn->m_iProcNum);
     HX_RELEASE(pSock);
 
     return HXR_OK;
@@ -522,7 +519,7 @@ CRN1CloakPOSTHandler::HandlePOSTData(IHXBuffer* pBuf)
 
     if (m_bOnClosedCalled)
     {
-    return HXR_OK;
+	return HXR_OK;
     }
 
     if (m_pConn)
@@ -570,7 +567,7 @@ CRN1CloakPOSTHandler::HandlePOSTData(IHXBuffer* pBuf)
             {
                 // We're already trying to process a fragment.
                 // We don't want to use too much memory, so stop now.
-        DPRINTF(0x10000000, ("RN Cloak v1 -- Max POST length exceeded\n"));
+		DPRINTF(0x10000000, ("RN Cloak v1 -- Max POST length exceeded\n"));
                 m_pDemux->Close(HXR_FAIL);
                 CleanupConn(HXR_FAIL);
             }

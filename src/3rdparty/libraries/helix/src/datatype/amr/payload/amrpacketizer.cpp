@@ -42,7 +42,6 @@
 #include "hxslist.h"
 #include "hxformt.h"
 #include "safestring.h"
-#include "pckunpck.h"
 
 #include "tsconvrt.h"
 #include "sdptools.h"
@@ -55,21 +54,11 @@
 
 #include "cklicense.h"
 #include "defslice.h"
-#include "hxver.h"
-#include "amrpack.ver"
 
 const char* LICENSE_ERROR_STR_NB = 
     "Packetizer: This Server is not licenced to use audio/AMR Packetizer.";
 const char* LICENSE_ERROR_STR_WB = 
     "Packetizer: This Server is not licenced to use audio/AMR-WB Packetizer.";
-
-/****************************************************************************
- * Constants
- */
-const char* const AMRPacketizer::zm_pDescription    = "RealNetworks AMR Packetizer Plugin";
-const char* const AMRPacketizer::zm_pCopyright      = HXVER_COPYRIGHT;
-const char* const AMRPacketizer::zm_pMoreInfoURL    = HXVER_MOREINFO;
-
 
 AMRPacketizer::AMRPacketizer(AMRFlavor flavor) :
     m_lRefCount(0),
@@ -116,18 +105,7 @@ AMRPacketizer::QueryInterface (THIS_ REFIID riid, void** ppvObj)
         *ppvObj = (IHXPayloadFormatObject*)this;
         return HXR_OK;
     }
-    else if (IsEqualIID(riid, IID_IHXPluginProperties))
-    {
-        AddRef();
-        *ppvObj = (IHXPluginProperties*)this;
-        return HXR_OK;
-    } 
-    else if (IsEqualIID(riid, IID_IHXPlugin))
-    {
-        AddRef();
-        *ppvObj = (IHXPlugin*)this;
-        return HXR_OK;
-    } 
+
     *ppvObj = NULL;
     return HXR_NOINTERFACE;
 }
@@ -381,132 +359,6 @@ AMRPacketizer::Flush()
     return HXR_OK;
 }
 
-HX_RESULT STDAPICALLTYPE AMRPacketizer::HXCreateInstance(IUnknown** ppIUnknown)
-{
-    *ppIUnknown = (IUnknown*)(IHXPlugin*) new AMRPacketizer();
-    if (*ppIUnknown)
-    {
-        (*ppIUnknown)->AddRef();
-        return HXR_OK;
-    }
-
-    return HXR_OUTOFMEMORY;
-}
-
-HX_RESULT STDAPICALLTYPE AMRPacketizer::CanUnload(void)
-{
-    return CanUnload2();
-}
-
-HX_RESULT STDAPICALLTYPE AMRPacketizer::CanUnload2(void)
-{
-    return ((CHXBaseCountingObject::ObjectsActive() > 0) ? HXR_FAIL : HXR_OK);
-}
-
-/************************************************************************
- *  IHXPlugin methods
- */
-/************************************************************************
- *  Method:
- *    IHXPlugin::InitPlugin
- *  Purpose:
- *    Initializes the plugin for use. This interface must always be
- *    called before any other method is called. This is primarily needed
- *    so that the plugin can have access to the context for creation of
- *    IHXBuffers and IMalloc.
- */
-STDMETHODIMP AMRPacketizer::InitPlugin(IUnknown* /*IN*/ pContext)
-{
-    HX_RESULT retVal = HXR_OK;
-
-    HX_ASSERT(pContext);
-
-    if(!pContext)
-    {
-        return HXR_INVALID_PARAMETER;
-    }
-
-    m_pContext = pContext;
-    m_pContext->AddRef();
-
-    retVal = m_pContext->QueryInterface(IID_IHXCommonClassFactory,
-					 (void**) &m_pClassFactory);
-
-    return retVal;
-}
-
-/************************************************************************
- *  Method:
- *    IHXPlugin::GetPluginInfo
- *  Purpose:
- *    Returns the basic information about this plugin. Including:
- *
- *    bLoadMultiple	whether or not this plugin DLL can be loaded
- *			multiple times. All File Formats must set
- *			this value to TRUE.
- *    pDescription	which is used in about UIs (can be NULL)
- *    pCopyright	which is used in about UIs (can be NULL)
- *    pMoreInfoURL	which is used in about UIs (can be NULL)
- */
-STDMETHODIMP AMRPacketizer::GetPluginInfo
-(
-    REF(HXBOOL)         bLoadMultiple,
-    REF(const char*)    pDescription,
-    REF(const char*)    pCopyright,
-    REF(const char*)    pMoreInfoURL,
-    REF(ULONG32)        ulVersionNumber
-)
-{
-    bLoadMultiple   = TRUE;   // Must be true for file formats.
-
-    pDescription    = zm_pDescription;
-    pCopyright      = zm_pCopyright;
-    pMoreInfoURL    = zm_pMoreInfoURL;
-    ulVersionNumber = TARVER_ULONG32_VERSION;
-
-    return HXR_OK;
-}
-
-/************************************************************************
- *  Method:
- *      IHXPluginProperties::GetProperties
- */
-
-STDMETHODIMP
-AMRPacketizer::GetProperties(REF(IHXValues*) pIHXValuesProperties)
-{
-    HX_RESULT res = HXR_FAIL;
-    HX_ASSERT(m_pClassFactory);
-    if(!m_pClassFactory)
-    {
-        return res;
-    }
-    m_pClassFactory->CreateInstance(IID_IHXValues, (void**)&pIHXValuesProperties);
-
-    if (pIHXValuesProperties)
-    {
-        //plugin class
-        res = SetCStringPropertyCCF(pIHXValuesProperties, PLUGIN_CLASS,
-                                    PLUGIN_PACKETIZER_TYPE, m_pContext);
-        if (HXR_OK != res)
-        {
-            return res;
-        }
-
-        //mime type
-        res = SetCStringPropertyCCF(pIHXValuesProperties, PLUGIN_PACKETIZER_MIME,
-                                    (const char*)AMR_NB_MIME_TYPE, m_pContext); 
-        if (HXR_OK != res)
-        {
-            return res;
-        }
-    }
-    else
-    {
-        return HXR_OUTOFMEMORY;
-    }
-    return HXR_OK;
-}
 void
 AMRPacketizer::HandleMaxPacketSize(void)
 {
@@ -734,10 +586,9 @@ HX_RESULT
 AMRPacketizer::ParseSampleEntry()
 {
     // Get the decoder config info
-    IHXBuffer* pOpaque = NULL;
-    UCHAR* pData = NULL;
-    UINT32 ulSize = 0;
-    UINT16 uModeSet = 0;
+    IHXBuffer* pOpaque;
+    UCHAR* pData;
+    UINT32 ulSize;
 
     HX_RESULT res = m_pStreamHeader->GetPropertyBuffer("OpaqueData", pOpaque);
     if(SUCCEEDED(res))
@@ -748,21 +599,13 @@ AMRPacketizer::ParseSampleEntry()
         {
             res = HXR_INVALID_PARAMETER;
         }
-        else
-        {
-            // mode set is all we care about
-            uModeSet = ((pData[13] << 4) & 0xf0) | pData[14];
-        }
-    }
-    else
-    {
-        /* Opaque data atom is missing, so by default use mode set as 0.*/
-        res = HXR_OK;
     }
 
     if(SUCCEEDED(res))
     {
-        UINT32 ulFrameBits = 0;
+        // mode set is all we care about
+        UINT16 uModeSet = ((pData[13] << 4) & 0xf0) | pData[14];
+        UINT32 ulFrameBits;
         UINT32 ulMaxFrameBits = 0;
 
         if(uModeSet != 0)
@@ -774,7 +617,7 @@ AMRPacketizer::ParseSampleEntry()
                 if(uModeSet & mask)
                 {
                     ulFrameBits = CAMRFrameInfo::FrameBits(m_AMRFlavor, 
-                            ulMode);
+                                    ulMode);
                     if(ulFrameBits > ulMaxFrameBits)
                     {
                         ulMaxFrameBits = ulFrameBits;
@@ -793,8 +636,8 @@ AMRPacketizer::ParseSampleEntry()
         // NumChannels frames per frame block
         // min value 1, max value AMR_MAX_PAYLOAD_FRAMES
         m_ulFrameBlocksPerPacket = HX_MAX(1, HX_MIN(AMR_MAX_PAYLOAD_FRAMES, 
-                    (m_ulMaxPayloadSize - PayloadHeaderSize()) / 
-                    ((((ulMaxFrameBits + 7) >> 3) + 1) * m_ulChannels)));
+            (m_ulMaxPayloadSize - PayloadHeaderSize()) / 
+            ((((ulMaxFrameBits + 7) >> 3) + 1) * m_ulChannels)));
     }
 
     HX_RELEASE(pOpaque);
@@ -802,8 +645,8 @@ AMRPacketizer::ParseSampleEntry()
 }
 
 AMRPacketizer::SampleInfo::SampleInfo(IHXPacket* pPacket, AMRFlavor flavor)
-: m_pPacket(pPacket),
-    m_AMRFlavor(flavor)
+    : m_pPacket(pPacket),
+      m_AMRFlavor(flavor)
 {
     m_pBufObj = m_pPacket->GetBuffer();
     m_pBuffer = m_pBufObj->GetBuffer();

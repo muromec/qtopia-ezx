@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: timeline.cpp,v 1.21 2008/02/19 10:22:58 vkathuria Exp $
+ * Source last modified: $Id: timeline.cpp,v 1.19 2006/08/16 17:29:34 gwright Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -86,7 +86,7 @@ CHXMapPtrToPtr Timeline::m_zTimerMap;
 
 #include "globals/hxglobals.h"
 
-#if defined(_WINDOWS) || defined(_SYMBIAN) || defined(_BREW)
+#if defined(_WINDOWS) || defined(_SYMBIAN)
 typedef CHXMapLongToObj      TimelineMapType;
 typedef HXGlobalMapLongToObj GlobalTimelineMapType;
 #elif defined(_UNIX) || defined (_MACINTOSH)
@@ -106,9 +106,6 @@ const TimelineMapType* const Timeline::m_zTimerMap = NULL;
 #define MINIMUM_GRANULARITY 20
 #elif defined(_UNIX) 
 #define MINIMUM_GRANULARITY 20
-#elif defined(_BREW) 
-#define MINIMUM_GRANULARITY 30
-extern const IShell*  g_pIShell;
 #else
 #define MINIMUM_GRANULARITY 20
 #endif
@@ -165,7 +162,7 @@ void InitInterfaceLibProcPtrs()
  *
  */
 Timeline::Timeline(void) :
-#if defined(_WINDOWS) || defined(_SYMBIAN) || defined(_BREW)
+#if defined(_WINDOWS) || defined(_SYMBIAN)
       m_uiTimerID (0)
     , m_uiTimerIDFixup (0)
     , m_ulLastCallbackTime (0) 
@@ -269,7 +266,7 @@ Timeline::~Timeline()
 #endif
 #endif
 
-#if defined(_WINDOWS) || defined(_SYMBIAN) || defined(_BREW)
+#if defined(_WINDOWS) || defined(_SYMBIAN)
     HX_RELEASE(m_pAsyncTimer);
 #endif
 
@@ -298,7 +295,7 @@ Timeline::Init(IUnknown* pContext,
     m_pScheduler = pScheduler;
     HX_ADDREF(m_pScheduler);
 
-#if defined(_WINDOWS) || defined(_SYMBIAN) || defined(_BREW)
+#if defined(_WINDOWS) || defined(_SYMBIAN)
     CreateInstanceCCF(CLSID_IHXAsyncTimer, (void**)&m_pAsyncTimer, m_pContext);
 #endif
 
@@ -411,7 +408,7 @@ Timeline::Pause(void)
     m_bIsTimerPending	= FALSE;
 
     // Kill the timer for this timeline
-#if defined(_WINDOWS) || defined(_SYMBIAN) || defined(_BREW)
+#if defined(_WINDOWS) || defined(_SYMBIAN)
     if (!m_bTimerFixup) 
     {
 	// This is the "old code".  Execute it just as before the
@@ -555,7 +552,7 @@ HX_RESULT Timeline::Resume(void)
     m_ulLastCallbackTime    = HX_GET_TICKCOUNT();
 
     // Set a timer
-#if defined(_WINDOWS) || defined(_SYMBIAN) || defined(_BREW)
+#if defined(_WINDOWS) || defined(_SYMBIAN)
 
     if (m_pAsyncTimer)
     {
@@ -595,7 +592,7 @@ HX_RESULT Timeline::Resume(void)
 #endif
 
     // add this timer to the static timer map
-#if defined(_WINDOWS) || defined(_SYMBIAN) || defined(_BREW)
+#if defined(_WINDOWS) || defined(_SYMBIAN)
     TimerObjects*   pTimerObject    = new TimerObjects;
     if (!pTimerObject)
     {
@@ -703,7 +700,7 @@ Timeline::OnTimeSync(HXBOOL bAtInterrupt)
 /*
  *  ********* WINDOWS ONLY *****************
  */
-#if defined(_WINDOWS) || defined(_SYMBIAN) || defined(_BREW)
+#if defined(_WINDOWS) || defined(_SYMBIAN)
 /*
  *  This is a Windows Timer callback proc
  */

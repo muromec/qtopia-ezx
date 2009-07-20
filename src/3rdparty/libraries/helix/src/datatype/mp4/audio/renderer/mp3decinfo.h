@@ -41,7 +41,6 @@ class IMP4APayloadFormat;
 
 class CMP3DecInfo : public CDecoderInfo
 {
-public:    
     virtual HXBOOL IsMatch(const char* pMimeType, IMP4APayloadFormat* pRssm);
     virtual const char* GetLibName(void);
     virtual const char* GetCodecFourCC(void);

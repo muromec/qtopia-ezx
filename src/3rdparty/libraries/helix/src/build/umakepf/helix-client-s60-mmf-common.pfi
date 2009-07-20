@@ -3,7 +3,7 @@
 # 
 #  ***** BEGIN LICENSE BLOCK *****  
 #   
-#  Source last modified: $Id: helix-client-s60-mmf-common.pfi,v 1.19 2007/07/25 22:39:35 atewari Exp $ 
+#  Source last modified: $Id: helix-client-s60-mmf-common.pfi,v 1.18 2007/04/03 18:57:54 rrajesh Exp $ 
 #   
 #  Copyright Notices: 
 #   
@@ -80,6 +80,9 @@ project.AddDefines('HELIX_FEATURE_MMF_DATASOURCE')
 if not project.IsDefined('HELIX_FEATURE_LOGLEVEL_NONE'):
     project.AddDefines('HELIX_FEATURE_CORE_LOG')
 
+# ROM ONLY FLAG is used to build MMF controller as a part of Phone image.
+# This flag has to commented to build MMF Controller as SIS package
+project.AddDefines('HELIX_CONFIG_SYMBIAN_MMF_ROM_ONLY')
 
 # This flag to set link option to ALL -tcb
 project.AddDefines('HELIX_CONFIG_SYMBIAN_CAP_ECOM_PLUGIN')

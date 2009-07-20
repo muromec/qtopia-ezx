@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: srcfinder.h,v 1.12 2008/03/09 12:19:13 npatil Exp $ 
+ * Source last modified: $Id: srcfinder.h,v 1.9 2004/11/24 21:31:53 skharkar Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -40,6 +40,7 @@
 
 #include "hxfiles.h"
 #include "hxclientprofile.h"
+#include "player.h"
 #include "plgnhand.h"
 
 class Process;
@@ -59,11 +60,11 @@ class BasicSourceFinder : public IHXFileSystemManagerResponse,
                           public IHXBroadcastMapperResponse
 {
 public:
-    BasicSourceFinder(Process* pProc, ClientSession* pSession);
+    BasicSourceFinder(Process* pProc, Player::Session* pPlayerSession);
     virtual ~BasicSourceFinder(void);
 
     /* make this an interface at some point */    
-    virtual HX_RESULT FindSource(IHXURL* pURL, ServerRequest* pRequest);
+    virtual HX_RESULT FindSource(URL* pURL, ServerRequest* pRequest);
     virtual HX_RESULT FindNextSource(void);
 
     HX_RESULT GetClientProfileInfo(void);
@@ -130,11 +131,11 @@ protected:
     IHXQoSProfileConfigurator*  m_pConfig;
 
     // get rid of this if it's ever possible...
-    ClientSession*              m_pSession;
+    Player::Session*            m_pPlayerSession;
 
     IHXSourceFinderFileResponse* m_pResp;
     ServerRequest*              m_pRequest;
-    IHXURL*                     m_pURL; // this needs to be a COM obj
+    URL*                        m_pURL;	// this needs to be a COM obj
     IHXClientProfileInfo*       m_pClientProfile;
 
     FSManager*                  m_pFSManager;

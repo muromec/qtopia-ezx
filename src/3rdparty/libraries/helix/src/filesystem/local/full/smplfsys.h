@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: smplfsys.h,v 1.20 2008/08/12 23:54:37 svaidhya Exp $
+ * Source last modified: $Id: smplfsys.h,v 1.16 2006/11/20 16:11:23 gwright Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -50,7 +50,7 @@
 #ifndef _SMPLFSYS_H_
 #define _SMPLFSYS_H_
 
-#include "hlxclib/stdio.h"
+#include <stdio.h>
 
 /****************************************************************************
  * 
@@ -217,7 +217,6 @@ enum SeekReason
 
 class CSimpleFileObject :   public IHXFileObject, 
 			    public IHXDirHandler,
-                            public IHXNestedDirHandler,
 			    public IHXFileStat,
 			    public IHXFileStat2,
 			    public IHXFileExists,
@@ -225,7 +224,8 @@ class CSimpleFileObject :   public IHXFileObject,
 			    public IHXRequestHandler,
 			    public IHXFileRename,
 			    public IHXFileRemove,
-			    public IHXFileMove
+			    public IHXFileMove,
+			    public IHXThreadSafeMethods
 #if defined(HELIX_FEATURE_PROGDOWN)
                             , public CProgressiveDownloadMonitorResponse
 #endif /* #if defined(HELIX_FEATURE_PROGDOWN) */
@@ -271,7 +271,6 @@ private:
     UINT16                  m_usPendingSeekWhence;
 
     void GetFullPathname(const char* pPath, CHXString* pPathname);
-    HX_RESULT               DirCreatePath(CHXString strPath);
 
     HXBOOL		    m_bReadCancelled;
 
@@ -585,6 +584,8 @@ public:
     STDMETHOD(_OpenFile) (THIS_
 			  ULONG32	    ulFlags);
 
+    STDMETHOD_(UINT32,IsThreadSafe)(THIS);
+
 #if defined(HELIX_FEATURE_PROGDOWN)
     // CProgressiveDownloadMonitorResponse methods
     STDMETHOD(ProgressiveCallback) (THIS);
@@ -630,34 +631,6 @@ public:
 
     // CSimpleFileObject methods
     static void StackCallback(void* pArg);
-
-    //IHXNestedDirHandler Methods
-    /************************************************************************
-     *  Method:
-     *      IHXNestedDirHandler::InitNestedDirHandler
-     *  Purpose:
-     *      Associates a Nested directory handler with the directory handler
-     *      response, it should notify of operation completness.
-     */
-    STDMETHOD(InitNestedDirHandler)     (THIS_
-                                        IHXDirHandlerResponse*    /*IN*/  pDirResponse);
-
-    /************************************************************************
-     *  Method:
-     *      IHXNestedDirHandler::CloseNestedDirHandler
-     *  Purpose:
-     *      Closes the Nested directory handler resource and releases all resources
-     *      associated with the object.
-     */
-    STDMETHOD(CloseNestedDirHandler)  (THIS);
-
-    /************************************************************************
-     *  Method:
-     *      IHXNestedDirHandler::MakeNestedDir
-     *  Purpose:
-     *      Create the Nested directory structure
-     */
-    STDMETHOD(MakeNestedDir)  (THIS);
 };
 
 #endif // ndef _SMPLFSYS_H_

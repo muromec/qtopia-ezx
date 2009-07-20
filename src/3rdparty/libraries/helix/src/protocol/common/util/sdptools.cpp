@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: sdptools.cpp,v 1.13 2008/01/28 06:27:37 vijendrakumara Exp $
+ * Source last modified: $Id: sdptools.cpp,v 1.11 2005/08/02 18:00:37 albertofloyd Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -50,14 +50,12 @@
 /****************************************************************************
  *  Defines
  */
-#define AUDIO_MIMETYPE_PREFIX       "audio/"
+#define AUDIO_MIMETYPE_PREFIX	    "audio/"
 #define AUDIO_MIMETYPE_PREFIX_SIZE  (sizeof(AUDIO_MIMETYPE_PREFIX) - 1)
-#define VIDEO_MIMETYPE_PREFIX       "video/"
+#define VIDEO_MIMETYPE_PREFIX	    "video/"
 #define VIDEO_MIMETYPE_PREFIX_SIZE  (sizeof(VIDEO_MIMETYPE_PREFIX) - 1)
-#define APP_MIMETYPE_PREFIX     "application/"
+#define APP_MIMETYPE_PREFIX	    "application/"
 #define APP_MIMETYPE_PREFIX_SIZE    (sizeof(APP_MIMETYPE_PREFIX) - 1)
-#define REALEVENT_MIME_TYPE         "application/x-pn-realevent"
-
 
 
 /****************************************************************************
@@ -92,10 +90,10 @@ HX_RESULT HexStringToBinary(UINT8* pOutBuffer, const char* pString)
 
     while (SUCCEEDED(retVal) && ((*pString) != '\0'))
     {
-    retVal = _HexCharPairToByte(pOutBuffer, pString);
+	retVal = _HexCharPairToByte(pOutBuffer, pString);
 
-    pOutBuffer++;
-    pString += 2;
+	pOutBuffer++;
+	pString += 2;
     }
 
     return retVal;
@@ -116,29 +114,29 @@ HX_INLINE HX_RESULT _HexCharPairToByte(UINT8* pByte, const char* pCharPair)
 
     do
     {
-    uIdx--;
+	uIdx--;
 
-    cBits = *pCharPair;
+	cBits = *pCharPair;
 
-    if ((cBits >= '0') && (cBits <= '9'))
-    {
-        uAddVal = (UINT8)(cBits - '0');
-    }
-    else if ((cBits >= 'a') && (cBits <= 'f'))
-    {
-        uAddVal = (UINT8)(cBits - 'a' + 10);
-    }
-    else if ((cBits >= 'A') && (cBits <= 'F'))
-    {
-        uAddVal = (UINT8)(cBits - 'A' + 10);
-    }
-    else
-    {
-        return HXR_FAIL;
-    }
+	if ((cBits >= '0') && (cBits <= '9'))
+	{
+	    uAddVal = (UINT8)(cBits - '0');
+	}
+	else if ((cBits >= 'a') && (cBits <= 'f'))
+	{
+	    uAddVal = (UINT8)(cBits - 'a' + 10);
+	}
+	else if ((cBits >= 'A') && (cBits <= 'F'))
+	{
+	    uAddVal = (UINT8)(cBits - 'A' + 10);
+	}
+	else
+	{
+	    return HXR_FAIL;
+	}
 
-    uByte += (UINT8)(uAddVal << (4 * uIdx));
-    pCharPair++;
+	uByte += (UINT8)(uAddVal << (4 * uIdx));
+	pCharPair++;
     } while ((uIdx != 0) && (*pCharPair != '\0'));
 
     *pByte = uByte;
@@ -153,7 +151,7 @@ void BinaryToHexString(const UINT8* pBuffer, UINT32 ulSize, char* pString)
 
     for(UINT32 i = 0; i < ulSize; i++)
     {
-    _ByteToHexCharPair(pBuffer[i], &pString[i*2]);
+	_ByteToHexCharPair(pBuffer[i], &pString[i*2]);
     }
 
     pString[ulSize*2] = '\0';
@@ -180,29 +178,24 @@ RTSPMediaType SDPMapMimeToMediaType(const char* pMimeType)
 
     if (pMimeType)
     {
-    if (strncasecmp(AUDIO_MIMETYPE_PREFIX, 
-            pMimeType, 
-            AUDIO_MIMETYPE_PREFIX_SIZE) == 0)
-    {
-        eMediaType = RTSPMEDIA_TYPE_AUDIO;
-    }
-    else if (strncasecmp(VIDEO_MIMETYPE_PREFIX, 
-            pMimeType, 
-            VIDEO_MIMETYPE_PREFIX_SIZE) == 0)
-    {
-        eMediaType = RTSPMEDIA_TYPE_VIDEO;
-    }
-    else if (strcasecmp(REALEVENT_MIME_TYPE,
-        pMimeType) == 0)
-    {
-        eMediaType = RTSPMEDIA_TYPE_EVENT;
-    }
-    else if (strncasecmp(APP_MIMETYPE_PREFIX, 
-            pMimeType, 
-            APP_MIMETYPE_PREFIX_SIZE) == 0)
-    {
-        eMediaType = RTSPMEDIA_TYPE_APP;
-    }
+	if (strncasecmp(AUDIO_MIMETYPE_PREFIX, 
+			pMimeType, 
+			AUDIO_MIMETYPE_PREFIX_SIZE) == 0)
+	{
+	    eMediaType = RTSPMEDIA_TYPE_AUDIO;
+	}
+	else if (strncasecmp(VIDEO_MIMETYPE_PREFIX, 
+			pMimeType, 
+			VIDEO_MIMETYPE_PREFIX_SIZE) == 0)
+	{
+	    eMediaType = RTSPMEDIA_TYPE_VIDEO;
+	}
+	else if (strncasecmp(APP_MIMETYPE_PREFIX, 
+			pMimeType, 
+			APP_MIMETYPE_PREFIX_SIZE) == 0)
+	{
+	    eMediaType = RTSPMEDIA_TYPE_APP;
+	}
     }
 
     return eMediaType;

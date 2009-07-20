@@ -38,8 +38,7 @@
 
 HXBOOL CAACDecInfo::IsMatch(const char* pMimeType, IMP4APayloadFormat* pRssm)
 {
-    return  ((((!strcasecmp("audio/X-RN-MP4-RAWAU", pMimeType)) ||
-		      (!strcasecmp("audio/X-RN-QT-RAWAU", pMimeType))) && 
+    return  (((!strcasecmp("audio/X-RN-MP4-RAWAU", pMimeType)) && 
                (pRssm ? IsValidObjectProfileID(pRssm->GetObjectProfileIndication()) : 1)) ||
 	     !strcasecmp("audio/mpeg4-simple-A2", pMimeType) ||
 	     !strcasecmp("audio/mpeg4-generic", pMimeType) ||

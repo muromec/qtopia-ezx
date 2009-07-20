@@ -43,11 +43,7 @@ static HXGenNameType const HXGenTable[] = {
 static const int NumOfGenerations = sizeof(HXGenTable)/sizeof(HXGenNameType);
 
 struct HXConnBearerInfo{
-#if defined(HELIX_FEATURE_HSDPA_BEARER_SUPPORT)
-    TConnMonBearerInfo m_connBearer;
-#else
     TConnMonBearerType m_connBearer;
-#endif
     TConnMonBearerId   m_connBearerId;
     HXBearerType m_bearer;
 };
@@ -55,22 +51,14 @@ struct HXConnBearerInfo{
 
 // Connection Bearer Table maps the system bearer to Helix bearer
 static HXConnBearerInfo const HXConnBearerTable[] = {
-#if defined(HELIX_FEATURE_HSDPA_BEARER_SUPPORT)
-    { EBearerInfoCSD,           EBearerIdCSD,   BearerCSD       },
-    { EBearerInfoWCDMA,         EBearerIdWCDMA, BearerWCDMA     },
-    { EBearerInfoHSDPA,         EBearerIdWCDMA, BearerHSDPA     },
-    { EBearerInfoLAN,           EBearerIdAll,   BearerLAN       },
-    { EBearerInfoCDMA2000,      EBearerIdAll,   BearerCDMA2000  },
-    { EBearerInfoGPRS,          EBearerIdGPRS,  BearerGPRS      },
-    { EBearerInfoHSCSD,         EBearerIdCSD,   BearerHSCSD     },
-    { EBearerInfoEdgeGPRS,      EBearerIdGPRS,  BearerEGPRS     },
-    { EBearerInfoWLAN,          EBearerIdAll,   BearerWLAN      },
-    { EBearerInfoBluetooth,     EBearerIdAll,   BearerBlueTooth }
-#else
     { EBearerCSD,               EBearerIdCSD,   BearerCSD       },
     { EBearerExternalCSD,       EBearerIdCSD,   BearerCSD       },
     { EBearerWCDMA,             EBearerIdWCDMA, BearerWCDMA     },
     { EBearerExternalWCDMA,     EBearerIdWCDMA, BearerWCDMA     },
+#if defined(HELIX_FEATURE_HSDPA_BEARER_SUPPORT)
+    { EBearerHSDPA,             EBearerIdWCDMA, BearerHSDPA     },
+    { EBearerExternalHSDPA,     EBearerIdWCDMA, BearerHSDPA     },
+#endif
     { EBearerLAN,               EBearerIdAll,   BearerLAN       },
     { EBearerExternalLAN,       EBearerIdAll,   BearerLAN       },
     { EBearerCDMA2000,          EBearerIdAll,   BearerCDMA2000  },
@@ -85,7 +73,6 @@ static HXConnBearerInfo const HXConnBearerTable[] = {
     { EBearerExternalWLAN,      EBearerIdAll,   BearerWLAN      },
     { EBearerBluetooth,         EBearerIdAll,   BearerBlueTooth },
     { EBearerExternalBluetooth, EBearerIdAll,   BearerBlueTooth }
-#endif
 };
 
 static const int NumofConnBearers = sizeof(HXConnBearerTable)/sizeof(HXConnBearerInfo);
@@ -387,11 +374,7 @@ HXConnectionMonitor::RunL()
                 m_state = Error;
                 if(m_connIAPid == m_queryIAPid)
                 {
-#if defined(HELIX_FEATURE_HSDPA_BEARER_SUPPORT)
-                    m_monitor.GetIntAttribute(m_connId, 0, KBearerInfo, (TInt&)m_connBearer, iStatus);
-#else
                     m_monitor.GetIntAttribute(m_connId, 0, KBearer, (TInt&)m_connBearer, iStatus);
-#endif
                     SetActive();
                     m_state = GettingBearer;
                 }
@@ -421,9 +404,6 @@ HXConnectionMonitor::RunL()
                 HXNetworkGeneration generation = ConnNetworkGen(bearer);
                 NotifyObservers(bearer, generation, m_dlBandwidth, m_ulBandwidth);
 
-#if defined(HELIX_FEATURE_HSDPA_BEARER_SUPPORT)
-                m_monitor.SetUintAttribute( 0, 0, KBearerGroupThreshold, 1 );
-#endif
                 if (!m_monitoring)
                 m_monitoring = m_monitor.NotifyEventL(*this) == KErrNone;
                 break;
@@ -488,15 +468,6 @@ HXConnectionMonitor::DoCancel()
 void
 HXConnectionMonitor::EventL(const CConnMonEventBase& event)
 {
-#if defined(HELIX_FEATURE_HSDPA_BEARER_SUPPORT)
-    if (m_monitoring && event.EventType()== EConnMonBearerInfoChange)
-    {
-        const CConnMonBearerInfoChange* pBearerEvent
-            = (CConnMonBearerInfoChange*)(&event);
-
-        HandleBearerChange(pBearerEvent->ConnectionId(), pBearerEvent->BearerInfo());
-    }
-#else
     if (m_monitoring && event.EventType()== EConnMonBearerChange)
     {
         const CConnMonBearerChange* pBearerEvent
@@ -504,7 +475,6 @@ HXConnectionMonitor::EventL(const CConnMonEventBase& event)
 
         HandleBearerChange(pBearerEvent->ConnectionId(), pBearerEvent->Bearer());
     }
-#endif
     if(m_monitoring && event.EventType()==EConnMonNetworkStatusChange )
     {
         const CConnMonNetworkStatusChange* pNetStatus
@@ -540,11 +510,7 @@ HXConnectionMonitor::EventL(const CConnMonEventBase& event)
 void
 HXConnectionMonitor::HandleBearerChange(TUint connId, TUint connBearer)
 {
-#if defined(HELIX_FEATURE_HSDPA_BEARER_SUPPORT)
-    if (connId == m_connId )
-#else
     if (connId == ConnBearerId(m_connBearer))
-#endif
     {
         HXBearerType prevbearer = ConntoBearer(m_connBearer);
         HXBearerType newbearer = ConntoBearer(connBearer);

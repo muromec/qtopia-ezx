@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hlxosstr.h,v 1.14 2009/01/19 22:52:02 sfu Exp $
+ * Source last modified: $Id: hlxosstr.h,v 1.9 2005/03/14 19:36:38 bobclark Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -56,260 +56,7 @@
 #include "hlxclib/stdlib.h"
 #include "hlxclib/string.h"
 
-
-//----------------------------------------------------------------------------
-// New utilities
-//----------------------------------------------------------------------------
-
-
-// Returns the number of characters in the string excluding the terminator.
-// If <psz> is NULL, 0 is returned.
-//
-size_t StringLengthA(const char* psz);
-
-
-// Returns the number of characters in the wide-character string excluding the terminator.
-// If <pszw> is NULL, 0 is returned.
-//
-size_t StringLengthW(const wchar_t* pszw);
-
-
-// Copies the string <psz2> including the terminating character
-// into the memory area <psz1>. If copying takes place between objects that overlap,
-// behavior is undefined.
-// If <psz1> is NULL or <psz2> is NULL, the function does nothing.
-// Returns <psz1>.
-//
-char* StringCopyA(char* psz1, const char* psz2);
-
-
-// Copies the wide-character string <pszw2> including the terminating character
-// into the memory area <pszw1>. If copying takes place between objects that overlap,
-// behavior is undefined.
-// If <pszw1> is NULL or <pszw2> is NULL, the function does nothing.
-// Returns <pszw1>.
-//
-wchar_t* StringCopyW(wchar_t* pszw1, const wchar_t* pszw2);
-
-
-// Returns 1 if the terminated strings are byte-by-byte equal, otherwise it returns 0.
-//
-int StringEqualA(const char* psz1, const char* psz2);
-
-
-// Returns 1 if the terminated wide-character strings are byte-by-byte equal, otherwise it returns 0.
-//
-int StringEqualW(const wchar_t* pszw1, const wchar_t* pszw2);
-
-
-// Allocates memory and concatenates strings in the new buffer including the terminating character.
-// If <releaseOldBuffer> is 1, <pBuffer> is released before the functions exits, but only if the new
-// buffer was sucessfully allocated. That means: if NULL was returned, <pBuffer> was not released.
-// If <allocType> is 0, memory is allocated by using malloc, and released by using free.
-// If <allocType> is 1, memory is allocated by using new[] operator, and released by using delete[] operator.
-// If <pBuffer> is NULL and <pAppend> is NULL, NULL is returned.
-//
-char* StringAppendA(char* pBuffer, const char* pAppend, int releaseOldBuffer = 1, int allocType = 1);
-
-
-// Allocates memory and concatenates strings in the new buffer including the terminating character.
-// If <releaseOldBuffer> is 1, <pBuffer> is released before the functions exits, but only if the new
-// buffer was sucessfully allocated. That means: if NULL was returned, <pBuffer> was not released.
-// If <allocType> is 0, memory is allocated by using malloc, and released by using free.
-// If <allocType> is 1, memory is allocated by using new[] operator, and released by using delete[] operator.
-// If <pBuffer> is NULL and <pAppend> is NULL, NULL is returned.
-//
-wchar_t* StringAppendW(wchar_t* pBuffer, const wchar_t* pAppend, int releaseOldBuffer = 1, int allocType = 1);
-
-
-// Base buffer classes.
-class HXConvBufferBaseA
-{
-public:
-    virtual ~HXConvBufferBaseA()
-    {
-        if(m_data && m_owner)
-        {
-            free(m_data);
-        }
-    }
-    char* Release()
-    {
-        m_owner = FALSE;
-        return m_data;
-    }
-    operator const char*() const { return m_data; }
-    operator char*() { return m_data; }
-    UINT32 Length() const { return m_length; }
-
-protected:
-    HXConvBufferBaseA()
-        : m_data(0)
-        , m_length(0)
-        , m_owner(TRUE)
-    {;}
-
-    char* m_data;
-    UINT32 m_length;
-    HXBOOL m_owner;
-};
-
-class HXConvBufferBaseW
-{
-public:
-    virtual ~HXConvBufferBaseW()
-    {
-        if(m_data && m_owner)
-        {
-            free(m_data);
-        }
-    }
-    wchar_t* Release()
-    {
-        m_owner = FALSE;
-        return m_data;
-    }
-    operator const wchar_t*() const { return m_data; }
-    operator wchar_t*() { return m_data; }
-    UINT32 Length() const { return m_length; }
-
-protected:
-    HXConvBufferBaseW()
-        : m_data(0)
-        , m_length(0)
-        , m_owner(TRUE)
-    {;}
-
-    wchar_t* m_data;
-    UINT32 m_length;
-    HXBOOL m_owner;
-};
-
-
-// Inline wchar_t -> UTF8 conversion. Uses system-independent implementation.
-// Class constructs UTF8 encoded string and keeps it in the temporary buffer
-// which is released by the destructor.
-// Usage example:
-//       wchar_t* pw = ...
-//       CopyUTF8SomewhereElse((const char*)UTF8FromWCharT(pw));
-//
-class UTF8FromWCharT : public HXConvBufferBaseA
-{
-public:
-    // If (size_t)-1 is passed as <length>, constructor scans <pszw> for terminator and the resulting
-    // string includes the terminator; otherwise, constructor converts exactly <length> units and so
-    // depending on the input, the resulting string may not be terminated (in this case use Length()
-    // to obtain the resulting length).
-    explicit UTF8FromWCharT(const wchar_t* pszw, size_t length = (size_t)-1);
-};
-
-
-// Inline UTF8 -> wchar_t conversion. Uses system-independent implementation.
-// Class constructs wchar_t encoded string and keeps it in the temporary buffer
-// which is released by the destructor.
-// Usage example:
-//       char* p = ...
-//       CopyWCharTSomewhereElse((const wchar_t*)WCharTFromUTF8(p));
-//
-class WCharTFromUTF8 : public HXConvBufferBaseW
-{
-public:
-    // If (size_t)-1 is passed as <length>, constructor scans <psz> for terminator and the resulting
-    // string includes the terminator; otherwise, constructor converts exactly <length> units and so
-    // depending on the input, the resulting string may not be terminated (in this case use Length()
-    // to obtain the resulting length).
-    explicit WCharTFromUTF8(const char* psz, size_t length = (size_t)-1);
-};
-
-
-// Inline wchar_t -> CurrentCodePage conversion. Uses system-dependent implementation.
-// Class constructs CurrentCodePage encoded string and keeps it in the temporary buffer
-// which is released by the destructor. On systems which do not support native current-code-page
-// translation only pure ascii input strings are accepted, otherwise translation fails.
-// Usage example:
-//       wchar_t* pw = ...
-//       CopyCCPSomewhereElse((const char*)CCPFromWCharT(pw));
-//
-class CCPFromWCharT : public HXConvBufferBaseA
-{
-public:
-    // If (size_t)-1 is passed as <length>, constructor scans <pszw> for terminator and the resulting
-    // string includes the terminator; otherwise, constructor converts exactly <length> units and so
-    // depending on the input, the resulting string may not be terminated (in this case use Length()
-    // to obtain the resulting length).
-    explicit CCPFromWCharT(const wchar_t* pszw, size_t length = (size_t)-1);
-};
-
-
-// Inline CurrentCodePage -> wchar_t conversion. Uses system-dependent implementation.
-// Class constructs wchar_t encoded string and keeps it in the temporary buffer
-// which is released by the destructor. On systems which do not support native current-code-page
-// translation only pure ascii input strings are accepted, otherwise translation fails.
-// Usage example:
-//       char* p = ...
-//       CopyWCharTSomewhereElse((const wchar_t*)WCharTFromCCP(p));
-//
-class WCharTFromCCP : public HXConvBufferBaseW
-{
-public:
-    // If (size_t)-1 is passed as <length>, constructor scans <psz> for terminator and the resulting
-    // string includes the terminator; otherwise, constructor converts exactly <length> units and so
-    // depending on the input, the resulting string may not be terminated (in this case use Length()
-    // to obtain the resulting length).
-    explicit WCharTFromCCP(const char* psz, size_t length = (size_t)-1);
-};
-
-
-// Inline CurrentCodePage -> UTF8 conversion. Uses system-dependent implementation.
-// Class constructs UTF8 encoded string and keeps it in the temporary buffer
-// which is released by the destructor. On systems which do not support native current-code-page
-// translation only pure ascii input strings are accepted, otherwise translation fails.
-// Usage example:
-//       char* p = ...
-//       CopyUTF8SomewhereElse((const char*)UTF8FromCCP(p));
-//
-class UTF8FromCCP : public HXConvBufferBaseA
-{
-public:
-    // If (size_t)-1 is passed as <length>, constructor scans <psz> for terminator and the resulting
-    // string includes the terminator; otherwise, constructor converts exactly <length> units and so
-    // depending on the input, the resulting string may not be terminated (in this case use Length()
-    // to obtain the resulting length).
-    explicit UTF8FromCCP(const char* psz, size_t length = (size_t)-1);
-};
-
-
-// Inline UTF8 -> CurrentCodePage conversion. Uses system-dependent implementation.
-// Class constructs CurrentCodePage encoded string and keeps it in the temporary buffer
-// which is released by the destructor. On systems which do not support native current-code-page
-// translation only pure ascii input strings are accepted, otherwise translation fails.
-// Usage example:
-//       char* p = ...
-//       CopyCCPSomewhereElse((const char*)CCPFromUTF8(p));
-//
-class CCPFromUTF8 : public HXConvBufferBaseA
-{
-public:
-    // If (size_t)-1 is passed as <length>, constructor scans <psz> for terminator and the resulting
-    // string includes the terminator; otherwise, constructor converts exactly <length> units and so
-    // depending on the input, the resulting string may not be terminated (in this case use Length()
-    // to obtain the resulting length).
-    explicit CCPFromUTF8(const char* psz, size_t length = (size_t)-1);
-};
-
-
-//----------------------------------------------------------------------------
-// Legacy utilities
-//----------------------------------------------------------------------------
 /*
- * XXX
- * IMPORTANT:
- * HLXOsStrW class actually interprets <ascii> parameter as UTF8 encoded string.
- * Keep this behaviour for now, but original intention should be verified.
- * From now on, use new classes: WCharTFromUTF8/UTF8FromWCharT for UTF8 <-> wchar_t conversions,
- * and WCharTFromCCP/CCPFromWCharT for CurrentCodePage <-> wchar_t conversions.
- * :ENDIMPORTANT
- *
  * Simple class for simple in-line Unicode conversion
  * Handles conversions in both directions as well as handling mutable 
  * conversions as follows:
@@ -336,9 +83,7 @@ public:
     HLXOsStrW(char* ascii, size_t length = (size_t)-1);
     HLXOsStrW(const char* ascii, size_t length = (size_t)-1);
     HLXOsStrW(const unsigned char* ascii, size_t length = (size_t)-1);
-#ifndef ANDROID
     HLXOsStrW(const wchar_t* uni, size_t length = (size_t)-1);
-#endif
 
     operator wchar_t*() { return m_uni; } 
     operator const char*() { return (const char*) m_ascii; } 
@@ -346,7 +91,6 @@ public:
     operator char*() { return m_ascii; } 
     operator unsigned char*() { return (unsigned char*) m_ascii; } 
      ~HLXOsStrW();
-    int GetOutSize() { return m_outsize; }
 
     HLXOsStrW(const HLXOsStrW& rhs);
     HLXOsStrW& operator=(const HLXOsStrW& rhs);
@@ -410,5 +154,23 @@ private:
 
 #endif /* __cplusplus */
 
+
+// UTF16 <-> Unicode conversion functions
+#ifdef __cplusplus
+extern "C" 
+{
+#endif
+typedef enum	
+{
+	UTF16,
+	UTF16BE,
+	UTF16LE,
+} UTF16_TYPE;
+
+int ConvertUTF16ToUTF8(const UINT16* pwIn,int iInSize,UINT8* pbOut,int iOutSize,UTF16_TYPE Utf16Type);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* HLXOSSTR_H */

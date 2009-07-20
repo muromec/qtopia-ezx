@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: ml_allowance_mgr.cpp,v 1.8 2009/03/07 00:26:39 dcollins Exp $ 
+ * Source last modified: $Id: ml_allowance_mgr.cpp,v 1.6 2005/08/19 15:44:53 seansmith Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -46,21 +46,19 @@
 
 #include "server_context.h"
 #include "hxmap.h"
-#include "clientsession.h"
+#include "player.h"
 
 #include "allowance_mgr.h"
 #include "ml_allowance_mgr.h"
 
 
 MLAllowanceMgr::MLAllowanceMgr(Process* pProc, 
-                               ClientSession* pSession,
+                               Player::Session* pSession,
                                IHXPlayerConnectionAdviseSink* pPCAdviseSink)
     : AllowanceMgr(pProc, pPCAdviseSink)
     , m_lRefCount(0)
     , m_pSession(pSession)
     , m_pMidBoxNotify(NULL)
-    , m_bDone(FALSE)
-    , m_bURLDoneWaiting(FALSE)
 {
     if (pPCAdviseSink)
     {
@@ -127,12 +125,6 @@ MLAllowanceMgr::AllowanceMgrDone()
     }
 
     HX_RELEASE(m_pPCAdviseSink);
-    m_bDone = TRUE;
-    if(m_bURLDoneWaiting)
-    {
-        m_pSession->OnURLDone(HXR_UNEXPECTED);
-    }
-
     HX_RELEASE(m_pSession);
     HX_RELEASE(m_pMidBoxNotify);
 
@@ -195,7 +187,6 @@ STDMETHODIMP
 MLAllowanceMgr::OnURL(THIS_ IHXRequest* pRequest)
 {
     m_bPlaybackAllowed = FALSE;
-    m_bURLDoneWaiting = TRUE;
 
     if (m_pMidBoxNotify != NULL)
     {
@@ -218,8 +209,6 @@ MLAllowanceMgr::OnURL(THIS_ IHXRequest* pRequest)
     {
         m_pPCAdviseSink->OnURL(pRequest);
     }
-
-    
 
     return HXR_OK;
 }
@@ -275,14 +264,13 @@ MLAllowanceMgr::OnConnectionDone(THIS_ HX_RESULT status)
 STDMETHODIMP 
 MLAllowanceMgr::OnURLDone(THIS_ HX_RESULT status)
 {
-    m_bURLDoneWaiting = FALSE;
     if (HXR_OK == status)
     {
         m_bPlaybackAllowed = TRUE;
     }
 
     // Notify the Player object
-    if (!m_bDone && m_pSession != NULL)
+    if (m_pSession != NULL)
     {
         m_pSession->OnURLDone(status);
     }
