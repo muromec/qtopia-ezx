@@ -126,6 +126,12 @@
 #ifndef QT_NO_STYLE_WINDOWSXP
 #  define QT_NO_STYLE_WINDOWSXP
 #endif
+#ifndef QT_NO_STYLE_CLEANLOOKS
+#  define QT_NO_STYLE_CLEANLOOKS
+#endif
+#ifndef QT_NO_STYLE_STYLESHEET
+#  define QT_NO_STYLE_STYLESHEET
+#endif
 
 // Widgets
 #ifndef QT_NO_DOCKWIDGET
@@ -160,6 +166,9 @@
 #endif
 #ifndef QT_NO_TOOLTIP
 #  define QT_NO_TOOLTIP
+#endif
+#ifndef QT_NO_MDIAREA
+#  define QT_NO_MDIAREA
 #endif
 
 #ifndef QT_NO_CONCURRENT
