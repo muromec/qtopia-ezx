@@ -17,10 +17,10 @@ SOURCES += \
         styles/qstylesheetstyle.cpp \
         styles/qstylesheetstyle_default.cpp
 
-!wince* {
+!wince*&!embedded {
         RESOURCES += styles/qstyle.qrc
 } else {
-        RESOURCES += styles/qstyle_wince.qrc
+#        RESOURCES += styles/qstyle_wince.qrc
 }
 
 contains( styles, all ) {
