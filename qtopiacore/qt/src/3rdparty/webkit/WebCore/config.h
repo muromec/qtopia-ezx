@@ -24,7 +24,7 @@
 
 #include <wtf/Platform.h>
 
-#define MOBILE 0
+#define MOBILE 1
 
 #ifdef __APPLE__
 #define HAVE_FUNC_USLEEP 1
