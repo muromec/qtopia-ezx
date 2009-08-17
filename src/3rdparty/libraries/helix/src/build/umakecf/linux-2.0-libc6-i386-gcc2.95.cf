@@ -1,0 +1,189 @@
+# 
+#  ***** BEGIN LICENSE BLOCK *****  
+#   
+#  Source last modified: $Id: linux-2.0-libc6-i386-gcc2.95.cf,v 1.5 2006/06/19 23:11:34 jfinnecy Exp $ 
+#   
+#  Copyright Notices: 
+#   
+#  Portions Copyright (c) 1995-2006 RealNetworks, Inc. All Rights Reserved. 
+#   
+#  Patent Notices: This file may contain technology protected by one or  
+#  more of the patents listed at www.helixcommunity.org 
+#   
+#  1.   The contents of this file, and the files included with this file, 
+#  are protected by copyright controlled by RealNetworks and its  
+#  licensors, and made available by RealNetworks subject to the current  
+#  version of the RealNetworks Public Source License (the "RPSL")  
+#  available at  * http://www.helixcommunity.org/content/rpsl unless  
+#  you have licensed the file under the current version of the  
+#  RealNetworks Community Source License (the "RCSL") available at 
+#  http://www.helixcommunity.org/content/rcsl, in which case the RCSL 
+#  will apply.  You may also obtain the license terms directly from 
+#  RealNetworks.  You may not use this file except in compliance with 
+#  the RPSL or, if you have a valid RCSL with RealNetworks applicable 
+#  to this file, the RCSL.  Please see the applicable RPSL or RCSL for 
+#  the rights, obligations and limitations governing use of the 
+#  contents of the file. 
+#   
+#  2.  Alternatively, the contents of this file may be used under the 
+#  terms of the GNU General Public License Version 2 (the 
+#  "GPL") in which case the provisions of the GPL are applicable 
+#  instead of those above.  Please note that RealNetworks and its  
+#  licensors disclaim any implied patent license under the GPL.   
+#  If you wish to allow use of your version of this file only under  
+#  the terms of the GPL, and not to allow others 
+#  to use your version of this file under the terms of either the RPSL 
+#  or RCSL, indicate your decision by deleting Paragraph 1 above 
+#  and replace them with the notice and other provisions required by 
+#  the GPL. If you do not delete Paragraph 1 above, a recipient may 
+#  use your version of this file under the terms of any one of the 
+#  RPSL, the RCSL or the GPL. 
+#   
+#  This file is part of the Helix DNA Technology.  RealNetworks is the 
+#  developer of the Original Code and owns the copyrights in the 
+#  portions it created.   Copying, including reproducing, storing,  
+#  adapting or translating, any or all of this material other than  
+#  pursuant to the license terms referred to above requires the prior  
+#  written consent of RealNetworks and its licensors 
+#   
+#  This file, and the files included with this file, is distributed 
+#  and made available by RealNetworks on an 'AS IS' basis, WITHOUT  
+#  WARRANTY OF ANY KIND, EITHER EXPRESS OR IMPLIED, AND REALNETWORKS  
+#  AND ITS LICENSORS HEREBY DISCLAIM  ALL SUCH WARRANTIES, INCLUDING  
+#  WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS  
+#  FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT. 
+#   
+#  Technology Compatibility Kit Test Suite(s) Location:  
+#     http://www.helixcommunity.org/content/tck 
+#   
+# Contributor(s):
+# 
+# ***** END LICENSE BLOCK *****
+# 
+"""Linux libc6 using gcc 2.95.2.  This builds the older Linux clients, with
+the classic don't-link-libgcc-into-plugins hack."""
+
+exec_config_file('linux-common.cf')
+
+## list of PCF files to run
+platform.pcf_prefix_list = ['unix', 'linux2']
+
+## platform defines 
+project.AddDefines('_LITTLE_ENDIAN')
+
+## Turn on Threaded Network IO 
+project.AddDefines('_UNIX_THREADED_NETWORK_IO')
+
+## This define enables compiling of the UnixThreads file.
+## It means that that platform has a working threads lib
+## that does everything we need.
+project.AddDefines('_UNIX_THREADS_SUPPORTED')
+
+## make GCC 2.95.x permissive so it won't barf on our code
+platform.cc.args['default'] = '--permissive -pipe -W -Wreturn-type'
+platform.cxx.args['default'] = '--permissive -pipe -W -Wreturn-type'
+
+DisableRTTIIfNecessary()
+
+## Set up the Linker
+platform.dynamic_linker = '/lib/ld-linux.so.2'
+
+class LinuxLinker(GCCLinker):
+    def __init__(self):
+        Linker.__init__(self)
+        self.make_var = 'LD'
+        self.make_flags = 'LDFLAGS'
+        self.args['default'] = ''
+        self.args['profile'] = ''
+        self.args['static'] = ''
+        self.target_arg = '-o'
+        self.ldcmd = 'gcc'
+        self.ldargs = ''
+
+    def link_paths(self):
+        return string.join(platform.system_paths) + \
+               string.join(project.system_paths) + \
+               " $(shell g++ -print-search-dirs | sed -n -e '/^libraries:/s/^libraries: *//p' | sed -e 's/^/-L/' -e 's/:/ -L/g')"
+
+    def execute_dll(self, target, objects, static_libs, dynamic_libs):
+        
+        return form_string(
+            platform.form_var(self.make_var),
+            platform.form_var(self.make_flags),
+            HandleExports(target, project.exported_func),
+            self.target_arg,
+            target,
+            self.crti_path(),
+            self.crtbeginS_path(),
+            objects,
+            static_libs,
+            self.link_paths(),
+            dynamic_libs,
+            HandleCPPRTInclusion(),
+            self.crtendS_path(),
+            self.crtn_path())
+
+    def execute_exe(self, target, objects, static_libs, dynamic_libs):
+        return form_string(
+            platform.form_var(self.make_var),
+            platform.form_var(self.make_flags),
+            self.target_arg,
+            target,
+            self.crt1_path(),
+            self.crti_path(),
+            self.crtbegin_path(),
+            objects,
+            static_libs,
+            self.link_paths(),
+            dynamic_libs,
+            "-lc",
+            HandleCPPRTInclusion(),
+            '--whole-archive',
+            self.libgcc_path(),
+            '--no-whole-archive',
+            "-lc",
+            self.crtend_path(),
+            self.crtn_path())
+
+
+    def execute(self, target, objects, static_libs, dynamic_libs):
+        if project.getTargetType() == 'dll':
+            return self.execute_dll(target, objects, static_libs, dynamic_libs)
+
+        elif project.getTargetType() == 'exe':
+            return self.execute_exe(target, objects, static_libs, dynamic_libs)
+
+        ## default
+        return '%s %s %s %s %s %s %s' % (
+            platform.form_var(self.make_var),
+            platform.form_var(self.make_flags),
+            self.target_arg,
+            target,
+            objects,
+            dynamic_libs,
+            static_libs)
+
+
+    def set_type(self):
+        self.cmd = self.ldcmd
+
+        if project.getTargetType() == 'dll':
+            self.cmd = 'ld'
+            dll_args = '-m elf_i386 -shared'
+            self.args['default'] = '%s %s' % (dll_args, self.ldargs)
+            
+        elif project.getTargetType() == 'exe':
+            self.cmd = 'ld'
+            exe_args = '-m elf_i386 -dynamic-linker %s --export-dynamic' % (platform.dynamic_linker)
+            self.args['default'] = '%s %s' % (exe_args, self.ldargs)
+
+        else:
+            self.args['default'] = self.ldargs
+
+    def make_lib_static(self, lib):
+        return "-Bstatic %s -Bdynamic" % lib
+
+platform.link = LinuxLinker()
+
+
+

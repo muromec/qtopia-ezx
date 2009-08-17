@@ -29,6 +29,7 @@
 #include <qtranslatablesettings.h>
 #include <qexpressionevaluator.h>
 #include <qcontentset.h>
+#include <QtopiaItemDelegate>
 
 class QtopiaServiceDescriptionPrivate {
 public:
@@ -252,6 +253,8 @@ QtopiaServiceSelector::QtopiaServiceSelector(QWidget* parent) : QDialog(parent)
     hbl->addWidget(label);
 
     actionlist = new QListWidget();
+    actionlist->setFrameStyle(QFrame::NoFrame);
+    actionlist->setItemDelegate(new QtopiaItemDelegate(actionlist));
     vbl->addWidget(actionlist);
     actionlist->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     QMenu* menu = QSoftMenuBar::menuFor(actionlist);

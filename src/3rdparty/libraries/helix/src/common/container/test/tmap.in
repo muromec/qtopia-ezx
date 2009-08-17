@@ -1,0 +1,114 @@
+# CreateElement <index>
+# ClearElements
+# GetCount <expected count>
+# IsEmpty <0 = not empty, 1 = empty>
+# Lookup <index> <0 = lookup failed, 1 = lookup success>
+# SetAt <index>
+# RemoveKey <index> <0 = remove failed, 1 = remove success>
+# RemoveAll
+
+# Note: Rhs[] represents using the [] operator on the right hand side
+#       of an expression. For example:  value = map[key];
+# Rhs[] <index> <0 = item not in map, 1 = item in map>
+
+# Note: Lhs[] represents using the [] operator on the left hand side
+#       of an expression. For example: map[key] = value
+# Lhs[] <index>
+
+# Note: IsNull should only be used on keys that are in the map.
+#       It is intended to test the case where Rhs[] inserts a value
+#       into the map when it is not already present
+# IsNull <index> <0 = map value is not null, 1 = map value is null>
+# RunMapSpecificTests
+
+# Check initial conditions
+IsEmpty 1
+GetCount 0
+
+# Add an element to the map
+CreateElement 0
+Lookup 0 0
+SetAt 0
+GetCount 1
+IsEmpty 0
+IsNull 0 0
+Lookup 0 1
+RemoveKey 0 1
+GetCount 0
+IsEmpty 1
+Lookup 0 0
+RemoveKey 0 0
+
+# Add the same element multiple times
+SetAt 0
+GetCount 1
+SetAt 0
+GetCount 1
+RemoveKey 0 1
+RemoveKey 0 0
+
+# Add multiple elements
+CreateElement 1
+CreateElement 2
+SetAt 0
+SetAt 1
+GetCount 2
+SetAt 2
+GetCount 3
+Lookup 0 1
+Lookup 1 1
+Lookup 2 1
+RemoveKey 2 1
+Lookup 0 1
+Lookup 1 1
+Lookup 2 0
+RemoveKey 0 1
+Lookup 0 0
+Lookup 1 1
+Lookup 2 0
+GetCount 1
+RemoveKey 1 1
+Lookup 0 0
+Lookup 1 0
+Lookup 2 0
+GetCount 0
+IsEmpty 1
+
+# Test RemoveAll
+SetAt 0
+SetAt 1
+SetAt 2
+GetCount 3
+RemoveAll
+GetCount 0
+IsEmpty 1
+Lookup 0 0
+Lookup 1 0
+Lookup 2 0
+
+# Test Rhs[]
+GetCount 0
+# Note: The key value pair for index 0 is not in the map so a null
+#       value is inserted into the map with the key associated with index 0
+#       This will cause Lookup tests to fail since the value in the map
+#       does not match the value in our key value store
+GetCount 0
+Rhs[] 0 0
+IsNull 0 1
+GetCount 1
+RemoveKey 0 1
+GetCount 0
+SetAt 0
+Rhs[] 0 1
+Lookup 0 1
+RemoveKey 0 1
+
+# Test Lhs[]
+GetCount 0
+Lhs[] 2
+GetCount 1
+Lookup 2 1
+RemoveKey 2 1
+GetCount 0
+
+RunMapSpecificTests

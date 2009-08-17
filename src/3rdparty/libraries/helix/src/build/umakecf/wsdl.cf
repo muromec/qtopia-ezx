@@ -1,0 +1,127 @@
+#!/usr/bin/env python
+
+
+## SOAPCPP2 Compiler
+class SOAPCPP2Compiler(Compiler):
+    def __init__(self):
+        Compiler.__init__(self)
+        gsoap_path = GetSDKPath("gsoap")
+        if "win32" in sysinfo.family_list:
+            soapcpp2 = "soapcpp2.exe"
+            gsoap_root = gsoap_path
+        else:
+            soapcpp2 = os.path.join("bin", "soapcpp2")
+            # ugly hack, but gsoap doesn't install the import/ and typemap.dat files
+            gsoap_root = os.path.abspath(os.path.join(gsoap_path, "..", "gsoap-2.7"))
+
+        self.cmd = os.path.join(gsoap_path, soapcpp2)
+        self.args['default'] = "-C -L -x"
+        self.make_var = 'SOAPCPP2'
+        self.target_arg = "-p"
+        self.make_flags = 'SOAPCPP2FLAGS'
+
+
+    def build_quoted_arg_list(self, args, prefix=""):
+        if len(args) == 0:
+            return ""
+        ret=[]
+        for arg in args:
+            if ' ' in arg:
+                if len(prefix) and prefix[-1] == ' ':
+                    arg=prefix+'"'+arg
+                else:
+                    arg='"'+prefix+arg
+                arg = string.replace(arg,' ','%20')
+                if arg[-1] == '\\':
+                    arg = arg[:-1] + '"\\'
+                else:
+                    arg = arg + '"'
+            else:
+                arg=prefix+arg
+            ret.append(arg)
+        return string.join(ret," ")
+
+
+    def execute(self, target_file, src_file):
+        basename = os.path.splitext(os.path.basename(target_file))[0]
+        return form_string(platform.form_var(self.make_var),
+                           platform.form_var(self.make_flags),
+                           self.target_arg,
+                           basename,
+                           src_file)
+
+
+    def setup_flags_var(self):
+        return "=".join([self.make_flags, self.args['default']])
+
+
+
+
+## WSDL Compiler
+class WSDLCompiler(Compiler):
+    def __init__(self):
+        self.soapcpp2 = SOAPCPP2Compiler()
+        Compiler.__init__(self)
+        gsoap_path = GetSDKPath("gsoap")
+        if "win32" in sysinfo.family_list:
+            wsdl2h = "wsdl2h.exe"
+            gsoap_root = gsoap_path
+        else:
+            wsdl2h = os.path.join("bin", "wsdl2h")
+            # ugly hack, but gsoap doesn't install the import/ and typemap.dat files
+            gsoap_root = os.path.abspath(os.path.join(gsoap_path, "..", "gsoap-2.7"))
+
+        self.cmd = os.path.join(gsoap_path, wsdl2h)
+        self.args['default'] = " ".join(["-w", "-I", os.path.join(gsoap_root, "import"),
+                                         "-t", os.path.join(gsoap_root, "typemap.dat")])
+        self.make_var = 'WSDL2H'
+        self.target_arg = '-o'
+        self.make_flags = 'WSDL2HFLAGS'
+
+
+    def build_quoted_arg_list(self, args, prefix=""):
+        if len(args) == 0:
+            return ""
+        ret=[]
+        for arg in args:
+            if ' ' in arg:
+                if len(prefix) and prefix[-1] == ' ':
+                    arg=prefix+'"'+arg
+                else:
+                    arg='"'+prefix+arg
+                arg = string.replace(arg,' ','%20')
+                if arg[-1] == '\\':
+                    arg = arg[:-1] + '"\\'
+                else:
+                    arg = arg + '"'
+            else:
+                arg=prefix+arg
+            ret.append(arg)
+        return string.join(ret," ")
+
+
+    def execute(self, target_file, src_file):
+        basename = os.path.splitext(os.path.basename(target_file))[0]
+        return " && ".join([form_string(platform.form_var(self.make_var),
+                                        platform.form_var(self.make_flags),
+                                        self.target_arg,
+                                        target_file,
+                                        self.source_arg,
+                                        src_file),
+                            self.soapcpp2.execute(basename, target_file)])
+
+    def setup_flags_var(self):
+        return "\n".join(["=".join([self.make_flags, self.args['default']]),
+                          self.soapcpp2.setup_command_var(),
+                          self.soapcpp2.setup_flags_var()])
+
+    def wsdlCleaner( self , target_path ):
+        return [ 'Invoked wsdlCleaner() in class WSDLCompiler' , 'foo' , 'bar' ]
+        
+# only setup the WSDL compiler if we have gsoap
+import sdk
+if sdk.HasPath("gsoap"):
+    wsdl = WSDLCompiler()
+    platform.build_rules['.wsdl'] = BuildRule('.wsdl', '.h', wsdl)
+    platform.build_rules['.wsdl'].output_dir = ''
+    platform.cleaner = wsdl.wsdlCleaner

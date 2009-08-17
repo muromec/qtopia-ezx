@@ -1,0 +1,130 @@
+# 
+# ***** BEGIN LICENSE BLOCK ***** 
+# Version: RCSL 1.0/RPSL 1.0 
+#  
+# Portions Copyright (c) 1995-2002 RealNetworks, Inc. All Rights Reserved. 
+#      
+# The contents of this file, and the files included with this file, are 
+# subject to the current version of the RealNetworks Public Source License 
+# Version 1.0 (the "RPSL") available at 
+# http://www.helixcommunity.org/content/rpsl unless you have licensed 
+# the file under the RealNetworks Community Source License Version 1.0 
+# (the "RCSL") available at http://www.helixcommunity.org/content/rcsl, 
+# in which case the RCSL will apply. You may also obtain the license terms 
+# directly from RealNetworks.  You may not use this file except in 
+# compliance with the RPSL or, if you have a valid RCSL with RealNetworks 
+# applicable to this file, the RCSL.  Please see the applicable RPSL or 
+# RCSL for the rights, obligations and limitations governing use of the 
+# contents of the file.  
+#  
+# This file is part of the Helix DNA Technology. RealNetworks is the 
+# developer of the Original Code and owns the copyrights in the portions 
+# it created. 
+#  
+# This file, and the files included with this file, is distributed and made 
+# available on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
+# EXPRESS OR IMPLIED, AND REALNETWORKS HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
+# INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
+# FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT. 
+# 
+# Technology Compatibility Kit Test Suite(s) Location: 
+#    http://www.helixcommunity.org/content/tck 
+# 
+# Contributor(s): 
+#  
+# ***** END LICENSE BLOCK ***** 
+# 
+
+UmakefileVersion(2,2)
+
+if not project.IsDefined("HELIX_FEATURE_MP4_FILEFORMAT_M4A_ONLY"):
+    project.AddDefines("QTCONFIG_GET_BITRATE_FROM_SDP_PAYLOAD")
+
+project.defines.append("QTCONFIG_NO_ASYNC_PAGING")
+
+if project.IsDefined("HELIX_FEATURE_MP4_FILEFORMAT_ALL") or \
+   project.IsDefined("HELIX_FEATURE_SERVER"):
+    project.defines.append("QTCONFIG_TRACK_CACHE")
+#   QTCONFIG_BFRAG is required if caching is on
+    project.defines.append("QTCONFIG_BFRAG")
+#   project.defines.append("QTCONFIG_BFRAG_FACTORY")
+#   project.defines.append("QTFORCE_AVG_BITRATE_DELIVERY")
+    project.defines.append("QTCONFIG_HINTTRACKS")
+    project.AddDefines("QTCONFIG_PACKETIZE_LATM")
+    project.AddDefines("QTCONFIG_PACKETIZE_H263")
+    project.AddDefines("QTCONFIG_PACKETIZE_MP4V")
+    project.AddDefines("QTCONFIG_PACKETIZE_AMR_NB")
+    project.AddDefines("QTCONFIG_PACKETIZE_AMR_WB")
+    project.AddDefines("QTCONFIG_PACKETIZE_CHECKLICENSE")
+    project.AddDefines("QTCONFIG_SPEED_OVER_SIZE")
+    project.AddDefines("QTCONFIG_SERVER")
+
+project.AddModuleIncludes(  "common/include",
+			    "client/videosvc/include",
+			    "client/common/container/pub",
+			    "protocol/transport/rtp/include",
+			    "client/resource/pub",
+			    "client/common/include",
+			    "datatype/common/container/pub",
+			    "datatype/common/util/pub",
+			    "datatype/rm/include",
+			    "datatype/rm/common/pub");
+
+project.AddIncludes(".")
+
+# packetizers
+if project.IsDefined("QTCONFIG_PACKETIZE_LATM") or project.IsDefined("QTCONFIG_PACKETIZE_MP4V"):
+    project.AddModuleLibraries("datatype/mp4/payload[mp4pyldlib]")
+
+if project.IsDefined("QTCONFIG_PACKETIZE_H263"):
+    project.AddModuleLibraries( "datatype/h263/payload[h263pyldlib]")
+
+if project.IsDefined("QTCONFIG_PACKETIZE_AMR_NB") or \
+    project.IsDefined("QTCONFIG_PACKETIZE_AMR_WB"):
+    project.AddModuleLibraries( "datatype/amr/payload[amrpyldlib]",
+                                "datatype/amr/common[amrcomlib]")
+
+if project.IsDefined("QTCONFIG_PACKETIZE_CHECKLICENSE"):
+    project.AddModuleLibraries("datatype/common/packetizer[packetizerutil]")
+
+project.AddModuleLibraries( "datatype/mp4/fileformat[mp4fformatlib]",
+                            "datatype/mp4/common[mp4comlib]",
+			    "datatype/mp4/payload[mp4pyldlib]",
+			    "datatype/rm/common[rmcommonlib]",
+			    "datatype/common/util[dtutillib]",
+			    "protocol/common/util[protutillib]",
+			    "protocol/sdp[sdplib]",
+			    "protocol/rtsp[rtsplib]",
+			    "common/system[syslib]",
+			    "common/container[contlib]",
+			    "common/util[utillib]", 
+			    "common/dbgtool[debuglib]", 
+                            "common/runtime[runtlib]")
+
+if project.IsDefined("HELIX_FEATURE_QUICKTIME") or \
+   project.IsDefined("HELIX_FEATURE_MP4_FILEFORMAT_ALTERNATES"):
+    project.AddDefines("QTCONFIG_ALTERNATE_STREAMS")
+
+if project.IsDefined("HELIX_FEATURE_QUICKTIME"):
+    project.AddDefines("QTCONFIG_LEGACY_ALTERNATE_STREAMS")
+
+if project.IsDefined("QTCONFIG_GET_BITRATE_FROM_SDP_PAYLOAD") or \
+   project.IsDefined("QTCONFIG_ALTERNATE_STREAMS") or \
+   project.IsDefined("QTCONFIG_LEGACY_ALTERNATE_STREAMS") :
+    project.AddModuleLibraries("protocol/sdp[sdplib]")
+
+project.AddSources('plugin.cpp',
+                   'hinttrackstub/qthintatmmgsstub.cpp',
+                   'hinttrackstub/qthinttrkmgrstub.cpp',
+		   'hinttrackstub/qtpktasmstub.cpp')
+
+project.ExportFunction("RMACreateInstance",
+                       "IUnknown** ppObj",
+                       "common/include",
+                       "hxcom.h")
+project.ExportFunction("CanUnload", "void")
+project.ExportFunction("CanUnload2", "void")
+
+DLLTarget('mp4fformat')
+
+DependTarget()

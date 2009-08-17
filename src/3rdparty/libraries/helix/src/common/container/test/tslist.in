@@ -1,0 +1,720 @@
+# GetCount <expected count>
+# IsEmpty <0 = list not empty, 1 = list empty>
+# GetHead <expected value>
+# Note : ReplaceHead calls the void*& GetHead() on the left hand side of
+#        an experession. For example list.GetHead() = pSomeVoidPtr;
+# ReplaceHead <new value>
+# GetTail <expected value>
+# Note : ReplaceTail calls the void*& GetTail() on the left hand side of
+#        an experession. For example list.GetTail() = pSomeVoidPtr;
+# ReplaceTail <new value>
+# RemoveHead
+# RemoveTail
+# AddHead <value>
+# AddHeadList <comma seperated list of integers>
+# AddTail <value>
+# AddTailList <comma seperated list of integers>
+# RemoveAll
+# GetHeadPosition
+# GetTailPosition
+# GetNext <expected value>
+# ReplaceNext <new value>
+# GetPrev <expected value>
+# ReplacePrev <new value>
+# GetAtNext <0 = value is not valid, 1 = value is valid> <expected value>
+# GetAtPrev <0 = value is not valid, 1 = value is valid> <expected value>
+# ReplaceAtPrev <new value>
+# GetAt <expected value>
+# ReplaceAt <new value>
+# SetAt <new value>
+# RemoveAt
+# Find <value> <0 = don't specify position, 1 = specify current position>
+# FindIndex <index>
+# IsPosValid <0 = position not valid, 1 = position valid>
+# ClearPos
+
+# Test initial conditions
+GetCount 0
+IsEmpty 1
+
+# Test Head operations
+GetCount 0
+AddHead 1
+GetCount 1
+IsEmpty 0
+GetHead 1
+AddHead 2
+GetCount 2
+GetHead 2
+RemoveHead
+GetHead 1
+ReplaceHead 3
+GetCount 1
+GetHead 3
+RemoveHead
+GetCount 0
+
+# Test Tail operations
+GetCount 0
+AddTail 1
+GetCount 1
+IsEmpty 0
+GetTail 1
+AddTail 2
+GetCount 2
+GetTail 2
+RemoveTail
+GetTail 1
+ReplaceTail 3
+GetCount 1
+GetTail 3
+RemoveTail
+GetCount 0
+
+# Test mixed head and tail operations
+GetCount 0
+AddTail 1
+AddTail 2
+AddTail 3
+GetCount 3
+GetHead 1
+RemoveHead
+GetHead 2
+RemoveHead
+GetHead 3
+GetTail 3
+AddTail 5
+GetTail 5
+AddHead 4
+GetHead 4
+RemoveTail
+GetTail 3
+RemoveTail
+GetTail 4
+RemoveTail
+GetCount 0
+
+# Test RemoveAll
+GetCount 0
+AddHead 1
+AddTail 2
+AddHead 3
+AddTail 4
+GetCount 4
+RemoveAll
+GetCount 0
+
+# Test GetHeadPosition
+IsEmpty 1
+ClearPos
+IsPosValid 0
+GetHeadPosition
+IsPosValid 0
+AddHead 1
+GetHeadPosition
+IsPosValid 1
+RemoveHead
+GetHeadPosition
+IsPosValid 0
+
+# Test GetTailPosition
+IsEmpty 1
+ClearPos
+IsPosValid 0
+GetTailPosition
+IsPosValid 0
+AddHead 1
+GetTailPosition
+IsPosValid 1
+RemoveHead
+GetTailPosition
+IsPosValid 0
+
+# Test GetNext
+IsEmpty 1
+ClearPos
+AddTail 1
+AddTail 2
+AddTail 3
+GetHeadPosition
+IsPosValid 1
+GetNext 1
+GetNext 2
+GetNext 3
+IsPosValid 0
+RemoveHead
+RemoveHead
+RemoveHead
+
+# Test ReplaceNext
+IsEmpty 1
+ClearPos
+AddTail 1
+AddTail 2
+AddTail 3
+GetHeadPosition
+IsPosValid 1
+GetNext 1
+GetNext 2
+GetNext 3
+IsPosValid 0
+GetHeadPosition
+IsPosValid 1
+ReplaceNext 4
+ReplaceNext 5
+ReplaceNext 6
+IsPosValid 0
+GetHeadPosition
+IsPosValid 1
+GetNext 4
+GetNext 5
+GetNext 6
+IsPosValid 0
+RemoveHead
+RemoveHead
+RemoveHead
+
+# Test GetPrev
+IsEmpty 1
+ClearPos
+AddTail 1
+AddTail 2
+AddTail 3
+GetTailPosition
+IsPosValid 1
+GetPrev 3
+GetPrev 2
+GetPrev 1
+IsPosValid 0
+RemoveHead
+RemoveHead
+RemoveHead
+
+# Test ReplaceNext
+IsEmpty 1
+ClearPos
+AddTail 1
+AddTail 2
+AddTail 3
+GetTailPosition
+IsPosValid 1
+GetPrev 3
+GetPrev 2
+GetPrev 1
+IsPosValid 0
+GetTailPosition
+IsPosValid 1
+ReplacePrev 4
+ReplacePrev 5
+ReplacePrev 6
+IsPosValid 0
+GetTailPosition
+IsPosValid 1
+GetPrev 4
+GetPrev 5
+GetPrev 6
+IsPosValid 0
+RemoveHead
+RemoveHead
+RemoveHead
+
+# Test mixed GetNext, GetPrev, ReplaceNext, and ReplacePrev operations
+IsEmpty 1
+ClearPos
+AddTail 1
+AddTail 2
+AddTail 3
+AddTail 4
+GetHeadPosition
+GetNext 1
+ReplaceNext 5
+GetNext 3
+ReplaceNext 6
+IsPosValid 0
+GetTailPosition
+GetPrev 6
+GetPrev 3
+GetPrev 5
+GetPrev 1
+IsPosValid 0
+GetTailPosition
+GetPrev 6
+ReplacePrev 7
+GetPrev 5
+ReplacePrev 8
+IsPosValid 0
+GetHeadPosition
+GetNext 8
+GetNext 5
+GetNext 7
+GetNext 6
+GetHeadPosition
+ReplaceNext 9
+GetPrev 5
+GetNext 9
+ReplacePrev 10
+GetNext 9
+GetPrev 10
+GetNext 9
+GetNext 10
+GetNext 7
+GetNext 6
+IsPosValid 0
+RemoveHead
+RemoveHead
+RemoveHead
+RemoveHead
+
+# Test GetAtNext
+IsEmpty 1
+ClearPos
+AddTail 1
+AddTail 2
+AddTail 3
+GetHeadPosition
+IsPosValid 1
+GetAtNext 1 2
+GetAtNext 1 3
+IsPosValid 1
+GetAtNext 0 0
+IsPosValid 0
+RemoveHead
+RemoveHead
+RemoveHead
+
+# Test GetAtPrev
+IsEmpty 1
+ClearPos
+AddTail 1
+AddTail 2
+AddTail 3
+GetTailPosition
+IsPosValid 1
+GetAtPrev 1 2
+GetAtPrev 1 1
+IsPosValid 1
+#GetAtPrev 0 0 # causes crash
+GetPrev 1
+IsPosValid 0
+RemoveHead
+RemoveHead
+RemoveHead
+
+# Test ReplaceAtNext
+IsEmpty 1
+ClearPos
+AddTail 1
+AddTail 2
+AddTail 3
+GetTailPosition
+IsPosValid 1
+GetPrev 3
+GetPrev 2
+GetPrev 1
+IsPosValid 0
+GetTailPosition
+IsPosValid 1
+ReplaceAtPrev 4
+ReplaceAtPrev 5
+IsPosValid 1
+GetPrev 5
+IsPosValid 0
+GetTailPosition
+IsPosValid 1
+GetPrev 3
+GetPrev 4
+GetPrev 5
+IsPosValid 0
+RemoveHead
+RemoveHead
+RemoveHead
+
+# Test mixed GetAtNext, GetAtPrev, and ReplaceAtPrev operations
+IsEmpty 1
+ClearPos
+AddTail 1
+AddTail 2
+AddTail 3
+AddTail 4
+GetHeadPosition
+GetAtNext 1 2
+ReplaceAtPrev 5
+GetAtNext 1 2
+GetAtNext 1 3
+GetAtPrev 1 2
+GetAtNext 1 3
+GetAtNext 1 4
+ReplaceAtPrev 6
+ReplaceAtPrev 7
+GetAtNext 1 6
+GetAtNext 1 4
+GetAtNext 0 0
+IsPosValid 0
+GetHeadPosition
+GetNext 5
+GetNext 7
+GetNext 6
+GetNext 4
+IsPosValid 0
+RemoveHead
+RemoveHead
+RemoveHead
+RemoveHead
+
+# Test GetAt, ReplaceAt, and SetAt
+IsEmpty 1
+AddTail 1
+AddTail 2
+AddTail 3
+GetHeadPosition
+GetAt 1
+GetNext 1
+GetAt 2
+GetNext 2
+GetAt 3
+GetNext 3
+IsPosValid 0
+GetHeadPosition
+GetNext 1
+ReplaceAt 4
+GetNext 4
+SetAt 5
+GetNext 5
+IsPosValid 0
+GetHeadPosition
+GetNext 1
+GetNext 4
+GetNext 5
+IsPosValid 0
+RemoveHead
+RemoveHead
+RemoveHead
+
+# Test RemoveAt
+IsEmpty 1
+AddTail 1
+GetHeadPosition
+IsPosValid 1
+RemoveAt
+IsPosValid 0
+IsEmpty 1
+AddTail 2
+AddTail 3
+AddTail 4
+# Test removal from head
+GetHeadPosition
+RemoveAt
+GetAt 3
+IsPosValid 1
+GetCount 2
+# Test to see if you can add something to the head
+# and use the current position to visit the new element
+AddHead 5
+GetPrev 3
+IsPosValid 1
+GetPrev 5
+IsPosValid 0
+# Test removal from the middle
+GetHeadPosition
+GetNext 5
+RemoveAt
+GetCount 2
+GetAt 4
+GetAtPrev 1 5
+GetPrev 5
+IsPosValid 0
+AddHead 6
+# verify that the list contains what we expect
+GetCount 3
+GetHeadPosition
+GetNext 6
+GetNext 5
+GetNext 4
+IsPosValid 0
+# Test removal from the tail
+GetTailPosition
+GetAt 4
+RemoveAt
+GetCount 2
+IsPosValid 1
+GetAt 5
+RemoveAt
+IsPosValid 1
+GetAt 6
+RemoveAt
+IsPosValid 0
+IsEmpty 1
+
+# Test InsertBefore
+IsEmpty 1
+# Test insert on empty list
+GetHeadPosition
+InsertBefore 1
+GetCount 1
+GetAt 1
+# Test insert at head position with elements in the list
+GetHeadPosition
+InsertBefore 2
+GetAt 2
+# Test insert in the middle of a list
+GetAtNext 1 1
+InsertBefore 3
+GetAt 3
+# Test insert at tail
+GetTailPosition
+InsertBefore 4
+GetAt 4
+# verify that the list contains what we expect
+GetHeadPosition
+GetNext 2
+GetNext 3
+GetNext 4
+GetNext 1
+IsPosValid 0
+# Test insert with an invalid position
+InsertBefore 5
+IsPosValid 1
+GetHeadPosition
+GetNext 5
+GetNext 2
+GetNext 3
+GetNext 4
+GetNext 1
+RemoveHead
+RemoveHead
+RemoveHead
+RemoveHead
+RemoveHead
+
+# Test InsertAfter
+IsEmpty 1
+# Test insert into an empty list
+GetHeadPosition
+InsertAfter 1
+GetAt 1
+GetCount 1
+# Test insert at head with elements in the list
+GetHeadPosition
+InsertAfter 2
+GetAt 2
+# Test insert in the middle of ths list
+InsertAfter 3
+GetAt 3
+# Test insert at tail with elements in the list
+GetTailPosition
+InsertAfter 4
+GetAt 4
+# Verify the list contains what we expect
+GetHeadPosition
+GetNext 1
+GetNext 2
+GetNext 3
+GetNext 4
+IsPosValid 0
+# Test insert with an invalid position
+InsertAfter 5
+IsPosValid 1
+GetHeadPosition
+GetNext 1
+GetNext 2
+GetNext 3
+GetNext 4
+GetNext 5
+IsPosValid 0
+RemoveHead
+RemoveHead
+RemoveHead
+RemoveHead
+RemoveHead
+
+# Test InsertBefore and InsertAt mix
+IsEmpty 1
+GetHeadPosition
+InsertBefore 1
+InsertAfter 2
+InsertBefore 3
+InsertAfter 4
+GetHeadPosition
+GetNext 1
+GetNext 3
+GetNext 4
+GetNext 2
+IsPosValid 0
+InsertBefore 5
+GetPrev 5
+IsPosValid 0
+InsertAfter 6
+GetHeadPosition
+GetNext 5
+GetNext 1
+GetNext 3
+GetNext 4
+GetNext 2
+GetNext 6
+IsPosValid 0
+RemoveHead
+RemoveHead
+RemoveHead
+RemoveHead
+RemoveHead
+RemoveHead
+
+# Test Find
+IsEmpty 1
+# Test find on an empty list
+GetHeadPosition
+IsPosValid 0
+Find 1 0
+IsPosValid 0
+# Populate the list
+AddTail 1
+AddTail 2
+AddTail 3
+AddTail 2
+AddTail 4
+AddTail 5
+# Test find without specifying a position
+Find 2 0
+IsPosValid 1
+GetAt 2
+GetAtPrev 1 1
+GetAtNext 1 2
+GetAtNext 1 3
+# Test find by specifying the head as the starting position
+GetHeadPosition
+Find 2 1
+IsPosValid 1
+GetAt 2
+GetAtPrev 1 1
+GetAtNext 1 2
+GetAtNext 1 3
+# Test find by specifying a position in the middle
+Find 2 1
+IsPosValid 1
+GetAt 2
+GetAtPrev 1 3
+GetAtNext 1 2
+GetAtNext 1 4
+# Test Find by specifying the tail as the starting position
+GetTailPosition
+Find 2 1
+IsPosValid 0
+# Test Find with an invalid position specified
+Find 2 1
+IsPosValid 0
+# Test Find with a value not in the list
+Find 7 0
+IsPosValid 0
+GetHeadPosition
+Find 7 1
+IsPosValid 0
+GetHeadPosition
+GetNext 1
+GetNext 2
+GetNext 3
+Find 7 1
+IsPosValid 0
+RemoveHead
+RemoveHead
+RemoveHead
+RemoveHead
+RemoveHead
+RemoveHead
+
+# Test FindIndex
+IsEmpty 1
+# Test on empty list
+FindIndex 0
+IsPosValid 0
+AddTail 1
+AddTail 2
+AddTail 3
+AddTail 4
+FindIndex 0
+IsPosValid 1
+GetAt 1
+FindIndex 2
+IsPosValid 1
+GetAt 3
+FindIndex 1
+IsPosValid 1
+GetAt 2
+FindIndex 3
+IsPosValid 1
+GetAt 4
+FindIndex 4
+IsPosValid 0
+RemoveHead
+RemoveHead
+RemoveHead
+RemoveHead
+
+# Test AddHead(CHXSimpleList*)
+IsEmpty 1
+AddHeadList ""
+IsEmpty 1
+AddHeadList "1, 2, 3"
+GetCount 3
+GetHeadPosition
+GetNext 1
+GetNext 2
+GetNext 3
+IsPosValid 0
+AddHeadList ""
+GetCount 3
+AddHeadList "4, 5, 6"
+GetHeadPosition
+GetNext 4
+GetNext 5
+GetNext 6
+GetNext 1
+GetNext 2
+GetNext 3
+IsPosValid 0
+RemoveHead
+RemoveHead
+RemoveHead
+RemoveHead
+RemoveHead
+RemoveHead
+
+# Test AddTail(CHXSimpleList*)
+IsEmpty 1
+AddTailList ""
+IsEmpty 1
+AddTailList "1, 2, 3"
+GetCount 3
+GetHeadPosition
+GetNext 1
+GetNext 2
+GetNext 3
+IsPosValid 0
+AddTailList ""
+GetCount 3
+AddTailList "4, 5, 6"
+GetHeadPosition
+GetNext 1
+GetNext 2
+GetNext 3
+GetNext 4
+GetNext 5
+GetNext 6
+IsPosValid 0
+RemoveHead
+RemoveHead
+RemoveHead
+RemoveHead
+RemoveHead
+RemoveHead
+
+# Test iterator
+IsEmpty 1
+# Test iterator on empty list
+TestIterator
+AddTail 1
+AddTail 2
+AddTail 3
+TestIterator
+RemoveHead
+RemoveHead
+RemoveHead

@@ -1,0 +1,68 @@
+div#description 
+{
+    font-family:"arial", sans-serif;
+    font-size:10pt;
+    margin:10px;
+}
+
+div#prototype 
+{
+    font-family:"courier new", "courier", monospace; 
+    font-size:12pt;  
+    font-weight:bold;
+    line-height:30px;
+    margin:10px;
+}
+
+div#section
+{
+    width: 30%;
+    background-color: #88ff88;
+    padding: 10px;    
+}
+
+div#list
+{
+    font-family:"Arial", sans-serif;
+    font-size:10pt;
+    margin:10px;
+    line-height:25px;
+}
+
+div#example
+{
+    font-family:"courier new", "courier", monspace;
+    font-size:10pt;
+    margin:20px
+}
+
+.code
+{
+    font-family:"courier new", "courier", monospace;
+    font-size:10pt;
+}
+
+h1
+{
+    font-family:"arial", sans-serif;
+}
+
+h2
+{
+    font-family:"arial", sans-serif;
+}
+
+h3
+{
+    font-family:"arial", sans-serif;
+}
+
+h4
+{
+    font-family:"arial", sans-serif;
+}
+
+h5
+{
+    font-family:"arial", sans-serif;
+}

@@ -1,0 +1,182 @@
+<!--  ***** BEGIN LICENSE BLOCK *****  
+  
+ Source last modified: $Id: install.html,v 1.9 2006/04/24 23:34:01 jfinnecy Exp $ 
+  
+ Copyright Notices: 
+  
+ Portions Copyright (c) 1995-2006 RealNetworks, Inc. All Rights Reserved. 
+  
+ Patent Notices: This file may contain technology protected by one or  
+ more of the patents listed at www.helixcommunity.org 
+  
+ 1.   The contents of this file, and the files included with this file, 
+ are protected by copyright controlled by RealNetworks and its  
+ licensors, and made available by RealNetworks subject to the current  
+ version of the RealNetworks Public Source License (the "RPSL")  
+ available at  * http://www.helixcommunity.org/content/rpsl unless  
+ you have licensed the file under the current version of the  
+ RealNetworks Community Source License (the "RCSL") available at 
+ http://www.helixcommunity.org/content/rcsl, in which case the RCSL 
+ will apply.  You may also obtain the license terms directly from 
+ RealNetworks.  You may not use this file except in compliance with 
+ the RPSL or, if you have a valid RCSL with RealNetworks applicable 
+ to this file, the RCSL.  Please see the applicable RPSL or RCSL for 
+ the rights, obligations and limitations governing use of the 
+ contents of the file. 
+  
+ 2.  Alternatively, the contents of this file may be used under the 
+ terms of the GNU General Public License Version 2 (the 
+ "GPL") in which case the provisions of the GPL are applicable 
+ instead of those above.  Please note that RealNetworks and its  
+ licensors disclaim any implied patent license under the GPL.   
+ If you wish to allow use of your version of this file only under  
+ the terms of the GPL, and not to allow others 
+ to use your version of this file under the terms of either the RPSL 
+ or RCSL, indicate your decision by deleting Paragraph 1 above 
+ and replace them with the notice and other provisions required by 
+ the GPL. If you do not delete Paragraph 1 above, a recipient may 
+ use your version of this file under the terms of any one of the 
+ RPSL, the RCSL or the GPL. 
+  
+ This file is part of the Helix DNA Technology.  RealNetworks is the 
+ developer of the Original Code and owns the copyrights in the 
+ portions it created.   Copying, including reproducing, storing,  
+ adapting or translating, any or all of this material other than  
+ pursuant to the license terms referred to above requires the prior  
+ written consent of RealNetworks and its licensors 
+  
+ This file, and the files included with this file, is distributed 
+ and made available by RealNetworks on an 'AS IS' basis, WITHOUT  
+ WARRANTY OF ANY KIND, EITHER EXPRESS OR IMPLIED, AND REALNETWORKS  
+ AND ITS LICENSORS HEREBY DISCLAIM  ALL SUCH WARRANTIES, INCLUDING  
+ WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS  
+ FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT. 
+  
+ Technology Compatibility Kit Test Suite(s) Location:  
+    http://www.helixcommunity.org/content/tck 
+  
+  Contributor(s):
+  
+  ***** END LICENSE BLOCK *****
+-->
+<html>
+<head><title>Build System Installation</title></head>
+<body bgcolor="#ffffff">
+
+<h1>Build System Installation</h1>
+<hr>
+
+<p>The build system exists in the /ribsome/build on Helixcommunity.  This is
+the Python code only.  It also requires a Python interpreter, and a compiler
+at minimum.  Other tools are required, depending on the platform.  There are
+three basic platform types: <a href="#unix">UNIX</a>, <a href="#windows">Windows</a>, and <a href="#macintosh">Macintosh</a> described here.
+
+You may also want to read these <a href="https://common.helixcommunity.org/2002/devdocs/quickstart.html">step-by-step instructions</a> for how to build the helix client.
+
+</p>
+
+
+<a name="windows">
+<h3>Windows Installation</h3>
+<p>The build system requirements on windows are:
+<ul>
+  <li>Microsoft Visual C++ 5 or 6 with latest service packs.</li>
+  <li>Python 1.5.2 or later</li>
+  <li>Python Win32 extensions (optional)</li>
+  <li>cvs.exe >= 1.10.5</li>
+  <li>rm.exe (from GNU tools / cygwin)</li>
+  <li>The ribosome build system from CVS ( from /ribosome/build ) </li>
+</ul>
+</p>
+
+<p><b>Microsoft Visual C++ 5 or 6 with latest service packs:</b> Before you
+install the compiler, consider changing the installation path.  By
+default, it installs to <i>c:\Program Files\</i>, and the spaces in
+the environment variables set by this cause problems.  If you go with
+the default install location, you will need to make a few changes.
+First, do not register the environment variables at the end of the
+installation.  You will need to use the
+<i>vc\bin\vcvars32.bat</i> script to setup your environment variables.
+Second, you will need to edit the <i>vcvars32.bat</i> script and
+change all the long path names to their 8.3 equivalents.  This means
+<i>Program Files</i> becomes
+<i>progra~1</i>.  If this doesn't make sense to you, the rules for
+path  conversion are in the Windows documentation somewhere.</p>
+
+<p>Create a batch script to set up your environment.  You will have to use
+the <b>CALL</b> convention in you batch script to import the environment
+variables from the <i>vcvars32.bat</i> file.  You will also want to set your
+<b>CVSROOT</b>, <b>BUILD_ROOT</b>, and <b>PATH</b> inside this script.<p>
+
+<p><b>Example Script</b>(dev.bat):
+<pre>
+set CVSROOT=:pserver:user@localhost:/cvs
+set BUILD_ROOT=c:\dev\build
+set PATH=%BUILD_ROOT%\bin;c:\cygwin\bin;c:\python21;c:\dev\bldtools\;%PATH%
+call c:\progra~1\devstudio\vc\bin\vcvars32.bat
+</pre>
+</p>
+
+<p>In this setup, cvs.exe is in the
+<i>c:\dev\bldtools</i> directory. It also assumes that you have an ssh
+tunnel running your machine which forwards your cvs port (2401) to the
+approperiate remote cvs server (cvs.helixcommunity.org).
+
+Now create a new directory for you
+source code to go, and run <b>build</b>.  You will get a menu.  You
+can test your setup by building the target
+<b>client_core</b>.</p>
+
+</a>
+
+<a name="macintosh">
+
+<h3>Macintosh Installation</h3>
+
+<p>
+These instructions are intended for MacOS X using a regular python
+compiled for UNIX. If you wish to use MacPython with MacOS X, go
+<a href="MacOS_X_Build_System.html">here</a>. If you are using MacOS
+8 or 9, go <a href="macos9.html">here</a>.</p>
+<p>
+Required tools:
+<ul>
+  <li>MetroWerks Codewarrior 8 with latest patches</li>
+  <li>Python 2.2 compiled for Unix (Already installed if you use 10.2 or later)</li>
+  <li>MacCVS Pro 2.7d3</li>
+  <li>Stuffit Deluxe or DropStuff and Stuffit Expander (from StuffIt Lite)</li>
+  <li>The ribosome build system from CVS ( from /ribosome/build ) </li>
+</ul>
+</p>
+
+<p>Previous versions of the Mac build system has required a file
+called RMA Build Prefs to emulate environment variables. This is
+no longer the case and environment variables should now be added
+to your shell environment like any other Unix. An example of
+how to do this and which variables are needed is <a href="macenv.txt">here</a>.
+For additional information about what variables to use and how to write
+pcf files for MacOS X, see <a href="MacOS_X_Build_System.html">the
+MacPython build system instructions</a>.
+</p>
+</a>
+
+<a name="unix">
+<h3>UNIX Installation</h3>
+<p>UNIX systems are relatively easy to install.  The only catch is getting the
+correct compiler.  For any given UNIX configuration, look at the docstring in
+its Umake configuration in build/umakecf/*.cf.  The docstring will contain
+the information on what compiler is used.  Required tools:
+<ul>
+  <li>C/C++ Compiler</li>
+  <li>GNU Make</li>
+  <li>zlib</li>
+  <li>Python 1.5.2 or later compiled with zlib support (modify modules/Setup.in)</li>
+  <li>Motif 2/OpenMotif 2.1 (for building the client)</li>
+  <li>The ribosome build system from CVS ( from /ribosome/build ) </li>
+</ul>
+</p>
+</a>
+
+
+</body>
+</html>

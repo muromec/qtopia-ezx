@@ -1,0 +1,13 @@
+# Enable FPO (Frame Pointer Omission) optimization for 5-15% improved
+# performance.
+
+paramList = string.split(platform.cc.args['release'])
+
+# see if it is in the list
+if '/Oy-' in paramList:
+
+        # remove it from the list
+        paramList.remove('/Oy-')
+
+        # make the list into a string
+        platform.cc.args['release'] = string.join(paramList)

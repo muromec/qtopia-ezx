@@ -1,0 +1,2 @@
+project.AddDefines("_WIN32_USE_INTERLOCKED_INCREMENT")
+project.AddSources("platform/win/mp4vrend.rc")

@@ -1,0 +1,58 @@
+UmakefileVersion(2,1)
+
+project.AddModuleIncludes(
+	'common/include',
+	'common/container/pub',
+	'common/dbgtool/pub',
+	'common/fileio/pub',
+	'common/netio/pub',
+	'common/runtime/pub',
+	'common/system/pub',
+	'common/util/pub',
+	'client/include',
+	'client/core',
+	'client/audiosvc/pub',
+	'client/common/container/pub',
+	'datatype/common/util/pub',
+	'datatype/common/filewriter/pub',
+	'datatype/rm/audio/common/pub',
+	'datatype/rm/audio/payload/pub',
+	'datatype/mp4/common/pub'
+	)
+
+project.AddModuleLibraries(
+	'datatype/common/filewriter[wrtrlib]',
+	'datatype/common/util[dtutillib]',
+	'common/fileio[fileiolib]',
+	'common/netio[netiolib]',
+	'common/dbgtool[debuglib]',
+	'common/util[utillib]',
+	'common/container[contlib]',
+	'common/system[syslib]',
+	'common/runtime[runtlib]',
+	'datatype/rm/audio/payload[rapayld]',
+	'datatype/mp4/common[mp4comlib]',
+	'datatype/ngt/fileformat[ngtfformatlib]'
+	)
+
+# used by ra10 streamhandler
+project.AddLibraries(
+	GetSDKPath("rmacom_lib")
+	)
+
+project.AddSources(
+	'mp4arch.cpp',
+	'dlliids.cpp',
+	'mp4wrplin.cpp',
+	'mp4wrtr.cpp',
+	'ra10sh.cpp',
+	'm4ash.cpp',
+	'blist.cpp',
+	'm4asm.cpp',
+	'm4aatomgateway.cpp'
+	)
+	
+project.AddExportedFunctions('RMACreateInstance')
+
+DLLTarget('mp4wrtr')
+

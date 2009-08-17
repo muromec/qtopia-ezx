@@ -1,0 +1,551 @@
+# -*- python -*-
+#
+#  ***** BEGIN LICENSE BLOCK *****  
+#   
+#  Source last modified: $Id: symbian-armi.cf,v 1.7 2006/07/26 20:19:30 damann Exp $ 
+#   
+#  Copyright Notices: 
+#   
+#  Portions Copyright (c) 1995-2006 RealNetworks, Inc. All Rights Reserved. 
+#   
+#  Patent Notices: This file may contain technology protected by one or  
+#  more of the patents listed at www.helixcommunity.org 
+#   
+#  1.   The contents of this file, and the files included with this file, 
+#  are protected by copyright controlled by RealNetworks and its  
+#  licensors, and made available by RealNetworks subject to the current  
+#  version of the RealNetworks Public Source License (the "RPSL")  
+#  available at  * http://www.helixcommunity.org/content/rpsl unless  
+#  you have licensed the file under the current version of the  
+#  RealNetworks Community Source License (the "RCSL") available at 
+#  http://www.helixcommunity.org/content/rcsl, in which case the RCSL 
+#  will apply.  You may also obtain the license terms directly from 
+#  RealNetworks.  You may not use this file except in compliance with 
+#  the RPSL or, if you have a valid RCSL with RealNetworks applicable 
+#  to this file, the RCSL.  Please see the applicable RPSL or RCSL for 
+#  the rights, obligations and limitations governing use of the 
+#  contents of the file. 
+#   
+#  2.  Alternatively, the contents of this file may be used under the 
+#  terms of the GNU General Public License Version 2 (the 
+#  "GPL") in which case the provisions of the GPL are applicable 
+#  instead of those above.  Please note that RealNetworks and its  
+#  licensors disclaim any implied patent license under the GPL.   
+#  If you wish to allow use of your version of this file only under  
+#  the terms of the GPL, and not to allow others 
+#  to use your version of this file under the terms of either the RPSL 
+#  or RCSL, indicate your decision by deleting Paragraph 1 above 
+#  and replace them with the notice and other provisions required by 
+#  the GPL. If you do not delete Paragraph 1 above, a recipient may 
+#  use your version of this file under the terms of any one of the 
+#  RPSL, the RCSL or the GPL. 
+#   
+#  This file is part of the Helix DNA Technology.  RealNetworks is the 
+#  developer of the Original Code and owns the copyrights in the 
+#  portions it created.   Copying, including reproducing, storing,  
+#  adapting or translating, any or all of this material other than  
+#  pursuant to the license terms referred to above requires the prior  
+#  written consent of RealNetworks and its licensors 
+#   
+#  This file, and the files included with this file, is distributed 
+#  and made available by RealNetworks on an 'AS IS' basis, WITHOUT  
+#  WARRANTY OF ANY KIND, EITHER EXPRESS OR IMPLIED, AND REALNETWORKS  
+#  AND ITS LICENSORS HEREBY DISCLAIM  ALL SUCH WARRANTIES, INCLUDING  
+#  WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS  
+#  FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT. 
+#   
+#  Technology Compatibility Kit Test Suite(s) Location:  
+#     http://www.helixcommunity.org/content/tck 
+#   
+# Contributor(s):
+# 
+# ***** END LICENSE BLOCK *****
+# 
+"""Generic symbian armi .cf file. Common stuff to all symbian armi builds."""
+
+exec_config_file('symbian.cf')
+
+platform.include_arg = '-I '
+platform.define_arg = '-D'
+platform.object_suffix = 'o'
+platform.shared_object_suffix = 'o'
+platform.path_sep = '/'
+
+## Symbian PCF file list
+platform.pcf_prefix_list[-1:-1] = ['symbian-armi']
+
+## Turn these on for device builds.
+project.AddDefines( '__GCC32__',
+                    '__MARM_ARMI__',
+                    '__MARM__',
+                    '_ARM',
+                    'ARM'
+                    )
+
+project.RemoveSystemLibraries("euser.lib" );
+
+## Compiler Class
+class SymbianARMICompiler(Compiler):
+    def __init__(self):
+        Compiler.__init__(self)
+
+    def execute(self, target_file, src_file):
+        extra_args = ''
+
+        return form_string(
+            platform.form_var(self.make_var),
+            platform.form_var(self.make_flags),
+            extra_args,
+            self.target_arg + target_file,
+            self.source_arg,
+            src_file)
+
+platform.cc = SymbianARMICompiler()
+platform.cxx = SymbianARMICompiler()
+
+cc = platform.cc
+cxx = platform.cxx
+
+cc.cmd = '"%s/EPOC32/gcc/bin/gcc"' % platform.tool_root
+cxx.cmd = '"%s/EPOC32/gcc/bin/g++"' % platform.tool_root
+
+cxx.source_arg = cc.source_arg = '-c'
+cxx.target_arg = cc.target_arg = '-o '
+cxx.make_var = cc.make_var = 'CC'
+cxx.make_flags = 'CXXFLAGS'
+cc.make_flags = 'CCFLAGS'
+cxx.include_arg = cc.include_arg = '-I'
+
+cc.args['default'] = '-fomit-frame-pointer -march=armv4t -mthumb-interwork -nostdinc -fno-builtin -Wall -Wno-ctor-dtor-privacy -Wno-unknown-pragmas -Wno-non-virtual-dtor -ffunction-sections -fdata-sections'
+cxx.args['default'] = cc.args['default']
+cxx.args['debug'] = cc.args['debug'] = ''
+
+## no_optimize: no optimization on release builds
+if project.BuildOption('no_optimize'):
+    cc.args['release'] = ''
+else:
+    cc.args['release'] = '-O2'
+
+cxx.args['release'] = cc.args['release']
+
+
+class SymbianARMILinker(Linker2):
+
+    def link_script_path(self):
+        return "%s.lnk" % (project.TargetName())
+
+    def write_link_script(self):
+        ## if there are no exported functions, die here
+        if len(project.exported_func) == 0:
+            umake_lib.fatal("dll target without exported functions") 
+
+        path=self.link_script_path()
+        ## create a gcc link script
+        fil = open(path, "w")
+
+        for export in project.exported_func:
+            fil.write("EXTERN(%s);\n" % (export))
+
+        fil.close()
+
+        return path
+
+    def armerge_lib_path(self):
+        libname = "%s_libs.%s" % (project.target_name, platform.library_suffix)
+        return os.path.join(project.output_dir, libname)
+    
+    def armerge_tmp_path(self):
+        return os.path.join(project.object_dir, "lib")
+
+    def AddARMerge(self, cmd_list, static_libs):    
+        #
+        # We use the armerge script to merge all the static libs into
+        # one big one so that our one pass linker won't have troubles
+        # with the circular dependancies. After this armerge is run
+        # use mergedlibpath instead of static_libs.
+        #
+        armerge_cmd   = os.path.join(BUILD_ROOT, "bin", "armerge.py")
+        tmpMergePath  = self.armerge_tmp_path()
+        mergedLibPath = self.armerge_lib_path()
+        cmd           = "python %s -d %s %s %s" % (armerge_cmd,
+                                                   tmpMergePath,
+                                                   mergedLibPath,
+                                                   static_libs)
+        cmd_list.append(cmd)
+        
+        return mergedLibPath
+
+    def __init__(self):
+        Linker2.__init__(self)
+
+        ## these are here to emulate the old linker class
+        ## for Umakefil/*.pcf files which do direct modification
+        ## of this class
+        self.def_file = ""
+        self.implib_file = ""
+
+        self.args = {}
+        self.args["default"] = ""
+        self.args["debug"] = "/debug"
+        self.args["release"] = "/OPT:REF"
+        self.args["dll"] = ""
+
+    def write_def_file(self, path):
+        fil = open(path, 'w')
+        
+        ordinalFilename = "%s_ordinal.dat" % project.target_name
+        
+        if project.getTargetType() == "dll":
+            ## exported functions
+            fil.write("EXPORTS\n")
+
+            ## check for the data file which defines ordinally-exported
+            ## methods/functions
+            if project.BuildOption("ordinal") and \
+               os.path.isfile(ordinalFilename):
+                for (symbol, ordinal) in read_ordinal_file(ordinalFilename):
+                    fil.write("\t%s @ %s R3UNUSED\n" % (symbol, ordinal))
+
+        fil.close()
+
+    def LinkLIB(self, target_path, objects):
+        cmd_list = []
+
+        cmd = '-rm %s' % target_path
+        cmd_list.append(cmd)
+        
+        arg_list = ["rv", target_path, objects]
+        cmd = '"%s/EPOC32/gcc/bin/ar" %s' % (platform.tool_root,
+                                             string.join(arg_list))
+        cmd_list.append(cmd)
+
+        cmd = '"%s/EPOC32/gcc/bin/ranlib" %s' % (platform.tool_root,
+                                                 target_path)
+        cmd_list.append(cmd)
+
+        return cmd_list
+
+    def CleanLIB(self, target_path):
+        return [target_path]
+
+    def LinkDLL(self, target_path, objects, static_libs, dynamic_libs):
+        cmd_list = []
+
+        baseName = re.match("^(.+)\.dll$", target_path).group(1)
+
+        mergedLibPath = self.AddARMerge( cmd_list, static_libs)
+
+        # Generate .def file for this DLL
+        defFileName = "%s.def" % project.target_name
+        self.write_def_file(defFileName)
+
+        # Generate first .exp file
+        arg_list = ["-m arm_interwork",
+                    "--def %s" % defFileName,
+                    "--output-exp %s.exp" % baseName,
+                    "--dllname %s" % target_path]
+        cmd = '"%s/EPOC32/gcc/bin/dlltool" %s' % (platform.tool_root,
+                                                  string.join(arg_list))
+        cmd_list.append(cmd)
+
+        undefines=self.write_link_script()
+
+        # First link pass
+        arg_list = ["-s",
+                    "-e _E32Dll",
+                    "-u _E32Dll",
+                    undefines,
+                    "%s.exp" % baseName,
+                    "-dll",
+                    "--base-file %s.bas" % baseName,
+                    "-o %s" % target_path,
+                    GetSymbianLibPath("edll.lib"),
+                    objects,
+                    mergedLibPath,
+                    dynamic_libs,
+                    GetSymbianLibPath("egcc.lib"),
+                    GetSymbianLibPath("euser.lib")]
+        cmd = "python %s ld %s" % (
+            os.path.join(BUILD_ROOT,"bin","rlink.py"),
+            string.join(arg_list))
+        cmd_list.append(cmd)
+
+        cmd = "rm %s.exp" % baseName
+        cmd_list.append(cmd)
+
+        # Generate second .exp file
+        arg_list = ["-m arm_interwork",
+                    "--def %s" % defFileName,
+                    "--dllname %s" % target_path,
+                    "--base-file %s.bas" % baseName,
+                    "--output-exp %s.exp" % baseName]
+        cmd = '"%s/EPOC32/gcc/bin/dlltool" %s' % (platform.tool_root,
+                                                  string.join(arg_list))
+        cmd_list.append(cmd)
+
+        # Second link pass
+        arg_list = ["-s",
+                    "-e _E32Dll",
+                    "-u _E32Dll",
+                    undefines,
+                    "%s.exp" % baseName,
+                    "-dll",
+                    "-Map %s.map" % target_path,
+                    "-o %s" % target_path,
+                    GetSymbianLibPath("edll.lib"),
+                    objects,
+                    mergedLibPath,
+                    dynamic_libs,
+                    GetSymbianLibPath("egcc.lib"),
+                    GetSymbianLibPath("euser.lib")]
+
+        cmd = "python %s ld %s" % (
+            os.path.join(BUILD_ROOT,"bin","rlink.py"),
+            string.join(arg_list))
+
+        cmd_list.append(cmd)
+
+        # Translate DLL for use on the device
+        arg_list = ["-nocall",
+                    "-uid1 0x%x" % project.symbianUtil.uid1,
+                    "-uid2 0x%x" % project.symbianUtil.uid2,
+                    "-uid3 0x%x" % project.symbianUtil.uid3,
+                    target_path,
+                    target_path]
+        cmd = "\"%s/epoc32/tools/petran\" %s" % (platform.tool_root,
+                                                 string.join(arg_list))
+        cmd_list.append(cmd)
+
+        arg_list = ["%s.exp" % baseName,
+                    "%s.bas" % baseName]
+        
+        cmd = "rm %s" % (string.join(arg_list))
+        cmd_list.append(cmd)
+
+        cmd = "rm %s" % (mergedLibPath)
+        cmd_list.append(cmd)
+
+        return cmd_list
+
+    def CleanDLL(self, target_path):
+        list = []
+        list.append(target_path)
+        return list
+
+    def LinkEXE(self, target_path, objects, static_libs, dynamic_libs):
+        
+        cmd_list = []
+
+        mergedLibPath = self.AddARMerge( cmd_list, static_libs)
+
+        if (project.BuildOption('make-app')):
+            self.LinkSymbianPolyDll(target_path, "app", cmd_list, objects,
+                                mergedLibPath, dynamic_libs)
+        elif (project.BuildOption('make-mdl')):
+            self.LinkSymbianPolyDll(target_path, "mdl", cmd_list, objects,
+                                mergedLibPath, dynamic_libs)
+        elif (project.BuildOption('make-mmf')):
+            self.LinkSymbianPolyDll(target_path, "dll", cmd_list, objects,
+                                mergedLibPath, dynamic_libs)
+        else:
+            self.LinkSymbianExe(target_path, cmd_list, objects,
+                                mergedLibPath, dynamic_libs)
+
+        cmd = "rm %s" % (mergedLibPath)
+        cmd_list.append(cmd)
+
+        return cmd_list
+
+    def LinkSymbianPolyDll(self, target_path, dllExt, cmd_list, objects, mergedLibPath, dynamic_libs):
+        
+        baseName = re.match("^(.+)\.%s$" % dllExt, target_path).group(1)
+
+        # Create .def file
+        if( dllExt == "app"):
+            exportLine = "NewApplication__Fv @ 1 NONAME R3UNUSED ; NewApplication(void)\n"
+        elif( dllExt == "mdl"):
+            exportLine = "CreateRecognizer__Fv @ 1 NONAME R3UNUSED ; CreateRecognizer(void)\n"
+        else:
+            raise "don't know what to export for dll type '%s'" % outExt
+
+        defFileName = "%s.def" % project.target_name
+        defFile = open(defFileName, "w")
+        defFile.write("EXPORTS\n")
+        defFile.write(exportLine)
+        defFile.close()
+
+        arg_list = ["-m arm_interwork",
+                    "--def %s" % defFileName,
+                    "--output-exp %s.exp" % baseName,
+                    "--dllname %s" % target_path]
+        cmd = '"%s/EPOC32/gcc/bin/dlltool" %s' % (platform.tool_root,
+                                                  string.join(arg_list))
+        cmd_list.append(cmd)
+
+        arg_list = ["-s",
+                    "-e _E32Dll",
+                    "-u _E32Dll",
+                    "%s.exp" % baseName,
+                    "--dll",
+                    "--base-file %s.bas" % baseName,
+                    "-o %s" % target_path,
+                    GetSymbianLibPath("edll.lib"),
+                    objects,
+                    mergedLibPath,
+                    dynamic_libs,
+                    GetSymbianLibPath("edllstub.lib"),
+                    GetSymbianLibPath("egcc.lib"),
+                    GetSymbianLibPath("euser.lib")]
+        cmd = "ld %s" % (string.join(arg_list))
+        cmd_list.append(cmd)
+
+        arg_list = ["-m arm_interwork",
+                    "--def %s" % defFileName,
+                    "--dllname %s" % target_path,
+                    "--base-file %s.bas" % baseName,
+                    "--output-exp %s.exp" % baseName]
+        cmd = '"%s/EPOC32/gcc/bin/dlltool" %s' % (platform.tool_root,
+                                                  string.join(arg_list))
+        cmd_list.append(cmd)
+
+        arg_list = ["-s",
+                    "-e _E32Dll",
+                    "-u _E32Dll",
+                    "--dll",
+                    "%s.exp" % baseName,
+                    "-Map %s.map" % target_path,
+                    "-o %s" % target_path,
+                    GetSymbianLibPath("edll.lib"),
+                    objects,
+                    mergedLibPath,
+                    dynamic_libs,
+                    GetSymbianLibPath("edllstub.lib"),
+                    GetSymbianLibPath("egcc.lib"),
+                    GetSymbianLibPath("euser.lib")]
+        cmd = "ld %s" % (string.join(arg_list))
+        cmd_list.append(cmd)
+
+        # Translate .APP for use on the device
+        arg_list = ["-nocall",
+                    "-uid1 0x%x" % project.symbianUtil.uid1,
+                    "-uid2 0x%x" % project.symbianUtil.uid2,
+                    "-uid3 0x%x" % project.symbianUtil.uid3,
+                    target_path,
+                    target_path]
+        cmd = "\"%s/epoc32/tools/petran\" %s" % (platform.tool_root,
+                                                 string.join(arg_list))
+        cmd_list.append(cmd)
+
+        arg_list = ["%s.exp" % baseName,
+                    "%s.bas" % baseName]
+        
+        cmd = "rm %s" % (string.join(arg_list))
+        cmd_list.append(cmd)
+
+        return cmd_list
+    
+    
+    def LinkSymbianExe(self, target_path, cmd_list, objects,
+                       mergedLibPath, dynamic_libs):
+
+        baseName = re.match("^(.+)\.exe$", target_path).group(1)
+
+        arg_list = ["-s",
+                    "-e _E32Startup",
+                    "-u _E32Startup",
+                    "--base-file %s.bas" % baseName,
+                    "-o %s" % target_path]
+        arg_list.append(objects)
+        arg_list.append(GetSymbianLibPath("eexe.lib"))
+        arg_list.append(mergedLibPath)
+        arg_list.append(dynamic_libs)
+        arg_list.append(GetSymbianLibPath("egcc.lib"))
+        arg_list.append(GetSymbianLibPath("euser.lib"))
+
+        
+        cmd = "ld %s" % (string.join(arg_list))
+        cmd_list.append(cmd)
+
+        cmd = "rm %s" % target_path
+        cmd_list.append(cmd)
+
+        arg_list = ["-m arm_interwork",
+                    "--base-file %s.bas" % baseName,
+                    "--output-exp %s.exp" % baseName]
+        cmd = '"%s/EPOC32/gcc/bin/dlltool" %s' % (platform.tool_root,
+                                                  string.join(arg_list))
+        cmd_list.append(cmd)
+
+        cmd = "rm %s.bas" % baseName
+        cmd_list.append(cmd)
+
+        arg_list = ["-e _E32Startup",
+                    "-u _E32Startup",
+                    "%s.exp" % baseName,
+                    "-Map %s.map" % target_path,
+                    "-o %s" % target_path]
+        
+        arg_list.append(objects)
+        arg_list.append(GetSymbianLibPath("eexe.lib"))
+        arg_list.append(mergedLibPath)
+        arg_list.append(dynamic_libs)
+        arg_list.append(GetSymbianLibPath("egcc.lib"))
+        arg_list.append(GetSymbianLibPath("euser.lib"))
+        
+        cmd = "ld %s" % (string.join(arg_list))
+        cmd_list.append(cmd)
+
+        cmd = "rm %s.exp" % baseName
+        cmd_list.append(cmd)
+
+        arg_list = ["-nocall ",
+                    "-uid1 0x%x" % project.symbianUtil.uid1,
+                    "-uid2 0x%x" % project.symbianUtil.uid2,
+                    "-uid3 0x%x" % project.symbianUtil.uid3,
+                    target_path,
+                    target_path]
+        cmd = "\"%s/epoc32/tools/petran\" %s" % (platform.tool_root,
+                                                 string.join(arg_list))
+        cmd_list.append(cmd)
+        
+        return cmd_list
+    
+    def CleanEXE(self, target_path):
+        list = []
+        list.append(target_path)
+        return list
+
+platform.link = SymbianARMILinker()
+
+## Output directory setup
+if project.BuildOption("debug"):
+    project.output_dir = "armi-dbg32"
+else:
+    project.output_dir = "armi-rel32"
+
+
+def GetSymbianLibPath(libName):
+    return os.path.join(GetSDKPath('SYMBIANSDK'),
+                        'EPOC32\Release\ARMI\UREL',
+                        libName)    
+    
+
+def HandleSymbianARMIStuff(args):
+    new_sys_libraries = []
+    for x in project.sys_libraries:
+        new_path = GetSymbianLibPath(x)
+
+        if (os.path.isfile(new_path)):
+            new_sys_libraries.append("\"%s\"" % new_path)
+        else:
+            new_sys_libraries.append(x)
+            
+    project.sys_libraries = new_sys_libraries
+        
+AddUmakeCallback(HandleSymbianARMIStuff, None)
+
+platform.build_rules['.s'] = BuildRule('.s', '.obj', cxx)
+
+
+
+

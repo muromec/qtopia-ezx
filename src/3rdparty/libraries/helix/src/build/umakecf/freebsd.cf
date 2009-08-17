@@ -1,0 +1,225 @@
+# 
+#  ***** BEGIN LICENSE BLOCK *****  
+#   
+#  Source last modified: $Id: freebsd.cf,v 1.6 2006/12/31 17:53:00 dyek Exp $ 
+#   
+#  Copyright Notices: 
+#   
+#  Portions Copyright (c) 1995-2006 RealNetworks, Inc. All Rights Reserved. 
+#   
+#  Patent Notices: This file may contain technology protected by one or  
+#  more of the patents listed at www.helixcommunity.org 
+#   
+#  1.   The contents of this file, and the files included with this file, 
+#  are protected by copyright controlled by RealNetworks and its  
+#  licensors, and made available by RealNetworks subject to the current  
+#  version of the RealNetworks Public Source License (the "RPSL")  
+#  available at  * http://www.helixcommunity.org/content/rpsl unless  
+#  you have licensed the file under the current version of the  
+#  RealNetworks Community Source License (the "RCSL") available at 
+#  http://www.helixcommunity.org/content/rcsl, in which case the RCSL 
+#  will apply.  You may also obtain the license terms directly from 
+#  RealNetworks.  You may not use this file except in compliance with 
+#  the RPSL or, if you have a valid RCSL with RealNetworks applicable 
+#  to this file, the RCSL.  Please see the applicable RPSL or RCSL for 
+#  the rights, obligations and limitations governing use of the 
+#  contents of the file. 
+#   
+#  2.  Alternatively, the contents of this file may be used under the 
+#  terms of the GNU General Public License Version 2 (the 
+#  "GPL") in which case the provisions of the GPL are applicable 
+#  instead of those above.  Please note that RealNetworks and its  
+#  licensors disclaim any implied patent license under the GPL.   
+#  If you wish to allow use of your version of this file only under  
+#  the terms of the GPL, and not to allow others 
+#  to use your version of this file under the terms of either the RPSL 
+#  or RCSL, indicate your decision by deleting Paragraph 1 above 
+#  and replace them with the notice and other provisions required by 
+#  the GPL. If you do not delete Paragraph 1 above, a recipient may 
+#  use your version of this file under the terms of any one of the 
+#  RPSL, the RCSL or the GPL. 
+#   
+#  This file is part of the Helix DNA Technology.  RealNetworks is the 
+#  developer of the Original Code and owns the copyrights in the 
+#  portions it created.   Copying, including reproducing, storing,  
+#  adapting or translating, any or all of this material other than  
+#  pursuant to the license terms referred to above requires the prior  
+#  written consent of RealNetworks and its licensors 
+#   
+#  This file, and the files included with this file, is distributed 
+#  and made available by RealNetworks on an 'AS IS' basis, WITHOUT  
+#  WARRANTY OF ANY KIND, EITHER EXPRESS OR IMPLIED, AND REALNETWORKS  
+#  AND ITS LICENSORS HEREBY DISCLAIM  ALL SUCH WARRANTIES, INCLUDING  
+#  WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS  
+#  FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT. 
+#   
+#  Technology Compatibility Kit Test Suite(s) Location:  
+#     http://www.helixcommunity.org/content/tck 
+#   
+# Contributor(s):
+# 
+# ***** END LICENSE BLOCK *****
+# 
+"""Basic FreeBSD cf file, inherited by other freebsd-x.y-z.cf files."""
+
+exec_config_file('unix.cf')
+exec_config_file('gcc.cf')
+
+## list of PCF files to run
+platform.pcf_prefix_list = ['unix', 'freebsd']
+
+project.AddDefines("_FREEBSD")
+
+project.RemoveDefines("HELIX_FEATURE_ALSA")
+
+make_toc = platform.make_toc
+make_toc.cmd = 'ranlib'
+make_toc.make_var = 'RANLIB'
+
+make_lib = platform.make_lib
+make_lib.cmd = 'ar cr '
+make_lib.make_var = 'MAKE_LIB'
+make_lib.make_flags = 'MAKE_LIB_FLAGS'
+platform.cc.args['default']  = '-pipe -fsigned-char'
+platform.cxx.args['default'] = '-pipe -fsigned-char'
+DisableRTTIIfNecessary()
+
+
+# Set up the Linker
+class FreeBSDLinker(Linker2):
+    def __init__(self):
+        Linker2.__init__(self)
+        self.linker=platform.cc.cmd
+        self.extra_arguments=[]
+
+    def add_argument(self, arg):
+        self.extra_arguments.append(arg)
+    
+    def link_paths(self):
+        return string.join(platform.system_paths +
+                           project.system_paths)
+
+    def link_script_path(self):
+        return "%s.exp" % (project.TargetName())
+
+    def armerge_lib_path(self):
+        libname = "%s_libs.%s" % (project.target_name, platform.library_suffix)
+        return os.path.join(project.output_dir, libname)
+    
+    def armerge_tmp_path(self):
+        return os.path.join(project.object_dir, "lib")
+
+    def write_link_script(self, path):
+        ## if there are no exported functions, die here
+        if len(project.exported_func) == 0:
+            umake_lib.fatal("dll target without exported functions") 
+        
+        ## create a gcc link script
+        fil = open(path, "w")
+        fil.write("VERSION\n")
+        fil.write("{\n")
+        fil.write("  G2 {\n")
+        fil.write("    global:\n")
+
+        for export in project.exported_func:
+            fil.write("      %s;\n" % (export))
+
+        fil.write("    local:\n")
+        fil.write("      *;\n")
+        fil.write("  };\n")
+        fil.write("}\n")
+        fil.close()
+
+    def LinkLIB(self, target_path, objects):
+        cmd_list = []
+        
+        cmd = "%s %s %s" % (make_lib.cmd, target_path, objects)
+        cmd_list.append(cmd)
+
+        cmd = "ranlib %s" % (target_path)
+        cmd_list.append(cmd)
+
+        return cmd_list
+
+    def CleanLIB(self, target_path):
+        return [target_path]
+
+    def LinkDLL(self, target_path, objects, static_libs, dynamic_libs):
+        cmd_list = []
+
+        armerge_cmd = os.path.join(BUILD_ROOT, "bin", "armerge.py")
+        tmp_path = self.armerge_tmp_path()
+        libpath = self.armerge_lib_path()
+        cmd = "python %s -d %s %s %s" % (
+            armerge_cmd, tmp_path, libpath, static_libs)
+        cmd_list.append(cmd)
+
+        lspath = self.link_script_path()
+        self.write_link_script(lspath)
+        if project.exported_func:
+            undefinedSymbols="-u "+string.join(project.exported_func," -u ")
+        else:
+            undefinedSymbols=""
+
+        cmd = "g++ -shared %s -o %s %s %s %s %s %s -lgcc" % (
+            lspath, target_path,
+            undefinedSymbols,
+            objects, libpath,
+            self.link_paths(), dynamic_libs)
+        cmd_list.append(cmd)
+
+        cmd = "rm %s" % (libpath)
+        cmd_list.append(cmd)
+
+        return cmd_list
+
+    def CleanDLL(self, target_path):
+        list = []
+        list.append(target_path)
+        list.append(self.armerge_tmp_path())
+        list.append(self.armerge_lib_path())
+        return list
+
+    def LinkEXE(self, target_path, objects, static_libs, dynamic_libs):
+        cmd_list = []
+
+        armerge_cmd = os.path.join(BUILD_ROOT, "bin", "armerge.py")
+        tmp_path = self.armerge_tmp_path()
+        libpath = self.armerge_lib_path()
+        cmd = "python %s -d %s %s %s" % (armerge_cmd, tmp_path, libpath, static_libs)
+        cmd_list.append(cmd)
+
+        # Link using g++ for proper handling of C++
+        cmd = "g++ -Wl,-export-dynamic -o %s %s %s %s %s" % (
+            target_path, objects, libpath, self.link_paths(), dynamic_libs)
+        cmd_list.append(cmd)
+
+        cmd = "rm %s" % (libpath)
+        cmd_list.append(cmd)
+
+        return cmd_list
+    
+    def CleanEXE(self, target_path):
+        list = []
+        list.append(target_path)
+        list.append(self.armerge_tmp_path())
+        list.append(self.armerge_lib_path())
+        return list
+    
+    def make_lib_static(self, lib):
+        return "-Wl,-Bstatic %s -Wl,-Bdynamic" % lib
+    
+
+platform.link = FreeBSDLinker()
+platform.link.ldargs = '-L/usr/X11R6/lib -L/usr/local/lib --export-dynamic'
+project.includes.append('/usr/X11R6/include')
+project.includes.append('../../../../datatype/image/common/pub')
+project.includes.append('../../pub/platform/unix/')
+project.includes.append('/usr/local/include')
+project.AddSystemPaths('-L/usr/X11R6/lib')
+
+
+## LessTif/Motif root defined with environment variable XMROOT
+if os.environ.has_key('XMROOT'):
+    project.includes.append('%s/include' % (os.environ['XMROOT']))
+    platform.link.ldargs = '%s -L%s/lib' % (platform.link.ldargs, os.environ['XMROOT'])

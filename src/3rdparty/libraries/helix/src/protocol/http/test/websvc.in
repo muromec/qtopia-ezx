@@ -1,0 +1,7 @@
+# Get <url> <expected body>
+# Post <url> <expected body> <content to post>
+
+# httpunittest.txt contains "supercalifragalisticexpialidocious"
+
+Get http://fnord.dev.prognet.com/~ryan/httpunittest.php supercalifragalisticexpialidocious
+Post http://fnord.dev.prognet.com/~ryan/httpunittest.php supercalifragalisticexpialidocious post_this_data_to_the_server

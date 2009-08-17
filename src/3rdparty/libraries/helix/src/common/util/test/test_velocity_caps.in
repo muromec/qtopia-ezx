@@ -1,0 +1,64 @@
+# CHXPlaybackVelocityCaps() <index>    where index = 0 or 1
+# GetNumRanges <index> <expected_value>
+# GetRange <index> <range_index> <expected_min_value> <expected_max_value> where range_index = [0,GetNumRanges-1]
+# AddRange <index> <range_min> <range_max> <expected_return_value> where expected_return_value is 0 (fail) or 1 (succeed)
+# CombineCapsLogicalAnd <index>
+# IsCapable <index> <velocity_to_test> <expected_result> where expected_result = 0 (FALSE) or 1 (TRUE)
+
+# Test creation and default values
+CHXPlaybackVelocityCaps() 0
+GetNumRanges 0 0
+
+# Test adding ranges to make sure
+# that overlapping values will not be accepted
+AddRange 0 100 500 1
+AddRange 0 400 700 0
+
+# Test capability
+CHXPlaybackVelocityCaps() 0
+AddRange 0  100  100 1
+AddRange 0  300  500 1
+AddRange 0 -500 -300 1
+IsCapable 0 100 1
+IsCapable 0 200 0
+IsCapable 0 300 1
+IsCapable 0 600 0
+
+# Test combining caps
+CHXPlaybackVelocityCaps() 0
+CHXPlaybackVelocityCaps() 1
+AddRange 0 -10000 10000 1
+AddRange 1    100   100 1
+IsCapable 0 500 1
+CombineCapsLogicalAnd 0
+IsCapable 0 500 0
+IsCapable 0 100 1
+
+# More tests of combining caps
+CHXPlaybackVelocityCaps() 0
+CHXPlaybackVelocityCaps() 1
+AddRange 0 -10000   -100 1
+AddRange 1    100  10000 1
+IsCapable 0 -500 1
+IsCapable 1  500 1
+CombineCapsLogicalAnd 0
+IsCapable 0 -500 0
+IsCapable 0  500 0
+
+CHXPlaybackVelocityCaps() 0
+CHXPlaybackVelocityCaps() 1
+AddRange 0 100 200 1
+AddRange 0 300 400 1
+AddRange 0 500 600 1
+AddRange 1 100 350 1
+IsCapable 0 150 1
+IsCapable 0 250 0
+IsCapable 0 350 1
+IsCapable 0 450 0
+IsCapable 0 550 1
+CombineCapsLogicalAnd 0
+IsCapable 0 150 1
+IsCapable 0 250 0
+IsCapable 0 350 1
+IsCapable 0 450 0
+IsCapable 0 550 0

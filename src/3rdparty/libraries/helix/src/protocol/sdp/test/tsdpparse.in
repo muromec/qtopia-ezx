@@ -1,0 +1,1806 @@
+# Init <version number>
+# Parse <parse result> <value count> <sdp string>
+# IntCount <value index> <num of int fields>
+# StringCount <value index> <num of string fields>
+# BufferCount <value index> <num of buffer fields>
+# GetInt <value index> <field name> <expected value>
+# GetString <value index> <field name> <expected value>
+# GetBuffer <value index> <field name> <expected value>
+
+# Start testing with a Server context
+SetClientContext 0
+
+Init 123456
+Parse 0x00000000 1 ""
+IntCount 0 0
+StringCount 0 0
+BufferCount 0 0
+
+
+Init 123456
+Parse 0x00000000 1 "\n\n\nv=0"
+IntCount 0 0
+StringCount 0 0
+BufferCount 0 0
+
+# Invalid SDP version. Need upgrade
+Init 123456
+Parse 0x80004005 0 "v=1\r\na=foo:bar\r\n"
+#Parse 0x00000000 1 "v=1\r\n"
+#IntCount 0 2
+#GetInt 0 LiveStream 1
+#GetInt 0 StreamCount 0
+#StringCount 0 0
+#BufferCount 0 0
+
+# Invalid SDP version. Need upgrade
+Init 123456
+Parse 0x80004005 0 "v=1\r\na=foo:bar\r\n"
+
+# Test flag field
+Init 123456
+Parse 0x00000000 1 "v=0\r\na=foo\r\n"
+IntCount 0 0
+StringCount 0 1
+GetString 0 SDPData "a=foo\n"
+BufferCount 0 0
+
+# Test unknown key/value field
+Init 123456
+Parse 0x00000000 1 "v=0\r\na=foo:bar\r\n"
+IntCount 0 0
+StringCount 0 1
+GetString 0 SDPData "a=foo:bar\n"
+BufferCount 0 0
+
+# o= line
+Init 123456
+Parse 0x00000000 1 "v=0\r\no=dskjfh\r\n"
+IntCount 0 0
+StringCount 0 0
+BufferCount 0 0
+
+# s= line
+Init 123456
+Parse 0x00000000 1 "v=0\r\ns=dskjfh\r\n"
+IntCount 0 0
+StringCount 0 0
+BufferCount 0 1
+
+# Test unknown session level line type like "u="
+Init 123456
+Parse 0x00000000 1 "v=0\r\nu=http://www.foo.com/index.html\r\n"
+IntCount 0 0
+StringCount 0 1
+GetString 0 SDPData "u=http://www.foo.com/index.html\n"
+BufferCount 0 0
+
+# Test unknown session level line type like "k="
+Init 123456
+Parse 0x00000000 2 "v=0\r\nm=video 42 RTP/AVP 34\r\nk=uri:http://www.foo.com/thekey.html\r\n"
+IntCount 0 2
+GetInt 0 LiveStream 1
+GetInt 0 StreamCount 1
+StringCount 0 0
+BufferCount 0 0
+IntCount 1 8
+GetInt 1 AvgBitRate 0
+GetInt 1 Channels 0
+GetInt 1 HXTimestampConversionFactor 1
+GetInt 1 Port 42
+GetInt 1 RTPPayloadType 34
+GetInt 1 RTPTimestampConversionFactor 90
+GetInt 1 SamplesPerSecond 90000
+GetInt 1 StreamNumber 0
+StringCount 1 3
+GetString 1 ASMRuleBook "marker=0,timestampdelivery=1;marker=1,timestampdelivery=1;"
+GetString 1 MimeType "video/H263"
+GetString 1 SDPData "k=uri:http://www.foo.com/thekey.html\n"
+BufferCount 1 0
+
+
+# single payload type
+Init 123456
+Parse 0x00000000 2 "v=0\r\nm=audio 42 RTP/AVP 0\r\n"
+IntCount 0 2
+GetInt 0 LiveStream 1
+GetInt 0 StreamCount 1
+StringCount 0 0
+BufferCount 0 0
+IntCount 1 8
+GetInt 1 AvgBitRate 64000
+GetInt 1 Channels 1
+GetInt 1 HXTimestampConversionFactor 1
+GetInt 1 Port 42
+GetInt 1 RTPPayloadType 0
+GetInt 1 RTPTimestampConversionFactor 8
+GetInt 1 SamplesPerSecond 8000
+GetInt 1 StreamNumber 0
+StringCount 1 2
+GetString 1 ASMRuleBook "marker=0,AverageBandwidth=32000;marker=1,AverageBandwidth=32000;"
+GetString 1 MimeType "audio/PCMU"
+BufferCount 1 0
+
+# multiple payload types
+Init 123456
+Parse 0x00000000 2 "v=0\r\nm=audio 46 RTP/AVP 10 11 0\r\n"
+IntCount 0 2
+GetInt 0 LiveStream 1
+GetInt 0 StreamCount 1
+StringCount 0 0
+BufferCount 0 0
+IntCount 1 8
+GetInt 1 AvgBitRate 1411200
+GetInt 1 Channels 2
+GetInt 1 HXTimestampConversionFactor 10
+GetInt 1 Port 46
+GetInt 1 RTPPayloadType 10
+GetInt 1 RTPTimestampConversionFactor 441
+GetInt 1 SamplesPerSecond 44100
+GetInt 1 StreamNumber 0
+StringCount 1 2
+GetString 1 ASMRuleBook "marker=0,AverageBandwidth=705600;marker=1,AverageBandwidth=705600;"
+GetString 1 MimeType audio/L16
+BufferCount 1 0
+
+# invalid payload type. Force update
+Init 123456
+Parse 0x80040017 0 "v=0\r\nm=audio 42 RTP/AVP 20\r\n"
+
+# invalid payload type. Force update at next media line
+Init 123456
+Parse 0x80040017 0 "v=0\r\nm=audio 42 RTP/AVP 20\r\nm=audio 44 RTP/AVP 0\r\n"
+
+# Handle propagation of session level range into media level
+Init 123456
+Parse 0x00000000 2 "v=0\r\na=range:npt=0-10\r\nm=audio 42 RTP/AVP 0\r\n"
+IntCount 0 2
+GetInt 0 Duration 10000
+GetInt 0 StreamCount 1
+StringCount 0 0
+BufferCount 0 0
+IntCount 1 9
+GetInt 1 AvgBitRate 64000
+GetInt 1 Channels 1
+GetInt 1 Duration 10000
+GetInt 1 HXTimestampConversionFactor 1
+GetInt 1 Port 42
+GetInt 1 RTPPayloadType 0
+GetInt 1 RTPTimestampConversionFactor 8
+GetInt 1 SamplesPerSecond 8000
+GetInt 1 StreamNumber 0
+StringCount 1 2
+GetString 1 ASMRuleBook "marker=0,AverageBandwidth=32000;marker=1,AverageBandwidth=32000;"
+GetString 1 MimeType "audio/PCMU"
+BufferCount 1 0
+
+# Handle GSM hack
+Init 123456
+Parse 0x00000000 2 "v=0\r\nm=audio 42 RTP/AVP 3\r\n"
+IntCount 0 2
+GetInt 0 LiveStream 1
+GetInt 0 StreamCount 1
+StringCount 0 0
+BufferCount 0 0
+IntCount 1 8
+GetInt 1 AvgBitRate 0
+GetInt 1 Channels 1
+GetInt 1 HXTimestampConversionFactor 1
+GetInt 1 Port 42
+GetInt 1 RTPPayloadType 3
+GetInt 1 RTPTimestampConversionFactor 8
+GetInt 1 SamplesPerSecond 8000
+GetInt 1 StreamNumber 0
+StringCount 1 2
+GetString 1 ASMRuleBook "marker=0,timestampdelivery=1;marker=1,timestampdelivery=1;"
+GetString 1 MimeType "audio/x-pn-gsm610"
+BufferCount 1 1
+GetBuffer 1 OpaqueData "31000100401f00005906000041000000020040012626"
+
+# rtpmap field test with encoding only
+Init 123456
+Parse 0x00000000 2 "v=0\r\nm=audio 42 RTP/AVP 101\r\na=rtpmap:101 ABC"
+IntCount 0 2
+GetInt 0 LiveStream 1
+GetInt 0 StreamCount 1
+StringCount 0 0
+BufferCount 0 0
+IntCount 1 4
+GetInt 1 AvgBitRate 0
+GetInt 1 Port 42
+GetInt 1 RTPPayloadType 101
+GetInt 1 StreamNumber 0
+StringCount 1 2
+GetString 1 ASMRuleBook "marker=0,timestampdelivery=1;marker=1,timestampdelivery=1;"
+GetString 1 MimeType "audio/ABC"
+BufferCount 1 0
+
+# rtpmap field test with encoding and sample rate only
+Init 123456
+Parse 0x00000000 2 "v=0\r\nm=audio 42 RTP/AVP 101\r\na=rtpmap:101 ABC/90000"
+IntCount 0 2
+GetInt 0 LiveStream 1
+GetInt 0 StreamCount 1
+StringCount 0 0
+BufferCount 0 0
+IntCount 1 5
+GetInt 1 AvgBitRate 0
+GetInt 1 Port 42
+GetInt 1 RTPPayloadType 101
+GetInt 1 SamplesPerSecond 90000
+GetInt 1 StreamNumber 0
+StringCount 1 2
+GetString 1 ASMRuleBook "marker=0,timestampdelivery=1;marker=1,timestampdelivery=1;"
+GetString 1 MimeType "audio/ABC"
+BufferCount 1 0
+
+# rtpmap field test with encoding, sample rate, and channels
+Init 123456
+Parse 0x00000000 2 "v=0\r\nm=audio 42 RTP/AVP 101\r\na=rtpmap:101 ABC/90000/2"
+IntCount 0 2
+GetInt 0 LiveStream 1
+GetInt 0 StreamCount 1
+StringCount 0 0
+BufferCount 0 0
+IntCount 1 6
+GetInt 1 AvgBitRate 0
+GetInt 1 Channels 2
+GetInt 1 Port 42
+GetInt 1 RTPPayloadType 101
+GetInt 1 SamplesPerSecond 90000
+GetInt 1 StreamNumber 0
+StringCount 1 2
+GetString 1 ASMRuleBook "marker=0,timestampdelivery=1;marker=1,timestampdelivery=1;"
+GetString 1 MimeType "audio/ABC"
+BufferCount 1 0
+
+# fmtp tests
+Init 123456
+Parse 0x00000000 2 "v=0\r\nm=video 42 RTP/AVP 34\r\na=fmtp:34 profile-id=0"
+IntCount 0 2
+GetInt 0 LiveStream 1
+GetInt 0 StreamCount 1
+StringCount 0 0
+BufferCount 0 0
+IntCount 1 9
+GetInt 1 AvgBitRate 0
+GetInt 1 Channels 0
+GetInt 1 FMTPprofile-id 0
+GetInt 1 HXTimestampConversionFactor 1
+GetInt 1 Port 42
+GetInt 1 RTPPayloadType 34
+GetInt 1 RTPTimestampConversionFactor 90
+GetInt 1 SamplesPerSecond 90000
+GetInt 1 StreamNumber 0
+StringCount 1 3
+GetString 1 ASMRuleBook "marker=0,timestampdelivery=1;marker=1,timestampdelivery=1;"
+GetString 1 MimeType "video/H263"
+GetString 1 PayloadParameters "profile-id=0"
+BufferCount 1 0
+
+# Test partial SDP FMTP chunk
+Init 123456
+Parse 0x00000000 1 "a=fmtp:101 object=2;cpresent=1;config=200013901387"
+IntCount 0 2
+GetInt 0 FMTPobject 2
+GetInt 0 FMTPcpresent 1
+StringCount 0 2
+GetString 0 PayloadParameters "object=2;cpresent=1;config=200013901387"
+GetString 0 FMTPconfig "200013901387"
+BufferCount 0 0
+
+# Test the case where the fmtp does not match the RTPPayloadType
+Init 123456
+Parse 0x00000000 2 "m=video 42 RTP/AVP 102\r\na=fmtp:101 object=2;cpresent=1;config=200013901387"
+IntCount 0 2
+GetInt 0 StreamCount 1
+GetInt 0 LiveStream 1
+StringCount 0 0
+BufferCount 0 0
+IntCount 1 4
+GetInt 1 StreamNumber 0
+GetInt 1 AvgBitRate 0
+GetInt 1 RTPPayloadType 102
+GetInt 1 Port 42
+StringCount 1 1
+GetString 1 ASMRuleBook "marker=0,timestampdelivery=1;marker=1,timestampdelivery=1;"
+BufferCount 1 0
+
+# ptime test
+Init 123456
+Parse 0x00000000 2 "v=0\r\nm=video 42 RTP/AVP 34\r\na=ptime:5"
+IntCount 0 2
+GetInt 0 LiveStream 1
+GetInt 0 StreamCount 1
+StringCount 0 0
+BufferCount 0 0
+IntCount 1 9
+GetInt 1 AvgBitRate 0
+GetInt 1 Channels 0
+GetInt 1 HXTimestampConversionFactor 1
+GetInt 1 Port 42
+GetInt 1 Ptime 5
+GetInt 1 RTPPayloadType 34
+GetInt 1 RTPTimestampConversionFactor 90
+GetInt 1 SamplesPerSecond 90000
+GetInt 1 StreamNumber 0
+StringCount 1 2
+GetString 1 ASMRuleBook "marker=0,timestampdelivery=1;marker=1,timestampdelivery=1;"
+GetString 1 MimeType "video/H263"
+BufferCount 1 0
+
+# x-bufferdelay test
+Init 123456
+Parse 0x00000000 2 "v=0\r\nm=video 42 RTP/AVP 34\r\na=x-bufferdelay:43"
+IntCount 0 2
+GetInt 0 LiveStream 1
+GetInt 0 StreamCount 1
+StringCount 0 0
+BufferCount 0 0
+IntCount 1 9
+GetInt 1 AvgBitRate 0
+GetInt 1 Channels 0
+GetInt 1 HXTimestampConversionFactor 1
+GetInt 1 Port 42
+GetInt 1 Preroll 43
+GetInt 1 RTPPayloadType 34
+GetInt 1 RTPTimestampConversionFactor 90
+GetInt 1 SamplesPerSecond 90000
+GetInt 1 StreamNumber 0
+StringCount 1 2
+GetString 1 ASMRuleBook "marker=0,timestampdelivery=1;marker=1,timestampdelivery=1;"
+GetString 1 MimeType "video/H263"
+BufferCount 1 0
+
+# x-bufferdelay test w/ Preroll present
+Init 123456
+Parse 0x00000000 2 "v=0\r\nm=video 42 RTP/AVP 34\r\na=Preroll:integer;64\r\na=x-bufferdelay:43"
+IntCount 0 2
+GetInt 0 LiveStream 1
+GetInt 0 StreamCount 1
+StringCount 0 0
+BufferCount 0 0
+IntCount 1 9
+GetInt 1 AvgBitRate 0
+GetInt 1 Channels 0
+GetInt 1 HXTimestampConversionFactor 1
+GetInt 1 Port 42
+GetInt 1 Preroll 64
+GetInt 1 RTPPayloadType 34
+GetInt 1 RTPTimestampConversionFactor 90
+GetInt 1 SamplesPerSecond 90000
+GetInt 1 StreamNumber 0
+StringCount 1 2
+GetString 1 ASMRuleBook "marker=0,timestampdelivery=1;marker=1,timestampdelivery=1;"
+GetString 1 MimeType "video/H263"
+BufferCount 1 0
+
+# x-initpredecbufperiod test
+Init 123456
+Parse 0x00000000 2 "v=0\r\nm=video 42 RTP/AVP 34\r\na=x-initpredecbufperiod:45000"
+IntCount 0 2
+GetInt 0 LiveStream 1
+GetInt 0 StreamCount 1
+StringCount 0 0
+BufferCount 0 0
+IntCount 1 11
+GetInt 1 AvgBitRate 0
+GetInt 1 Channels 0
+GetInt 1 HXTimestampConversionFactor 1
+GetInt 1 Port 42
+GetInt 1 Preroll 500
+GetInt 1 RTPPayloadType 34
+GetInt 1 RTPTimestampConversionFactor 90
+GetInt 1 SamplesPerSecond 90000
+GetInt 1 StreamNumber 0
+GetInt 1 x-initpredecbufperiod 45000
+GetInt 1 x-predecbufsize 51200
+StringCount 1 2
+GetString 1 ASMRuleBook "marker=0,timestampdelivery=1;marker=1,timestampdelivery=1;"
+GetString 1 MimeType "video/H263"
+BufferCount 1 0
+
+# x-initpredecbufperiod test w/ Preroll present
+Init 123456
+Parse 0x00000000 2 "v=0\r\nm=video 42 RTP/AVP 34\r\na=Preroll:integer;64\r\na=x-initpredecbufperiod:43"
+IntCount 0 2
+GetInt 0 LiveStream 1
+GetInt 0 StreamCount 1
+StringCount 0 0
+BufferCount 0 0
+IntCount 1 11
+GetInt 1 AvgBitRate 0
+GetInt 1 Channels 0
+GetInt 1 HXTimestampConversionFactor 1
+GetInt 1 Port 42
+GetInt 1 Preroll 64
+GetInt 1 RTPPayloadType 34
+GetInt 1 RTPTimestampConversionFactor 90
+GetInt 1 SamplesPerSecond 90000
+GetInt 1 StreamNumber 0
+GetInt 1 x-initpredecbufperiod 43
+GetInt 1 x-predecbufsize 51200
+StringCount 1 2
+GetString 1 ASMRuleBook "marker=0,timestampdelivery=1;marker=1,timestampdelivery=1;"
+GetString 1 MimeType "video/H263"
+BufferCount 1 0
+
+
+# x-initpostdecbufperiod test
+Init 123456
+Parse 0x00000000 2 "v=0\r\nm=video 42 RTP/AVP 34\r\na=x-initpostdecbufperiod:45000"
+IntCount 0 2
+GetInt 0 LiveStream 1
+GetInt 0 StreamCount 1
+StringCount 0 0
+BufferCount 0 0
+IntCount 1 12
+GetInt 1 AvgBitRate 0
+GetInt 1 Channels 0
+GetInt 1 HXTimestampConversionFactor 1
+GetInt 1 Port 42
+GetInt 1 RTPPayloadType 34
+GetInt 1 RTPTimestampConversionFactor 90
+GetInt 1 SamplesPerSecond 90000
+GetInt 1 StreamNumber 0
+GetInt 1 x-initpredecbufperiod 90000
+GetInt 1 x-initpostdecbufperiod 45000
+GetInt 1 x-predecbufsize 51200
+GetInt 1 Preroll 1500
+StringCount 1 2
+GetString 1 ASMRuleBook "marker=0,timestampdelivery=1;marker=1,timestampdelivery=1;"
+GetString 1 MimeType "video/H263"
+BufferCount 1 0
+
+# x-predecbufsize test
+Init 123456
+Parse 0x00000000 2 "v=0\r\nm=video 42 RTP/AVP 34\r\na=x-predecbufsize:45000"
+IntCount 0 2
+GetInt 0 LiveStream 1
+GetInt 0 StreamCount 1
+StringCount 0 0
+BufferCount 0 0
+IntCount 1 11
+GetInt 1 AvgBitRate 0
+GetInt 1 Channels 0
+GetInt 1 HXTimestampConversionFactor 1
+GetInt 1 Port 42
+GetInt 1 x-initpredecbufperiod 90000
+GetInt 1 x-predecbufsize 45000
+GetInt 1 Preroll 1000
+GetInt 1 RTPPayloadType 34
+GetInt 1 RTPTimestampConversionFactor 90
+GetInt 1 SamplesPerSecond 90000
+GetInt 1 StreamNumber 0
+StringCount 1 2
+GetString 1 ASMRuleBook "marker=0,timestampdelivery=1;marker=1,timestampdelivery=1;"
+GetString 1 MimeType "video/H263"
+BufferCount 1 0
+
+
+# x-predecbufsize test default (case 1: AvgBitRate < 65536)
+Init 123456
+Parse 0x00000000 2 "v=0\r\nm=video 42 RTP/AVP 34\r\nb=AS:20\r\na=x-initpredecbufperiod:45000\r\n"
+IntCount 0 2
+GetInt 0 LiveStream 1
+GetInt 0 StreamCount 1
+StringCount 0 0
+BufferCount 0 0
+IntCount 1 11
+GetInt 1 AvgBitRate 20000
+GetInt 1 Channels 0
+GetInt 1 HXTimestampConversionFactor 1
+GetInt 1 Port 42
+GetInt 1 x-initpredecbufperiod 45000
+GetInt 1 x-predecbufsize 20480
+GetInt 1 RTPPayloadType 34
+GetInt 1 RTPTimestampConversionFactor 90
+GetInt 1 SamplesPerSecond 90000
+GetInt 1 StreamNumber 0
+StringCount 1 2
+GetString 1 ASMRuleBook "marker=0,AverageBandwidth=10000;marker=1,AverageBandwidth=10000;"
+GetString 1 MimeType "video/H263"
+BufferCount 1 0
+
+# x-predecbufsize test default (case 2: 65536 <= AvgBitRate <= 131072)
+Init 123456
+Parse 0x00000000 2 "v=0\r\nm=video 42 RTP/AVP 34\r\nb=AS:100\r\na=x-initpredecbufperiod:45000\r\n"
+IntCount 0 2
+GetInt 0 LiveStream 1
+GetInt 0 StreamCount 1
+StringCount 0 0
+BufferCount 0 0
+IntCount 1 11
+GetInt 1 AvgBitRate 100000
+GetInt 1 Channels 0
+GetInt 1 HXTimestampConversionFactor 1
+GetInt 1 Port 42
+GetInt 1 x-initpredecbufperiod 45000
+GetInt 1 x-predecbufsize 40960
+GetInt 1 RTPPayloadType 34
+GetInt 1 RTPTimestampConversionFactor 90
+GetInt 1 SamplesPerSecond 90000
+GetInt 1 StreamNumber 0
+StringCount 1 2
+GetString 1 ASMRuleBook "marker=0,AverageBandwidth=50000;marker=1,AverageBandwidth=50000;"
+GetString 1 MimeType "video/H263"
+BufferCount 1 0
+
+# x-predecbufsize test default (case 3: AvgBitRate > 131072)
+Init 123456
+Parse 0x00000000 2 "v=0\r\nm=video 42 RTP/AVP 34\r\nb=AS:200\r\na=x-initpredecbufperiod:45000\r\n"
+IntCount 0 2
+GetInt 0 LiveStream 1
+GetInt 0 StreamCount 1
+StringCount 0 0
+BufferCount 0 0
+IntCount 1 11
+GetInt 1 AvgBitRate 200000
+GetInt 1 Channels 0
+GetInt 1 HXTimestampConversionFactor 1
+GetInt 1 Port 42
+GetInt 1 x-initpredecbufperiod 45000
+GetInt 1 x-predecbufsize 51200
+GetInt 1 RTPPayloadType 34
+GetInt 1 RTPTimestampConversionFactor 90
+GetInt 1 SamplesPerSecond 90000
+GetInt 1 StreamNumber 0
+StringCount 1 2
+GetString 1 ASMRuleBook "marker=0,AverageBandwidth=100000;marker=1,AverageBandwidth=100000;"
+GetString 1 MimeType "video/H263"
+BufferCount 1 0
+
+
+# x-decbyterate test
+Init 123456
+Parse 0x00000000 2 "v=0\r\nm=video 42 RTP/AVP 34\r\na=x-decbyterate:1234"
+IntCount 0 2
+GetInt 0 LiveStream 1
+GetInt 0 StreamCount 1
+StringCount 0 0
+BufferCount 0 0
+IntCount 1 12
+GetInt 1 AvgBitRate 0
+GetInt 1 Channels 0
+GetInt 1 HXTimestampConversionFactor 1
+GetInt 1 Port 42
+GetInt 1 x-initpredecbufperiod 90000
+GetInt 1 x-predecbufsize 51200
+GetInt 1 x-decbyterate 1234
+GetInt 1 Preroll 1000
+GetInt 1 RTPPayloadType 34
+GetInt 1 RTPTimestampConversionFactor 90
+GetInt 1 SamplesPerSecond 90000
+GetInt 1 StreamNumber 0
+StringCount 1 2
+GetString 1 ASMRuleBook "marker=0,timestampdelivery=1;marker=1,timestampdelivery=1;"
+GetString 1 MimeType "video/H263"
+BufferCount 1 0
+
+# Unknown field test
+Init 123456
+Parse 0x00000000 2 "v=0\r\nm=video 42 RTP/AVP 34\r\na=somefield:5\r\n"
+IntCount 0 2
+GetInt 0 LiveStream 1
+GetInt 0 StreamCount 1
+StringCount 0 0
+BufferCount 0 0
+IntCount 1 8
+GetInt 1 AvgBitRate 0
+GetInt 1 Channels 0
+GetInt 1 HXTimestampConversionFactor 1
+GetInt 1 Port 42
+GetInt 1 RTPPayloadType 34
+GetInt 1 RTPTimestampConversionFactor 90
+GetInt 1 SamplesPerSecond 90000
+GetInt 1 StreamNumber 0
+StringCount 1 3
+GetString 1 ASMRuleBook "marker=0,timestampdelivery=1;marker=1,timestampdelivery=1;"
+GetString 1 MimeType "video/H263"
+GetString 1 SDPData "a=somefield:5\n"
+BufferCount 1 0
+
+# Unknown field test w/ multiple media lines
+Init 123456
+Parse 0x00000000 3 "v=0\r\nm=video 42 RTP/AVP 34\r\na=somefield:5\r\nm=audio 44 RTP/AVP 0\r\n"
+IntCount 0 2
+GetInt 0 LiveStream 1
+GetInt 0 StreamCount 2
+StringCount 0 0
+BufferCount 0 0
+IntCount 1 8
+GetInt 1 AvgBitRate 0
+GetInt 1 Channels 0
+GetInt 1 HXTimestampConversionFactor 1
+GetInt 1 Port 42
+GetInt 1 RTPPayloadType 34
+GetInt 1 RTPTimestampConversionFactor 90
+GetInt 1 SamplesPerSecond 90000
+GetInt 1 StreamNumber 0
+StringCount 1 3
+GetString 1 ASMRuleBook "marker=0,timestampdelivery=1;marker=1,timestampdelivery=1;"
+GetString 1 MimeType "video/H263"
+BufferCount 1 0
+IntCount 2 8
+GetInt 2 AvgBitRate 64000
+GetInt 2 Channels 1
+GetInt 2 HXTimestampConversionFactor 1
+GetInt 2 Port 44
+GetInt 2 RTPPayloadType 0
+GetInt 2 RTPTimestampConversionFactor 8
+GetInt 2 SamplesPerSecond 8000
+GetInt 2 StreamNumber 1
+StringCount 2 2
+GetString 2 ASMRuleBook "marker=0,AverageBandwidth=32000;marker=1,AverageBandwidth=32000;"
+GetString 2 MimeType "audio/PCMU"
+BufferCount 2 0
+
+# SdpplinVersion test where version matches
+Init 123456
+Parse 0x00000000 2 "v=0\r\na=SdpplinVersion:123456\r\nm=video 42 RTP/AVP 34\r\n"
+IntCount 0 2
+GetInt 0 LiveStream 1
+GetInt 0 StreamCount 1
+StringCount 0 0
+BufferCount 0 0
+IntCount 1 8
+GetInt 1 AvgBitRate 0
+GetInt 1 Channels 0
+GetInt 1 HXTimestampConversionFactor 1
+GetInt 1 Port 42
+GetInt 1 RTPPayloadType 34
+GetInt 1 RTPTimestampConversionFactor 90
+GetInt 1 SamplesPerSecond 90000
+GetInt 1 StreamNumber 0
+StringCount 1 2
+GetString 1 ASMRuleBook "marker=0,timestampdelivery=1;marker=1,timestampdelivery=1;"
+GetString 1 MimeType "video/H263"
+BufferCount 1 0
+
+# SdpplinVersion test where version does not match w/o an m= line
+Init 123456
+Parse 0x80040017 0 "v=0\r\na=SdpplinVersion:187654321\r\n"
+
+
+# SdpplinVersion test where version does not match w an m= line
+Init 123456
+Parse 0x80040017 0 "v=0\r\na=SdpplinVersion:187654321\r\nm=video 42 RTP/AVP 34\r\n"
+
+# length field test
+Init 123456
+Parse 0x00000000 1 "v=0\r\na=length:10\r\n"
+IntCount 0 1
+GetInt 0 Duration 10
+StringCount 0 0
+BufferCount 0 0
+
+# length field propagation test
+Init 123456
+Parse 0x00000000 2 "v=0\r\na=length:10\r\nm=video 42 RTP/AVP 34\r\n"
+IntCount 0 2
+GetInt 0 Duration 10
+GetInt 0 StreamCount 1
+StringCount 0 0
+BufferCount 0 0
+IntCount 1 9
+GetInt 1 AvgBitRate 0
+GetInt 1 Channels 0
+GetInt 1 Duration 10
+GetInt 1 HXTimestampConversionFactor 1
+GetInt 1 Port 42
+GetInt 1 RTPPayloadType 34
+GetInt 1 RTPTimestampConversionFactor 90
+GetInt 1 SamplesPerSecond 90000
+GetInt 1 StreamNumber 0
+StringCount 1 2
+GetString 1 ASMRuleBook "marker=0,timestampdelivery=1;marker=1,timestampdelivery=1;"
+GetString 1 MimeType "video/H263"
+BufferCount 0 0
+
+# length field override test
+Init 123456
+Parse 0x00000000 2 "v=0\r\na=length:10\r\nm=video 42 RTP/AVP 34\r\na=length:73\r\n"
+IntCount 0 2
+GetInt 0 Duration 10
+GetInt 0 StreamCount 1
+StringCount 0 0
+BufferCount 0 0
+IntCount 1 9
+GetInt 1 AvgBitRate 0
+GetInt 1 Channels 0
+GetInt 1 Duration 73
+GetInt 1 HXTimestampConversionFactor 1
+GetInt 1 Port 42
+GetInt 1 RTPPayloadType 34
+GetInt 1 RTPTimestampConversionFactor 90
+GetInt 1 SamplesPerSecond 90000
+GetInt 1 StreamNumber 0
+StringCount 1 2
+GetString 1 ASMRuleBook "marker=0,timestampdelivery=1;marker=1,timestampdelivery=1;"
+GetString 1 MimeType "video/H263"
+BufferCount 1 0
+
+# length field override propagation test
+Init 123456
+Parse 0x00000000 3 "v=0\r\na=length:10\r\nm=video 42 RTP/AVP 34\r\na=length:73\r\nm=video 44 RTP/AVP 0\r\n"
+IntCount 0 2
+GetInt 0 Duration 10
+GetInt 0 StreamCount 2
+StringCount 0 0
+BufferCount 0 0
+IntCount 1 9
+GetInt 1 AvgBitRate 0
+GetInt 1 Channels 0
+GetInt 1 Duration 73
+GetInt 1 HXTimestampConversionFactor 1
+GetInt 1 Port 42
+GetInt 1 RTPPayloadType 34
+GetInt 1 RTPTimestampConversionFactor 90
+GetInt 1 SamplesPerSecond 90000
+GetInt 1 StreamNumber 0
+StringCount 1 2
+GetString 1 ASMRuleBook "marker=0,timestampdelivery=1;marker=1,timestampdelivery=1;"
+GetString 1 MimeType "video/H263"
+BufferCount 1 0
+IntCount 2 9
+GetInt 2 AvgBitRate 64000
+GetInt 2 Channels 1
+GetInt 2 Duration 10
+GetInt 2 HXTimestampConversionFactor 1
+GetInt 2 Port 44
+GetInt 2 RTPPayloadType 0
+GetInt 2 RTPTimestampConversionFactor 8
+GetInt 2 SamplesPerSecond 8000
+GetInt 2 StreamNumber 1
+StringCount 2 2
+GetString 2 ASMRuleBook "marker=0,AverageBandwidth=32000;marker=1,AverageBandwidth=32000;"
+GetString 2 MimeType "audio/PCMU"
+BufferCount 1 0
+
+# length field propagation test. The length from the first stream is
+# propagated to the second stream
+Init 123456
+Parse 0x00000000 3 "v=0\r\nm=video 42 RTP/AVP 34\r\na=length:73\r\nm=video 44 RTP/AVP 0\r\n"
+IntCount 0 1
+GetInt 0 StreamCount 2
+StringCount 0 0
+BufferCount 0 0
+IntCount 1 9
+GetInt 1 AvgBitRate 0
+GetInt 1 Channels 0
+GetInt 1 Duration 73
+GetInt 1 HXTimestampConversionFactor 1
+GetInt 1 Port 42
+GetInt 1 RTPPayloadType 34
+GetInt 1 RTPTimestampConversionFactor 90
+GetInt 1 SamplesPerSecond 90000
+GetInt 1 StreamNumber 0
+StringCount 1 2
+GetString 1 ASMRuleBook "marker=0,timestampdelivery=1;marker=1,timestampdelivery=1;"
+GetString 1 MimeType "video/H263"
+BufferCount 1 0
+IntCount 2 9
+GetInt 2 AvgBitRate 64000
+GetInt 2 Channels 1
+GetInt 2 Duration 73
+GetInt 2 HXTimestampConversionFactor 1
+GetInt 2 Port 44
+GetInt 2 RTPPayloadType 0
+GetInt 2 RTPTimestampConversionFactor 8
+GetInt 2 SamplesPerSecond 8000
+GetInt 2 StreamNumber 1
+StringCount 2 2
+GetString 2 ASMRuleBook "marker=0,AverageBandwidth=32000;marker=1,AverageBandwidth=32000;"
+GetString 2 MimeType "audio/PCMU"
+BufferCount 2 0
+
+# length field test using npt
+Init 123456
+Parse 0x00000000 1 "v=0\r\na=length:npt=42.234\r\n"
+IntCount 0 1
+GetInt 0 Duration 42234
+StringCount 0 0
+BufferCount 0 0
+
+# test invalid range
+Init 123456
+Parse 0x8004008E 0 "v=0\r\na=range:npt=42\r\n"
+#IntCount 0 0
+#StringCount 0 0
+#BufferCount 0 0
+
+# test open ended range
+Init 123456
+Parse 0x00000000 1 "v=0\r\na=range:npt=0-\r\n"
+IntCount 0 1
+GetInt 0 Duration 0
+StringCount 0 0
+BufferCount 0 0
+
+# test open ended range
+Init 123456
+Parse 0x00000000 1 "v=0\r\na=range:npt=64-\r\n"
+IntCount 0 1
+GetInt 0 Duration 0
+StringCount 0 0
+BufferCount 0 0
+
+# test range that is not in npt form
+Init 123456
+Parse 0x8004008E 0 "v=0\r\na=range:64\r\n"
+#IntCount 0 1
+#GetInt 0 Duration 64
+#StringCount 0 0
+#BufferCount 0 0
+
+# test range with no start value
+Init 123456
+Parse 0x00000000 1 "v=0\r\na=range:npt=-71.98\r\n"
+IntCount 0 1
+GetInt 0 Duration 71980
+StringCount 0 0
+BufferCount 0 0
+
+# test range with a start and end value
+Init 123456
+Parse 0x00000000 1 "v=0\r\na=range:npt=65.28-71.98\r\n"
+IntCount 0 1
+GetInt 0 Duration 6700
+StringCount 0 0
+BufferCount 0 0
+
+# test length before range
+Init 123456
+Parse 0x8004008E 0 "v=0\r\na=length:32\r\na=range:64\r\n"
+#IntCount 0 1
+#GetInt 0 Duration 64
+#StringCount 0 0
+#BufferCount 0 0
+
+# test range before length
+Init 123456
+Parse 0x8004008E 0 "v=0\r\na=range:32\r\na=length:64\r\n"
+#IntCount 0 1
+#GetInt 0 Duration 64
+#StringCount 0 0
+#BufferCount 0 0
+
+# test range before length with propagation
+Init 123456
+Parse 0x00000000 2 "v=0\r\na=range:0-32\r\na=length:64\r\nm=video 42 RTP/AVP 34\r\n"
+IntCount 0 2
+GetInt 0 Duration 64
+GetInt 0 StreamCount 1
+StringCount 0 0
+BufferCount 0 0
+IntCount 1 9
+GetInt 1 AvgBitRate 0
+GetInt 1 Channels 0
+GetInt 1 Duration 32000
+GetInt 1 HXTimestampConversionFactor 1
+GetInt 1 Port 42
+GetInt 1 RTPPayloadType 34
+GetInt 1 RTPTimestampConversionFactor 90
+GetInt 1 SamplesPerSecond 90000
+GetInt 1 StreamNumber 0
+StringCount 1 2
+GetString 1 ASMRuleBook "marker=0,timestampdelivery=1;marker=1,timestampdelivery=1;"
+GetString 1 MimeType "video/H263"
+BufferCount 1 0
+
+# test control field
+Init 123456
+Parse 0x00000000 1 "v=0\r\na=control:rtsp://foobar.com/blah.rm\r\n"
+IntCount 0 0
+StringCount 0 1
+GetString 0 Control "rtsp://foobar.com/blah.rm"
+BufferCount 0 0
+
+# test RN integer field
+Init 123456
+Parse 0x00000000 1 "v=0\r\na=anint:integer;100\r\n"
+IntCount 0 1
+GetInt 0 anint 100
+StringCount 0 0
+BufferCount 0 0
+
+# test RN string field
+Init 123456
+Parse 0x00000000 1 "v=0\r\na=astring:string;\"this is a test\"\r\n"
+IntCount 0 0
+StringCount 0 1
+GetString 0 astring "this is a test"
+BufferCount 0 0
+
+# test RN buffer field
+Init 123456
+Parse 0x00000000 1 "v=0\r\na=abuffer:buffer;\"TWFjIFRWAA==\"\r\n"
+IntCount 0 0
+StringCount 0 0
+BufferCount 0 1
+GetBuffer 0 abuffer "4d616320545600"
+
+# test illegal RN buffer field
+Init 123456
+Parse 0x00000000 1 "v=0\r\na=abuffer:buffer;\"TWFjIFRWAA=\"\r\n"
+IntCount 0 0
+StringCount 0 0
+BufferCount 0 0
+
+# test a field with a ';' it but is not an RN field
+Init 123456
+Parse 0x00000000 1 "v=0\r\na=foo:bar;blah\r\n"
+IntCount 0 0
+StringCount 0 1
+GetString 0 SDPData "a=foo:bar;blah\n"
+BufferCount 0 0
+
+# test session level "c=" line
+Init 123456
+Parse 0x00000000 1 "v=0\r\nc=IN IP4 123.231.123.123\r\n"
+IntCount 0 0
+StringCount 0 1
+GetString 0 MulticastAddress "123.231.123.123"
+BufferCount 0 0
+
+# test media level "c=" line
+Init 123456
+Parse 0x00000000 2 "v=0\r\nm=video 42 RTP/AVP 34\r\nc=IN IP4 123.231.123.123\r\n"
+IntCount 0 2
+GetInt 0 LiveStream 1
+GetInt 0 StreamCount 1
+StringCount 0 0
+BufferCount 0 0
+IntCount 1 8
+GetInt 1 AvgBitRate 0
+GetInt 1 Channels 0
+GetInt 1 HXTimestampConversionFactor 1
+GetInt 1 Port 42
+GetInt 1 RTPPayloadType 34
+GetInt 1 RTPTimestampConversionFactor 90
+GetInt 1 SamplesPerSecond 90000
+GetInt 1 StreamNumber 0
+StringCount 1 3
+GetString 1 ASMRuleBook "marker=0,timestampdelivery=1;marker=1,timestampdelivery=1;"
+GetString 1 MimeType "video/H263"
+GetString 1 MulticastAddress "123.231.123.123"
+BufferCount 1 0
+
+# test session level "c=" line with TTL
+Init 123456
+Parse 0x00000000 1 "v=0\r\nc=IN IP4 123.231.123.123/10\r\n"
+IntCount 0 1
+GetInt 0 MulticastTTL 10
+StringCount 0 1
+GetString 0 MulticastAddress "123.231.123.123"
+BufferCount 0 0
+
+# test media level "c=" line with TTL and address range
+Init 123456
+Parse 0x00000000 2 "v=0\r\nm=video 42 RTP/AVP 34\r\nc=IN IP4 123.231.123.123/10/3\r\n"
+IntCount 0 2
+GetInt 0 LiveStream 1
+GetInt 0 StreamCount 1
+StringCount 0 0
+BufferCount 0 0
+IntCount 1 10
+GetInt 1 AvgBitRate 0
+GetInt 1 Channels 0
+GetInt 1 HXTimestampConversionFactor 1
+GetInt 1 MulticastRange 3
+GetInt 1 MulticastTTL 10
+GetInt 1 Port 42
+GetInt 1 RTPPayloadType 34
+GetInt 1 RTPTimestampConversionFactor 90
+GetInt 1 SamplesPerSecond 90000
+GetInt 1 StreamNumber 0
+StringCount 1 3
+GetString 1 ASMRuleBook "marker=0,timestampdelivery=1;marker=1,timestampdelivery=1;"
+GetString 1 MimeType "video/H263"
+GetString 1 MulticastAddress "123.231.123.123"
+BufferCount 1 0
+
+# test "t=" lines. We don't really care about these lines
+Init 123456
+Parse 0x00000000 1 "v=0\r\nt=123456 234567\r\n"
+IntCount 0 0
+StringCount 0 0
+BufferCount 0 0
+
+# test session level "b=AS" lines
+Init 123456
+Parse 0x00000000 1 "v=0\r\nb=AS:100\r\n"
+IntCount 0 1
+GetInt 0 AvgBitRate 100000
+StringCount 0 0
+BufferCount 0 0
+
+# test media level "b=AS" lines
+Init 123456
+Parse 0x00000000 2 "v=0\r\nm=video 42 RTP/AVP 34\r\nb=AS:432\r\n"
+IntCount 0 2
+GetInt 0 LiveStream 1
+GetInt 0 StreamCount 1
+StringCount 0 0
+BufferCount 0 0
+IntCount 1 8
+GetInt 1 AvgBitRate 432000
+GetInt 1 Channels 0
+GetInt 1 HXTimestampConversionFactor 1
+GetInt 1 Port 42
+GetInt 1 RTPPayloadType 34
+GetInt 1 RTPTimestampConversionFactor 90
+GetInt 1 SamplesPerSecond 90000
+GetInt 1 StreamNumber 0
+StringCount 1 2
+GetString 1 ASMRuleBook "marker=0,AverageBandwidth=216000;marker=1,AverageBandwidth=216000;"
+GetString 1 MimeType "video/H263"
+BufferCount 1 0
+
+# test session level "b=RS" lines
+Init 123456
+Parse 0x00000000 1 "v=0\r\nb=RS:1234\r\n"
+IntCount 0 1
+GetInt 0 RtcpRSRate 1234
+StringCount 0 0
+BufferCount 0 0
+
+# test session level "b=RR" lines
+Init 123456
+Parse 0x00000000 1 "v=0\r\nb=RR:423\r\n"
+IntCount 0 1
+GetInt 0 RtcpRRRate 423
+StringCount 0 0
+BufferCount 0 0
+
+# test session level "i=" line
+Init 123456
+Parse 0x00000000 1 "v=0\r\ni=this is a test\r\n"
+IntCount 0 0
+StringCount 0 1
+GetString 0 Information "this is a test"
+BufferCount 0 0
+
+# test media level "i=" line
+Init 123456
+Parse 0x00000000 2 "v=0\r\nm=video 42 RTP/AVP 34\r\ni=this is a test\r\n"
+IntCount 0 2
+GetInt 0 LiveStream 1
+GetInt 0 StreamCount 1
+StringCount 0 0
+BufferCount 0 0
+IntCount 1 8
+GetInt 1 AvgBitRate 0
+GetInt 1 Channels 0
+GetInt 1 HXTimestampConversionFactor 1
+GetInt 1 Port 42
+GetInt 1 RTPPayloadType 34
+GetInt 1 RTPTimestampConversionFactor 90
+GetInt 1 SamplesPerSecond 90000
+GetInt 1 StreamNumber 0
+StringCount 1 3
+GetString 1 ASMRuleBook "marker=0,timestampdelivery=1;marker=1,timestampdelivery=1;"
+GetString 1 Information "this is a test"
+GetString 1 MimeType "video/H263"
+BufferCount 1 0
+
+# test a case where there are '\n' characters in a quoted string. This
+# case was taken from a RealServer that put '\n' characters in the ASMRuleBook
+# field
+
+Init 1610643188
+Parse 0x00000000 2 "v=0\no=- 1061569100 1061569100 IN IP4 172.16.0.99\ns=<No title>\ni=<No author> <No copyright>\nc=IN IP4 0.0.0.0\nt=0 0\na=SdpplinVersion:1610643188\na=Width:integer;662\na=Height:integer;443\na=IsRealDataType:integer;1\na=StreamCount:integer;1\na=range:npt=0-5\nm=application 0 RTP/AVP 101\nb=AS:12\na=control:streamid=0\na=range:npt=0-5\na=length:npt=5\na=rtpmap:101 vnd.rn-gifstream2\na=mimetype:string;\"application/vnd.rn-gifstream2\"\na=RendererFlags:integer;0\na=StartTime:integer;0\na=AvgBitRate:integer;12000\na=StreamVersion:integer;0\na=PreDataAfterSeek:integer;0\na=AvgPacketSize:integer;500\na=PreData:integer;7310\na=PreRollAfterSeek:integer;1\na=Preroll:integer;5114\na=ContentVersion:integer;0\na=PreDataAtStart:integer;1\na=PreRollAtStart:integer;0\na=MaxPacketSize:integer;600\na=MaxBitRate:integer;12000\na=OpaqueData:buffer;\"AAAAAAAA////AAAAAAAAbQAAAAEAAAASAAAcb0dJRjg5YZYCuwHEAAD////MzMwAAACZmZkAZplkkbZmZmYzZpn/tIz/xaji5+tHREWWsMLO197/oEKxsrMiGRfb4eYEfcT/4dMjHyA9hrESUHcYQFkHcK7t8fTo7O//8uUzMzMAAAAAAAAAAAAh+QQAAAAAACwAAAAAlgK7AQBA\"\na=ASMRuleBook:string;\"AverageBandwidth=12000,\nPriority=5;\nAverageBandwidth=0,\nPriority=9;\"\n"
+IntCount 0 5
+GetInt 0 Duration 5000
+GetInt 0 Height 443
+GetInt 0 IsRealDataType 1
+GetInt 0 StreamCount 1
+GetInt 0 Width 662
+StringCount 0 2
+GetString 0 "Information" "<No author> <No copyright>"
+GetString 0 "MulticastAddress" "0.0.0.0"
+BufferCount 0 1
+IntCount 1 17
+GetInt 1 AvgBitRate 12000
+GetInt 1 AvgPacketSize 500
+GetInt 1 ContentVersion 0
+GetInt 1 Duration 5000
+GetInt 1 MaxBitRate 12000
+GetInt 1 MaxPacketSize 600
+GetInt 1 PreData 7310
+GetInt 1 PreDataAfterSeek 0
+GetInt 1 PreDataAtStart 1
+GetInt 1 Preroll 5114
+GetInt 1 PreRollAfterSeek 1
+GetInt 1 PreRollAtStart 0
+GetInt 1 RendererFlags 0
+GetInt 1 RTPPayloadType 101
+GetInt 1 StartTime 0
+GetInt 1 StreamNumber 0
+GetInt 1 StreamVersion 0
+StringCount 1 3
+GetString 1 "ASMRuleBook" "AverageBandwidth=12000,\nPriority=5;\nAverageBandwidth=0,\nPriority=9;"
+GetString 1 "Control" "streamid=0"
+GetString 1 "MimeType" "application/vnd.rn-gifstream2"
+BufferCount 1 1
+GetBuffer 1 "OpaqueData" "000000000000ffffff0000000000006d000000010000001200001c6f4749463839619602bb01c40000ffffffcccccc0000009999990066996491b6666666336699ffb48cffc5a8e2e7eb47444596b0c2ced7deffa042b1b2b3221917dbe1e6047dc4ffe1d3231f203d86b11250771840590770aeedf1f4e8eceffff2e533333300000000000000000021f90400000000002c000000009602bb010040"
+
+# test 3GPP-Adaptation-Support attribute
+Init 123456
+Parse 0x00000000 2 "v=0\r\nm=audio 42 RTP/AVP 101\r\na=3GPP-Adaptation-Support:5\r\n"
+IntCount 0 2
+GetInt 0 LiveStream 1
+GetInt 0 StreamCount 1
+StringCount 0 0
+BufferCount 0 0
+IntCount 1 5
+GetInt 1 AvgBitRate 0
+GetInt 1 Port 42
+GetInt 1 RTPPayloadType 101
+GetInt 1 StreamNumber 0
+GetInt 1 3GPP-Adaptation-Support 5
+StringCount 1 1
+GetString 1 ASMRuleBook "marker=0,timestampdelivery=1;marker=1,timestampdelivery=1;"
+BufferCount 1 0
+
+# test alt-default-id attribute
+Init 123456
+Parse 0x00000000 2 "v=0\r\nm=audio 42 RTP/AVP 101\r\na=alt-default-id:234\r\n"
+IntCount 0 2
+GetInt 0 LiveStream 1
+GetInt 0 StreamCount 1
+StringCount 0 0
+BufferCount 0 0
+IntCount 1 5
+GetInt 1 AvgBitRate 0
+GetInt 1 Port 42
+GetInt 1 RTPPayloadType 101
+GetInt 1 StreamNumber 0
+GetInt 1 alt-default-id 234
+StringCount 1 1
+GetString 1 ASMRuleBook "marker=0,timestampdelivery=1;marker=1,timestampdelivery=1;"
+BufferCount 1 0
+
+# test alt attributes based on 3GPP spec example
+Init 123456
+Parse 0x00000000 2 "v=0\r\nm=audio 0 RTP/AVP 97\r\nb=AS:12\r\na=rtpmap:97 AMR/8000\r\na=control:trackID=1\r\na=fmtp:97 octet-align=1\r\na=range:npt=0-150.2\r\na=alt-default-id:1\r\na=alt:2:b=AS:16\r\na=alt:2:a=control:trackID=2\r\n"
+IntCount 0 1
+GetInt 0 StreamCount 1
+StringCount 0 0
+BufferCount 0 0
+ObjectCount 0 0
+IntCount 1 7
+GetInt 1 AvgBitRate 12000
+GetInt 1 RTPPayloadType 97
+GetInt 1 StreamNumber 0
+GetInt 1 alt-default-id 1
+GetInt 1 FMTPoctet-align 1
+GetInt 1 Duration 150199
+GetInt 1 SamplesPerSecond 8000
+StringCount 1 4
+GetString 1 ASMRuleBook "marker=0,AverageBandwidth=6000;marker=1,AverageBandwidth=6000;"
+GetString 1 Control trackID=1
+GetString 1 Mimetype "audio/AMR"
+GetString 1 PayloadParameters "octet-align=1"
+BufferCount 1 0
+ObjectCount 1 1
+GetIHXValues 1 alt A
+IntCount A 0
+StringCount A 0
+BufferCount A 0
+ObjectCount A 1
+GetIHXValues A 2 B
+IntCount B 1
+GetInt B AvgBitRate 16000
+StringCount B 1
+GetString B Control trackID=2
+BufferCount B 0
+ObjectCount B 0
+
+# test the case where an alt has a different mimetype
+Init 123456
+Parse 0x00000000 2 "v=0\r\nm=audio 0 RTP/AVP 97\r\nb=AS:12\r\na=rtpmap:97 AMR/8000\r\na=control:trackID=1\r\na=fmtp:97 octet-align=1\r\na=range:npt=0-150.2\r\na=alt-default-id:1\r\na=alt:2:b=AS:18\r\na=alt:2:a=control:trackID=2\r\na=alt:2:a=rtpmap:97 AMR-WB/16000\r\n"
+IntCount 0 1
+GetInt 0 StreamCount 1
+StringCount 0 0
+BufferCount 0 0
+ObjectCount 0 0
+IntCount 1 7
+GetInt 1 AvgBitRate 12000
+GetInt 1 RTPPayloadType 97
+GetInt 1 StreamNumber 0
+GetInt 1 alt-default-id 1
+GetInt 1 FMTPoctet-align 1
+GetInt 1 Duration 150199
+GetInt 1 SamplesPerSecond 8000
+StringCount 1 4
+GetString 1 ASMRuleBook "marker=0,AverageBandwidth=6000;marker=1,AverageBandwidth=6000;"
+GetString 1 Control trackID=1
+GetString 1 Mimetype "audio/AMR"
+GetString 1 PayloadParameters "octet-align=1"
+BufferCount 1 0
+ObjectCount 1 1
+GetIHXValues 1 alt A
+IntCount A 0
+StringCount A 0
+BufferCount A 0
+ObjectCount A 1
+GetIHXValues A 2 B
+IntCount B 2
+GetInt B AvgBitRate 18000
+GetInt B SamplesPerSecond 16000
+StringCount B 2
+GetString B Control trackID=2
+GetString B MimeType audio/AMR-WB
+BufferCount B 0
+ObjectCount B 0
+
+# test alt & alt-group attributes. Based on 3GPP spec example
+Init 123456
+Parse 0x00000000 3 "v=0\r\no=ericsson_user 1 1 IN IP4 130.240.188.69\r\ns=A basic audio and video presentation\r\nc=IN IP4 0.0.0.0\r\nb=AS:56\r\na=control:*\r\na=range:npt=0-150.2\r\na=alt-group:BW:AS:28=1,3;56=1,4;60=2,4;120=2,5\r\nt=0 0\r\nm=audio 0 RTP/AVP 97\r\nb=AS:12\r\na=rtpmap:97 AMR/8000\r\na=control:trackID=1\r\na=fmtp:97 octet-align=1\r\na=range:npt=0-150.2\r\na=alt-default-id:1\r\na=alt:2:b=AS:16\r\na=alt:2:a=control:trackID=2\r\nm=video 0 RTP/AVP 98\r\nb=AS:44\r\na=rtpmap:98 MP4V-ES/90000\r\na=control:trackID=4\r\na=fmtp:98 profile-level-id=8; config=01010000012000884006682C2090A21F\r\na=range:npt=0-150.2\r\na=X-initpredecbufperiod:98000\r\na=alt-default-id:4\r\na=alt:3:b=AS:16\r\na=alt:3:a=control:trackID=3\r\na=alt:3:a=X-initpredecbufperiod:48000\r\na=alt:5:b=AS:104\r\na=alt:5:a=control:trackID=5\r\na=alt:5:a=X-initpredecbufperiod:150000\r\n"
+
+# check session level fields
+IntCount 0 3
+GetInt 0 StreamCount 2
+GetInt 0 Duration 150199
+GetInt 0 AvgBitRate 56000
+StringCount 0 2
+GetString 0 Control *
+GetString 0 MulticastAddress 0.0.0.0
+BufferCount 0 1
+ObjectCount 0 1
+
+# check alt-group info
+GetIHXValues 0 Alt-Group A
+IntCount A 0
+StringCount A 0
+BufferCount A 0
+ObjectCount A 1
+
+# check alt-group BW:AS info
+GetIHXValues A BW:AS B
+IntCount B 0
+StringCount B 0
+BufferCount B 0
+ObjectCount B 4
+
+GetIHXList B 28
+ListGetCount 1
+ListItrBegin
+ListItrGetBuffer "0000000100000003"
+ListItrNext 0
+
+GetIHXList B 56
+ListGetCount 1
+ListItrBegin 
+ListItrGetBuffer "0000000100000004"
+ListItrNext 0
+
+GetIHXList B 60
+ListGetCount 1
+ListItrBegin 
+ListItrGetBuffer "0000000200000004"
+ListItrNext 0
+
+GetIHXList B 120
+ListGetCount 1
+ListItrBegin 
+ListItrGetBuffer "0000000200000005"
+ListItrNext 0
+
+# check stream 0 fields
+IntCount 1 7
+GetInt 1 StreamNumber 0
+GetInt 1 Duration 150199
+GetInt 1 RTPPayloadType 97
+GetInt 1 AvgBitRate 12000
+GetInt 1 SamplesPerSecond 8000
+GetInt 1 alt-default-id 1
+GetInt 1 FMTPoctet-align 1
+StringCount 1 4
+GetString 1 MimeType audio/AMR
+GetString 1 Control trackID=1
+GetString 1 PayloadParameters "octet-align=1"
+GetString 1 ASMRuleBook "marker=0,AverageBandwidth=6000;marker=1,AverageBandwidth=6000;"
+BufferCount 1 0
+
+# check stream 0 alternate info
+ObjectCount 1 1
+GetIHXValues 1 Alt A
+IntCount A 0
+StringCount A 0
+BufferCount A 0
+ObjectCount A 1
+
+# Get info for alt-id 2
+GetIHXValues A 2 B
+IntCount B 1
+GetInt B AvgBitRate 16000
+StringCount B 1
+GetString B Control trackID=2
+BufferCount B 0
+ObjectCount B 0
+
+# check stream 1 fields
+IntCount 2 10
+GetInt 2 StreamNumber 1
+GetInt 2 Duration 150199
+GetInt 2 RTPPayloadType 98
+GetInt 2 AvgBitRate 44000
+GetInt 2 SamplesPerSecond 90000
+GetInt 2 alt-default-id 4
+GetInt 2 FMTPprofile-level-id 8
+GetInt 2 Preroll 1088
+GetInt 2 x-initpredecbufperiod 98000
+GetInt 2 x-predecbufsize 20480
+StringCount 2 5
+GetString 2 MimeType video/MP4V-ES
+GetString 2 Control trackID=4
+GetString 2 PayloadParameters "profile-level-id=8; config=01010000012000884006682C2090A21F"
+GetString 2 ASMRuleBook "marker=0,AverageBandwidth=22000;marker=1,AverageBandwidth=22000;"
+GetString 2 FMTPconfig "01010000012000884006682C2090A21F"
+BufferCount 2 0
+
+# check stream 1 alternate info
+ObjectCount 2 1
+GetIHXValues 2 Alt A
+IntCount A 0
+StringCount A 0
+BufferCount A 0
+ObjectCount A 2
+
+# Get info for alt-id 3
+GetIHXValues A 3 B
+IntCount B 3
+GetInt B AvgBitRate 16000
+GetInt B Preroll 533
+GetInt B x-initpredecbufperiod 48000
+StringCount B 1
+GetString B Control trackID=3
+BufferCount B 0
+ObjectCount B 0
+
+# Get info for alt-id 5
+GetIHXValues A 5 B
+IntCount B 3
+GetInt B AvgBitRate 104000
+GetInt B Preroll 1666
+GetInt B x-initpredecbufperiod 150000
+StringCount B 1
+GetString B Control trackID=5
+BufferCount B 0
+ObjectCount B 0
+
+# test an alt-group line w/ 2 groupID that are the same
+Init 123456
+Parse 0x00000000 1 "v=0\r\na=alt-group:BW:AS:28=4,5;28=1,2\r\n"
+IntCount 0 0
+StringCount 0 0
+BufferCount 0 0
+ObjectCount 0 1
+
+GetIHXValues 0 Alt-Group A
+GetIHXValues A BW:AS B
+IntCount B 0
+StringCount B 0
+BufferCount B 0
+ObjectCount B 1
+
+GetIHXList B 28
+ListGetCount 2
+ListItrBegin
+ListItrGetBuffer "0000000400000005"
+ListItrNext 1
+ListItrGetBuffer "0000000100000002"
+ListItrNext 0
+
+# test invalid alt cases
+
+# test invalid alt id
+Init 123456
+Parse 0x00000000 2 "v=0\r\nm=audio 42 RTP/AVP 101\r\na=alt:fsdaf:b=AS:12\r\n"
+IntCount 0 2
+GetInt 0 LiveStream 1
+GetInt 0 StreamCount 1
+StringCount 0 0
+BufferCount 0 0
+IntCount 1 4
+GetInt 1 AvgBitRate 0
+GetInt 1 Port 42
+GetInt 1 RTPPayloadType 101
+GetInt 1 StreamNumber 0
+StringCount 1 2
+GetString 1 ASMRuleBook "marker=0,timestampdelivery=1;marker=1,timestampdelivery=1;"
+GetString 1 SDPData "a=alt:fsdaf:b=AS:12\n"
+BufferCount 1 0
+
+# test empty alt id
+Init 123456
+Parse 0x00000000 2 "v=0\r\nm=audio 42 RTP/AVP 101\r\na=alt::b=AS:12\r\n"
+IntCount 0 2
+GetInt 0 LiveStream 1
+GetInt 0 StreamCount 1
+StringCount 0 0
+BufferCount 0 0
+IntCount 1 4
+GetInt 1 AvgBitRate 0
+GetInt 1 Port 42
+GetInt 1 RTPPayloadType 101
+GetInt 1 StreamNumber 0
+StringCount 1 2
+GetString 1 ASMRuleBook "marker=0,timestampdelivery=1;marker=1,timestampdelivery=1;"
+GetString 1 SDPData "a=alt::b=AS:12\n"
+BufferCount 1 0
+
+# test alt line with no SDP line
+Init 123456
+Parse 0x00000000 2 "v=0\r\nm=audio 42 RTP/AVP 101\r\na=alt:123\r\n"
+IntCount 0 2
+GetInt 0 LiveStream 1
+GetInt 0 StreamCount 1
+StringCount 0 0
+BufferCount 0 0
+IntCount 1 4
+GetInt 1 AvgBitRate 0
+GetInt 1 Port 42
+GetInt 1 RTPPayloadType 101
+GetInt 1 StreamNumber 0
+StringCount 1 2
+GetString 1 ASMRuleBook "marker=0,timestampdelivery=1;marker=1,timestampdelivery=1;"
+GetString 1 SDPData "a=alt:123\n"
+BufferCount 1 0
+
+# test alt line with no SDP line (case 2)
+Init 123456
+Parse 0x00000000 2 "v=0\r\nm=audio 42 RTP/AVP 101\r\na=alt:123:\r\n"
+IntCount 0 2
+GetInt 0 LiveStream 1
+GetInt 0 StreamCount 1
+StringCount 0 0
+BufferCount 0 0
+IntCount 1 4
+GetInt 1 AvgBitRate 0
+GetInt 1 Port 42
+GetInt 1 RTPPayloadType 101
+GetInt 1 StreamNumber 0
+StringCount 1 2
+GetString 1 ASMRuleBook "marker=0,timestampdelivery=1;marker=1,timestampdelivery=1;"
+GetString 1 SDPData "a=alt:123:\n"
+BufferCount 1 0
+
+# test alt line with something other than an SDP line
+Init 123456
+Parse 0x00000000 2 "v=0\r\nm=audio 42 RTP/AVP 101\r\na=alt:123:afd\r\n"
+IntCount 0 2
+GetInt 0 LiveStream 1
+GetInt 0 StreamCount 1
+StringCount 0 0
+BufferCount 0 0
+IntCount 1 4
+GetInt 1 AvgBitRate 0
+GetInt 1 Port 42
+GetInt 1 RTPPayloadType 101
+GetInt 1 StreamNumber 0
+StringCount 1 2
+GetString 1 ASMRuleBook "marker=0,timestampdelivery=1;marker=1,timestampdelivery=1;"
+GetString 1 SDPData "a=alt:123:afd\n"
+BufferCount 1 0
+
+# test alt line with a partial SDP line
+Init 123456
+Parse 0x00000000 2 "v=0\r\nm=audio 42 RTP/AVP 101\r\na=alt:123:b\r\n"
+IntCount 0 2
+GetInt 0 LiveStream 1
+GetInt 0 StreamCount 1
+StringCount 0 0
+BufferCount 0 0
+IntCount 1 4
+GetInt 1 AvgBitRate 0
+GetInt 1 Port 42
+GetInt 1 RTPPayloadType 101
+GetInt 1 StreamNumber 0
+StringCount 1 2
+GetString 1 ASMRuleBook "marker=0,timestampdelivery=1;marker=1,timestampdelivery=1;"
+GetString 1 SDPData "a=alt:123:b\n"
+BufferCount 1 0
+
+# test alt line with a partial SDP line (case 2)
+Init 123456
+Parse 0x00000000 2 "v=0\r\nm=audio 42 RTP/AVP 101\r\na=alt:123:b=\r\n"
+IntCount 0 2
+GetInt 0 LiveStream 1
+GetInt 0 StreamCount 1
+StringCount 0 0
+BufferCount 0 0
+IntCount 1 4
+GetInt 1 AvgBitRate 0
+GetInt 1 Port 42
+GetInt 1 RTPPayloadType 101
+GetInt 1 StreamNumber 0
+StringCount 1 2
+GetString 1 ASMRuleBook "marker=0,timestampdelivery=1;marker=1,timestampdelivery=1;"
+GetString 1 SDPData "a=alt:123:b=\n"
+BufferCount 1 0
+
+# test alt line with a partial SDP line (case 3)
+Init 123456
+Parse 0x00000000 2 "v=0\r\nm=audio 42 RTP/AVP 101\r\na=alt:123:b=AS\r\n"
+IntCount 0 2
+GetInt 0 LiveStream 1
+GetInt 0 StreamCount 1
+StringCount 0 0
+BufferCount 0 0
+IntCount 1 4
+GetInt 1 AvgBitRate 0
+GetInt 1 Port 42
+GetInt 1 RTPPayloadType 101
+GetInt 1 StreamNumber 0
+StringCount 1 2
+GetString 1 ASMRuleBook "marker=0,timestampdelivery=1;marker=1,timestampdelivery=1;"
+GetString 1 SDPData "a=alt:123:b=AS\n"
+BufferCount 1 0
+
+# test invalid alt-group cases
+
+# test an empty alt-group line
+Init 123456
+Parse 0x00000000 1 "v=0\r\na=alt-group:\r\n"
+IntCount 0 0
+StringCount 0 1
+GetString 0 SDPData "a=alt-group:\n"
+BufferCount 0 0
+ObjectCount 0 0
+
+# test an alt-group line w/ only a type
+Init 123456
+Parse 0x00000000 1 "v=0\r\na=alt-group:BW\r\n"
+IntCount 0 0
+StringCount 0 1
+GetString 0 SDPData "a=alt-group:BW\n"
+BufferCount 0 0
+ObjectCount 0 0
+
+# test an alt-group line w/ only a type & subtype
+Init 123456
+Parse 0x00000000 1 "v=0\r\na=alt-group:BW:AS\r\n"
+IntCount 0 0
+StringCount 0 1
+GetString 0 SDPData "a=alt-group:BW:AS\n"
+BufferCount 0 0
+ObjectCount 0 0
+
+# test an alt-group line w/ only a type & subtype (case 2)
+Init 123456
+Parse 0x00000000 1 "v=0\r\na=alt-group:BW:AS:\r\n"
+IntCount 0 0
+StringCount 0 1
+GetString 0 SDPData "a=alt-group:BW:AS:\n"
+BufferCount 0 0
+ObjectCount 0 0
+
+# test an alt-group line w/ only a type & subtype (case 2)
+Init 123456
+Parse 0x00000000 1 "v=0\r\na=alt-group:BW:AS:\r\n"
+IntCount 0 0
+StringCount 0 1
+GetString 0 SDPData "a=alt-group:BW:AS:\n"
+BufferCount 0 0
+ObjectCount 0 0
+
+# test an alt-group line w/ only a type, subtype, and group ID
+Init 123456
+Parse 0x00000000 1 "v=0\r\na=alt-group:BW:AS:28\r\n"
+IntCount 0 0
+StringCount 0 1
+GetString 0 SDPData "a=alt-group:BW:AS:28\n"
+BufferCount 0 0
+ObjectCount 0 0
+
+# test an alt-group line w/ only a type, subtype, and group ID (case 2)
+Init 123456
+Parse 0x00000000 1 "v=0\r\na=alt-group:BW:AS:28=\r\n"
+IntCount 0 0
+StringCount 0 1
+GetString 0 SDPData "a=alt-group:BW:AS:28=\n"
+BufferCount 0 0
+ObjectCount 0 0
+
+# test an alt-group line w/ a missing ID
+Init 123456
+Parse 0x00000000 1 "v=0\r\na=alt-group:BW:AS:28=1,\r\n"
+IntCount 0 0
+StringCount 0 1
+GetString 0 SDPData "a=alt-group:BW:AS:28=1,\n"
+BufferCount 0 0
+ObjectCount 0 0
+
+# test an alt-group line w/ a missing ID (case 2)
+Init 123456
+Parse 0x00000000 1 "v=0\r\na=alt-group:BW:AS:28=,1\r\n"
+IntCount 0 0
+StringCount 0 1
+GetString 0 SDPData "a=alt-group:BW:AS:28=,1\n"
+BufferCount 0 0
+ObjectCount 0 0
+
+# test an alt-group line missing a group delimiter
+Init 123456
+Parse 0x00000000 1 "v=0\r\na=alt-group:BW:AS:28=1,323=1,4\r\n"
+IntCount 0 0
+StringCount 0 1
+GetString 0 SDPData "a=alt-group:BW:AS:28=1,323=1,4\n"
+BufferCount 0 0
+ObjectCount 0 0
+
+# test an alt-group line w/ an invalid type
+Init 123456
+Parse 0x00000000 1 "v=0\r\na=alt-group:B W:AS:28=1,3\r\n"
+IntCount 0 0
+StringCount 0 1
+GetString 0 SDPData "a=alt-group:B W:AS:28=1,3\n"
+BufferCount 0 0
+ObjectCount 0 0
+
+# test an alt-group line w/ an invalid subtype
+Init 123456
+Parse 0x00000000 1 "v=0\r\na=alt-group:BW:A):28=1,3\r\n"
+IntCount 0 0
+StringCount 0 1
+GetString 0 SDPData "a=alt-group:BW:A):28=1,3\n"
+BufferCount 0 0
+ObjectCount 0 0
+
+# test an alt-group line w/ an invalid group ID
+Init 123456
+Parse 0x00000000 1 "v=0\r\na=alt-group:BW:AS:2@=1,3\r\n"
+IntCount 0 0
+StringCount 0 1
+GetString 0 SDPData "a=alt-group:BW:AS:2@=1,3\n"
+BufferCount 0 0
+ObjectCount 0 0
+
+# test an alt-group line w/ an invalid alt ID
+Init 123456
+Parse 0x00000000 1 "v=0\r\na=alt-group:BW:AS:28=1sd,3\r\n"
+IntCount 0 0
+StringCount 0 1
+GetString 0 SDPData "a=alt-group:BW:AS:28=1sd,3\n"
+BufferCount 0 0
+ObjectCount 0 0
+
+# test an alt-group line w/ 2 lines with the same type/subtype pair
+Init 123456
+Parse 0x00000000 1 "v=0\r\na=alt-group:BW:AS:28=1,3\r\na=alt-group:BW:AS:56=4,5\r\n"
+IntCount 0 0
+StringCount 0 1
+GetString 0 SDPData "a=alt-group:BW:AS:56=4,5\n"
+BufferCount 0 0
+ObjectCount 0 1
+GetIHXValues 0 Alt-Group A
+GetIHXValues A BW:AS B
+IntCount B 0
+StringCount B 0
+BufferCount B 0
+ObjectCount B 1
+
+GetIHXList B 28
+ListGetCount 1
+ListItrBegin
+ListItrGetBuffer "0000000100000003"
+ListItrNext 0
+
+# Test Preroll override cases 
+# (ActualPreroll field present & running on the Server)
+SetClientContext 0
+Init 123456
+Parse 0x00000000 2 "v=0\r\nm=video 42 RTP/AVP 34\r\na=Preroll:integer;7000\r\na=ActualPreroll:integer;2500"
+IntCount 0 2
+GetInt 0 LiveStream 1
+GetInt 0 StreamCount 1
+StringCount 0 0
+BufferCount 0 0
+IntCount 1 10
+GetInt 1 AvgBitRate 0
+GetInt 1 Channels 0
+GetInt 1 HXTimestampConversionFactor 1
+GetInt 1 Port 42
+GetInt 1 RTPPayloadType 34
+GetInt 1 RTPTimestampConversionFactor 90
+GetInt 1 SamplesPerSecond 90000
+GetInt 1 StreamNumber 0
+GetInt 1 Preroll 7000
+GetInt 1 ActualPreroll 2500
+StringCount 1 2
+GetString 1 ASMRuleBook "marker=0,timestampdelivery=1;marker=1,timestampdelivery=1;"
+GetString 1 MimeType "video/H263"
+BufferCount 1 0
+
+# Test Preroll override cases 
+# (ActualPreroll field present & running on the Client)
+SetClientContext 1
+Init 123456
+Parse 0x00000000 2 "v=0\r\nm=video 42 RTP/AVP 34\r\na=Preroll:integer;7000\r\na=ActualPreroll:integer;2500"
+IntCount 0 2
+GetInt 0 LiveStream 1
+GetInt 0 StreamCount 1
+StringCount 0 0
+BufferCount 0 0
+IntCount 1 10
+GetInt 1 AvgBitRate 0
+GetInt 1 Channels 0
+GetInt 1 HXTimestampConversionFactor 1
+GetInt 1 Port 42
+GetInt 1 RTPPayloadType 34
+GetInt 1 RTPTimestampConversionFactor 90
+GetInt 1 SamplesPerSecond 90000
+GetInt 1 StreamNumber 0
+GetInt 1 Preroll 2500
+GetInt 1 ActualPreroll 2500
+StringCount 1 2
+GetString 1 ASMRuleBook "marker=0,timestampdelivery=1;marker=1,timestampdelivery=1;"
+GetString 1 MimeType "video/H263"
+BufferCount 1 0
+
+# Test Preroll override cases 
+# (x-initpredecbufperiod field present & running on the Server)
+SetClientContext 0
+Init 123456
+Parse 0x00000000 2 "v=0\r\nm=video 42 RTP/AVP 34\r\na=Preroll:integer;7000\r\na=x-initpredecbufperiod:45000"
+IntCount 0 2
+GetInt 0 LiveStream 1
+GetInt 0 StreamCount 1
+StringCount 0 0
+BufferCount 0 0
+IntCount 1 11
+GetInt 1 AvgBitRate 0
+GetInt 1 Channels 0
+GetInt 1 HXTimestampConversionFactor 1
+GetInt 1 Port 42
+GetInt 1 RTPPayloadType 34
+GetInt 1 RTPTimestampConversionFactor 90
+GetInt 1 SamplesPerSecond 90000
+GetInt 1 StreamNumber 0
+GetInt 1 Preroll 7000
+GetInt 1 x-initpredecbufperiod 45000
+GetInt 1 x-predecbufsize 51200
+StringCount 1 2
+GetString 1 ASMRuleBook "marker=0,timestampdelivery=1;marker=1,timestampdelivery=1;"
+GetString 1 MimeType "video/H263"
+BufferCount 1 0
+
+# Test Preroll override cases 
+# (x-initpredecbufperiod field present & running on the Client)
+SetClientContext 1
+Init 123456
+Parse 0x00000000 2 "v=0\r\nm=video 42 RTP/AVP 34\r\na=Preroll:integer;7000\r\na=x-initpredecbufperiod:45000"
+IntCount 0 2
+GetInt 0 LiveStream 1
+GetInt 0 StreamCount 1
+StringCount 0 0
+BufferCount 0 0
+IntCount 1 11
+GetInt 1 AvgBitRate 0
+GetInt 1 Channels 0
+GetInt 1 HXTimestampConversionFactor 1
+GetInt 1 Port 42
+GetInt 1 RTPPayloadType 34
+GetInt 1 RTPTimestampConversionFactor 90
+GetInt 1 SamplesPerSecond 90000
+GetInt 1 StreamNumber 0
+GetInt 1 Preroll 500
+GetInt 1 x-initpredecbufperiod 45000
+GetInt 1 x-predecbufsize 51200
+StringCount 1 2
+GetString 1 ASMRuleBook "marker=0,timestampdelivery=1;marker=1,timestampdelivery=1;"
+GetString 1 MimeType "video/H263"
+BufferCount 1 0
+
+# test a single quote
+Init 123456
+Parse 0x00000000 1 "v=0\r\na=alt-group:BW:AS:28=1sd,3\r\ni=\"singlequote\r\n"
+IntCount 0 0
+StringCount 0 2
+GetString 0 SDPData "a=alt-group:BW:AS:28=1sd,3\n"
+GetString 0 Information "\"singlequote"
+BufferCount 0 0
+ObjectCount 0 0

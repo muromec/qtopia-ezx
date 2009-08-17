@@ -1,0 +1,205 @@
+<!--  ***** BEGIN LICENSE BLOCK *****  
+  
+ Source last modified: $Id: index.html,v 1.7 2006/06/19 23:11:26 jfinnecy Exp $ 
+  
+ Copyright Notices: 
+  
+ Portions Copyright (c) 1995-2006 RealNetworks, Inc. All Rights Reserved. 
+  
+ Patent Notices: This file may contain technology protected by one or  
+ more of the patents listed at www.helixcommunity.org 
+  
+ 1.   The contents of this file, and the files included with this file, 
+ are protected by copyright controlled by RealNetworks and its  
+ licensors, and made available by RealNetworks subject to the current  
+ version of the RealNetworks Public Source License (the "RPSL")  
+ available at  * http://www.helixcommunity.org/content/rpsl unless  
+ you have licensed the file under the current version of the  
+ RealNetworks Community Source License (the "RCSL") available at 
+ http://www.helixcommunity.org/content/rcsl, in which case the RCSL 
+ will apply.  You may also obtain the license terms directly from 
+ RealNetworks.  You may not use this file except in compliance with 
+ the RPSL or, if you have a valid RCSL with RealNetworks applicable 
+ to this file, the RCSL.  Please see the applicable RPSL or RCSL for 
+ the rights, obligations and limitations governing use of the 
+ contents of the file. 
+  
+ 2.  Alternatively, the contents of this file may be used under the 
+ terms of the GNU General Public License Version 2 (the 
+ "GPL") in which case the provisions of the GPL are applicable 
+ instead of those above.  Please note that RealNetworks and its  
+ licensors disclaim any implied patent license under the GPL.   
+ If you wish to allow use of your version of this file only under  
+ the terms of the GPL, and not to allow others 
+ to use your version of this file under the terms of either the RPSL 
+ or RCSL, indicate your decision by deleting Paragraph 1 above 
+ and replace them with the notice and other provisions required by 
+ the GPL. If you do not delete Paragraph 1 above, a recipient may 
+ use your version of this file under the terms of any one of the 
+ RPSL, the RCSL or the GPL. 
+  
+ This file is part of the Helix DNA Technology.  RealNetworks is the 
+ developer of the Original Code and owns the copyrights in the 
+ portions it created.   Copying, including reproducing, storing,  
+ adapting or translating, any or all of this material other than  
+ pursuant to the license terms referred to above requires the prior  
+ written consent of RealNetworks and its licensors 
+  
+ This file, and the files included with this file, is distributed 
+ and made available by RealNetworks on an 'AS IS' basis, WITHOUT  
+ WARRANTY OF ANY KIND, EITHER EXPRESS OR IMPLIED, AND REALNETWORKS  
+ AND ITS LICENSORS HEREBY DISCLAIM  ALL SUCH WARRANTIES, INCLUDING  
+ WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS  
+ FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT. 
+  
+ Technology Compatibility Kit Test Suite(s) Location:  
+    http://www.helixcommunity.org/content/tck 
+  
+  Contributor(s):
+  
+  ***** END LICENSE BLOCK *****
+-->
+<html>
+
+<head>
+   <link rel="stylesheet" type="text/css" href="ribosome.css"/>
+   <title>Ribosome Documentation</title>
+</head>
+
+<body>
+
+    <h1>Ribosome Documentation</h1>
+    
+    <hr>
+    <hr>
+    
+    <div id="section">
+        <h3>What is Ribosome?</h3>
+    </div>
+    
+    <div id="description">
+        Ribosome is a suite of build tools, written mainly in Python, which 
+        provide a common interface to retrieving and building programs from 
+        source code stored in a CVS repository. All Helix products are built
+        using the Ribosome tools.
+    </div>
+    
+    <div id="description">       
+        Ribosome is composed of two main tools and several helper tools:
+        <ul>
+            <li>Main Tools:
+                <ul>
+                    <li><span class="code">build</span> - This tool calculates 
+                    the dependencies of a target, retrieves the source code, 
+                    and runs commands to build that source code in the correct 
+                    order.
+                    </li>
+                    
+                    <li><span class="code">umake</span> - A cross-platform 
+                    Makefile generator. <span class="code"> umake</span> can be
+                    used independently from <span class="code">build</span> to 
+                    generate Makefiles, but <span class="code">build</span> 
+                    will call <span class="code">umake</span> during its 
+                    operation.</li>
+                </ul>
+            </li>
+        <ul>
+
+    </div>
+    
+    <div id="description">
+        <ul>
+            <li>Helper Tools:
+                <ul>
+                    <li><span class="code">armerge</span> - Merges static 
+                    libraries into a single library.</li>
+                    
+                    <li><span class="code">gethash.exe</span> - Checks DLL's 
+                    for drm signing.</li>
+                    
+                    <li><span class="code">mkdepend</span> - Generates header 
+                    dependency information for Makefiles (similar to 
+                    makedepend).</li>
+
+                    <li><span class="code">pyar</span> - On POSIX systems, 
+                    creates libarary archive files.</li>
+                    
+                    <li><span class="code">pylink</span> - Links DLLs and 
+                    intelligently assigns preferred load addresses.</li>
+           
+                    <li><span class="code">rebase.py</span> - Reassigns base
+                    addresses to all the DLL's in a directory subtree. Useful 
+                    during rebuilds where some DLL's change size but we don't 
+                    relink everything.</li>
+
+                    <li><span class="code"><a href="https://ribosome.helixcommunity.org/2005/devdocs/FuncLevelLinking">rlink.py</a>
+                    </span> - Perform function-level linking on gcc platforms.
+                    </li>
+
+                    <li><span class="code">sign</span> - With proper 
+                    permissions, requests signing for a file. Internal RN tool
+                    only.</li>
+            
+                    <li><span class="code">testdriver.py</span> - Runs Ribosome 
+                    unit tests.</li>
+                </ul>
+            </li>
+        </ul>
+    </div>
+    
+    <hr>
+    
+    <div id="section">
+        <h3>Documentation Index</h3>
+    </div>
+
+    <div id="description">
+    <ul>
+        <li>
+            <a href="requirements.html">Requirements</a>
+        </li>
+        <li>
+            <a href="platforms.html">Supported Platforms</a>
+        </li>
+        <li>
+            <a href="install.html">Installation</a>
+        </li>  
+        <li>
+            <a href="RELNOTES">Release Notes</a>
+        </li>
+        <li>
+            <a href="CHANGELOG">Change Log</a>
+        </li>
+        <li>Main Tools
+            <ul>
+                <li>Build - primary source handling and build tool.
+                    <ul>
+                        <li><a href="build.html">Build Overview</a></li>
+                        <li><a href="buildcmd.txt">Build Command-Line Usage</a></li>
+                        <li><a href="minbuild.html">Minimal Rebuilds</a></li>
+                        <li><a href="bif.html">Build Information Files (.bif)</a></li>
+                        <li><a href="plugin.html">Build System Plug-ins</a></li>
+                        <li><a href="buildrc.html">The Buildrc File</a></li>
+                    </ul>
+                </li>    
+                <li>Umake - platform-independent makefile generator.
+                    <ul>
+                        <li><a href="umake.html">Umake Overview</a></li>
+                        <li><a href="umakecmd.txt">Umake Command-Line Usage</a></li>
+                        <li><a href="umakefil.html">Writing Umakefil and .pcf Files</a></li>
+                        <li><a href="profiles.html">Umake profiles</a></li>
+                        <li><a href="multitarget.html">Multi-Target Umake files</a></li>
+                        <li><a href="umakerc.html">The Umakerc File</a></li>
+                    </ul>
+                </li>
+            </ul>
+        </li>
+    </ul>
+    </div>
+    
+    <hr>
+    <div id="description">
+        Last Updated: $Id: index.html,v 1.7 2006/06/19 23:11:26 jfinnecy Exp $
+    </div>
+</body>
+</html>

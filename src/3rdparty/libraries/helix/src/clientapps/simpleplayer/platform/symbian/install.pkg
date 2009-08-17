@@ -1,0 +1,57 @@
+;
+
+; Use: makesis -v -dpath_to_release_dir install.pkg splay.sis
+
+;      Make sure there is no space between -d and the path.
+
+;Languages
+
+&EN
+
+;
+
+; UID is the app's UID
+
+;
+
+#{"Splay"},(0x0285B5EF),1,0,1
+
+;
+
+;Supports Series 60 v 0.9
+
+;This line indicates that this installation is for the Series 60 platform v0.9
+
+;This line must appear _exactly_ as shown below in the sis file
+
+;If this line is missing or incorrect, the sis file will not be able
+
+;to be installed on Series 60 v0.9 platforms
+
+;(0x101F6F88), 0, 0, 0, {"Series60ProductID"}
+
+;
+
+; Copy the app and resource files....
+
+;
+
+"splay.app" -"!:\system\apps\splay\splay.app"
+
+"splay.rsc" -"!:\system\apps\splay\splay.rsc"
+
+; 
+
+; copy the DLLs.....
+
+"clntcore.dll" -"!:\clntcore.dll"
+
+"cook.dll" -"!:\cook.dll"
+
+"rarender.dll" -"!:\rarender.dll"
+
+"rmfformat.dll" -"!:\rmfformat.dll"
+
+"smplfsys.dll" -"!:\smplfsys.dll"
+
+"a.ra" -"!:\a.ra"

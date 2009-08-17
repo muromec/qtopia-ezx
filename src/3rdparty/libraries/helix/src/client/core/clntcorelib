@@ -1,0 +1,197 @@
+# 
+# ***** BEGIN LICENSE BLOCK *****
+# Source last modified: $Id: clntcorelib,v 1.38 2007/04/14 04:36:12 ping Exp $
+# 
+# Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
+# 
+# The contents of this file, and the files included with this file,
+# are subject to the current version of the RealNetworks Public
+# Source License (the "RPSL") available at
+# http://www.helixcommunity.org/content/rpsl unless you have licensed
+# the file under the current version of the RealNetworks Community
+# Source License (the "RCSL") available at
+# http://www.helixcommunity.org/content/rcsl, in which case the RCSL
+# will apply. You may also obtain the license terms directly from
+# RealNetworks.  You may not use this file except in compliance with
+# the RPSL or, if you have a valid RCSL with RealNetworks applicable
+# to this file, the RCSL.  Please see the applicable RPSL or RCSL for
+# the rights, obligations and limitations governing use of the
+# contents of the file.
+# 
+# Alternatively, the contents of this file may be used under the
+# terms of the GNU General Public License Version 2 or later (the
+# "GPL") in which case the provisions of the GPL are applicable
+# instead of those above. If you wish to allow use of your version of
+# this file only under the terms of the GPL, and not to allow others
+# to use your version of this file under the terms of either the RPSL
+# or RCSL, indicate your decision by deleting the provisions above
+# and replace them with the notice and other provisions required by
+# the GPL. If you do not delete the provisions above, a recipient may
+# use your version of this file under the terms of any one of the
+# RPSL, the RCSL or the GPL.
+# 
+# This file is part of the Helix DNA Technology. RealNetworks is the
+# developer of the Original Code and owns the copyrights in the
+# portions it created.
+# 
+# This file, and the files included with this file, is distributed
+# and made available on an 'AS IS' basis, WITHOUT WARRANTY OF ANY
+# KIND, EITHER EXPRESS OR IMPLIED, AND REALNETWORKS HEREBY DISCLAIMS
+# ALL SUCH WARRANTIES, INCLUDING WITHOUT LIMITATION, ANY WARRANTIES
+# OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, QUIET
+# ENJOYMENT OR NON-INFRINGEMENT.
+# 
+# Technology Compatibility Kit Test Suite(s) Location:
+#    http://www.helixcommunity.org/content/tck
+# 
+# Contributor(s):
+# 
+# ***** END LICENSE BLOCK *****
+# 
+
+UmakefileVersion(2,2)
+
+project.AddModuleIncludes("common/include",
+                          "common/container/pub",
+                          "common/util/pub",
+                          "common/system/pub",
+                          "common/dbgtool/pub",
+                          "common/runtime/pub",
+                          "common/fileio/pub",
+                          "common/lang/xml/pub",
+                          "common/netio/pub",
+                          "common/log/logutil/pub",
+                          "protocol/transport/common/system/pub",
+                          "protocol/transport/rtp/pub",
+                          "protocol/common/util/pub",
+                          "protocol/rtsp/pub",
+                          "protocol/rtsp/include",
+                          "protocol/pna/pub",
+                          "protocol/sdp/pub",
+                          "audio/include",
+                          "video/include",
+                          "video/colconverter/pub",
+                          "client/include",
+                          "datatype/common/container/pub")
+
+if not project.IsDefined("_SYMBIAN"):
+    project.AddModuleIncludes("common/netio/pub/platform/posix",
+                              "client/common/netio/pub/platform/posix")
+
+project.AddIncludes("../include",
+                    "../common/container/pub",
+                    "../common/util/pub",
+                    "../common/netio/pub",
+                    "../common/system/pub",
+                    "../audiosvc/pub",
+                    "../videosvc/pub",
+                    "../netwksvc/pub",
+                    "../resource/pub")
+
+project.AddSources("buffmgr.cpp",
+                   "corshare.cpp",
+                   "plsnkctl.cpp",
+                   "hxcleng.cpp",
+                   "hxplay.cpp",
+                   "hxsrc.cpp",
+                   "hxstrm.cpp",
+                   "hxcorcom.cpp",
+                   "srcinfo.cpp",
+                   "strminfo.cpp",
+                   "hxbufstate.cpp",
+                   "chxelst.cpp",
+                   "wmbufctl.cpp",
+                   "fbbufctl.cpp",
+                   "client_preroll_hlpr.cpp",
+                   "velproxy.cpp",
+                   "latency_mode_hlpr.cpp",
+                   "hxconnbwinfo.cpp",
+                   "hxnetifsinkhlpr.cpp",
+		   "chxmetainfo.cpp")
+
+if project.IsDefined("HELIX_FEATURE_PLAYBACK_LOCAL"):
+    project.AddSources('hxflsrc.cpp')
+
+if project.IsDefined("HELIX_FEATURE_PLAYBACK_NET"):
+    project.AddSources('hxntsrc.cpp', 'hxprotocol.cpp', 'rtspprotocol.cpp')
+
+if project.IsDefined("HELIX_FEATURE_ADVANCEDGROUPMGR"):
+    project.AddSources('advgroup.cpp')
+
+if project.IsDefined("HELIX_FEATURE_BASICGROUPMGR"):
+    project.AddSources('basgroup.cpp')
+
+if project.IsDefined("HELIX_FEATURE_RESOURCEMGR"):
+    project.AddSources('hxresmgr.cpp')
+
+if project.IsDefined("HELIX_FEATURE_SINKCONTROL"):
+    project.AddSources('sinkctl.cpp')
+
+if project.IsDefined("HELIX_FEATURE_STATS"):
+    project.AddSources('statsmgr.cpp')
+
+if project.IsDefined("HELIX_FEATURE_MASTERTAC"):
+    project.AddSources('hxtac.cpp')
+
+if project.IsDefined("HELIX_FEATURE_ASM"):
+    project.AddSources('asm/hxsmstr.cpp', 'asm/createbwman.cpp')
+
+    if project.IsDefined("HELIX_FEATURE_HXSM2"):
+        project.AddSources('asm/hxsm2.cpp')
+    else:
+        project.AddSources('asm/hxsm.cpp')
+
+
+if project.IsDefined("HELIX_FEATURE_HYPER_NAVIGATE"):
+    project.AddSources('hypernav/playhpnv.cpp')
+
+if project.IsDefined("HELIX_FEATURE_NESTEDMETA"):
+    project.AddSources('perscmgr.cpp')
+
+if project.IsDefined("HELIX_FEATURE_VIEWPORT"):
+    project.AddSources('viewport.cpp')
+
+if project.IsDefined('HELIX_FEATURE_HTTPCLOAK'):
+        project.AddModuleLibraries('protocol/http[httplib]')
+
+if project.IsDefined("HELIX_FEATURE_VIEWSOURCE"):
+    project.AddSources('viewsrc.cpp')
+
+if project.IsDefined("HELIX_FEATURE_PREFETCH"):
+    project.AddSources('prefmgr.cpp')
+
+if project.IsDefined("HELIX_FEATURE_NEXTGROUPMGR"):
+    project.AddSources('nxtgrmgr.cpp')
+
+if project.IsDefined("HELIX_FEATURE_MEDIAMARKER"):
+    project.AddSources('mediamrk.cpp')
+
+if project.IsDefined("HELIX_FEATURE_EVENTMANAGER"):
+    project.AddSources('eventmgr.cpp')
+
+if project.IsDefined("HELIX_FEATURE_REVERTER"):
+    project.AddSources('dtrvtcon.cpp')
+
+if project.IsDefined("HELIX_FEATURE_RECORDCONTROL"):
+    project.AddSources('recordctl.cpp')
+    if project.IsDefined("HELIX_FEATURE_RECORDCONTROL_MERGESORT"):
+        project.AddModuleIncludes("datatype/common/filewriter/pub")
+
+if project.IsDefined("HELIX_FEATURE_MIN_HEAP"):
+    project.AddDefines("HELIX_CONFIG_MIN_PCM_PUSHDOWN_BYTES")
+    project.AddDefines("HELIX_CONFIG_LOW_HEAP_STREAMING")
+
+if project.IsDefined("HELIX_FEATURE_PARTIALPLAYBACK"):
+	project.AddModuleIncludes("datatype/null/renderer")
+
+if project.IsDefined("HELIX_FEATURE_PRESENTATION_FEATURE_SELECTION") and \
+   project.IsDefined("HELIX_FEATURE_EVENTMANAGER"):
+    project.AddSources("pfeventproxy.cpp")
+
+if project.IsDefined("HELIX_FEATURE_DRM"):
+    project.AddSources("hxdrmcore.cpp")
+
+LibraryTarget("clntcorelib")
+
+DependTarget()
+

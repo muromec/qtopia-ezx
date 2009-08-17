@@ -1,0 +1,24 @@
+
+if (project.build_choices.count('static') > 0):
+	print "Target testxres is an application and does not build staticly."
+	SimpleEmptyRules()
+else:
+
+
+	CPPSuffixRule()
+
+	common_libraries= \
+		'pnmisc pncont pnmisc pnio pndebug '
+
+	common_includes= \
+		'. ./pub ../include'
+
+	common_srcs= \
+	       'testxres.cpp'
+
+	SetupDefines()
+
+
+	BuildProgramTarget('testxres', 'OBJS', 'DEPLIBS', 'LOCAL_LIBS', 'SYSLIBS')
+
+	DependTarget()

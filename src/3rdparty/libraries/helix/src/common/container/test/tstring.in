@@ -1,0 +1,579 @@
+# CHXString() <stringID>
+# CHXString(CHXString) <stringID> <stringID>
+# CHXString(char,int) <stringID> <character> <size>
+# CHXString(char*) <stringID> <string>
+# CHXString(char*,int) <stringID> <string> <size>
+# CHXString(uchar*) <stringID> <string>
+# GetLength <stringID> <expected length>
+# IsEmpty <stringID> <0 = not empty, 1 = is empty>
+# Empty <stringID>
+# (char*) <stringID> <expected string>
+# GetAt <stringID> <index> <expected char return>
+# SetAt <stringID> <index> <char>
+# [] <stringID> <index> <expected char return>
+# =CHXString <stringID> <from string: <stringID>>
+# =char <stringID> <from char>
+# =char* <stringID> <from string>
+# =uchar* <stringID> <from string>
+# +=CHXString <stringID> <from string: <stringID>>
+# +=char <stringID> <from char>
+# +=char* <stringID> <from string>
+# CHXString+CHXString <stringID> <stringID> <expected string>
+# CHXString+char <stringID> <char> <expected string>
+# char+CHXString <char> <stringID> <expected string>
+# CHXString+char* <stringID> <string> <expected string>
+# char*+CHXString <string> <stringID> <expected string>
+# Center <stringID> <length>
+# Compare <stringID> <string> <expected value or "+" for any pos num, "-" for any neg num>
+# CompareNoCase <stringID> <string> <expected value or "+" for any pos num, "-" for any neg num>
+# Mid <stringID> <index> <length> <expected string>
+# Mid <stringID> <index> <expected string>
+# Left <stringID> <length> <expected string>
+# Right <stringID> <length> <expected string>
+# CountFields <stringID> <delimeter char> <expected value>
+# NthField <stringID> <delimeter char> <field index> <expected string>
+# GetNthField <stringID> <delimeter char> <field index> <expected string>
+# SpanIncluding <stringID> <string> <expected string>
+# SpanExcluding <stringID> <string> <expected string>
+# MakeUpper <stringID>
+# MakeLower <stringID>
+# TrimRight <stringID>
+# TrimLeft <stringID>
+# FindChar <stringID> <char> <expected value>
+# FindChar* <stringID> <string> <expected value>
+# ReverseFind <stringID> <char> <expected value>
+# FindAndReplace <stringID> <search string> <repl string> <repl all bool> <expected value>
+# AppendULONG <stringID> <ULONG value>
+# AppendEndOfLine <stringID>
+# FreeExtra <stringID>
+# GetAllocLength <stringID> <expected value>
+# GetAllocLength <stringID> <min expected value> <max expected value> 
+# SetMinBufSize <stringID> <new value> <expected return value>
+
+# The GetBuffer() functions get a char* ptr to the string's buffer.  The
+# ReleaseBuffer() functions tell the string that the buffer is done being
+# messed with and our char* ptr is reset to NULL.  The Buffer* command
+# manipulate the char* ptr that was gotten from the specified stringID.
+#
+# GetBuffer     <stringID> <length> [<expected value>]
+# GetBufferSetLength <stringID> <length> <expected value>
+# BufferSet     <stringID> [<index>] <string>
+# BufferFill    <stringID> [<index>] <string> <repeat count>
+# BufferEndString <stringID> <index>
+# ReleaseBuffer <stringID>
+# ReleaseBuffer <stringID> <length>
+#
+# FormatInt <stringID> <format> <data1> [... <data10>]
+# FormatLong <stringID> <format> <data1> [... <data10>]
+# FormatUInt <stringID> <format> <data1> [... <data10>]
+# FormatULong <stringID> <format> <data1> [... <data10>]
+# FormatChar* <stringID> <format> <data1> [... <data10>]
+# FormatChar <stringID> <format> <data1> [... <data10>]
+# FormatDouble <stringID> <format> <data1> [... <data10>]
+#
+# FormatMixed does a mixture of miscellaneous combinations of formattings
+# and verifies the results in C++ code.
+#
+# FormatMixed
+
+CHXString() A
+GetLength A 0
+IsEmpty A 1
+(char*) A ""
+
+CHXString(char,int) A \0 10
+GetLength A 0
+IsEmpty A 1
+(char*) A ""
+
+CHXString(char,int) A Z 1
+GetLength A 1
+IsEmpty A 0
+(char*) A "Z"
+
+CHXString(char,int) B Y 10
+GetLength B 10
+IsEmpty B 0
+(char*) B "YYYYYYYYYY"
+
+CHXString(CHXString) A B
+GetLength A 10
+IsEmpty A 0
+(char*) A "YYYYYYYYYY"
+GetLength B 10
+IsEmpty B 0
+(char*) B "YYYYYYYYYY"
+
+CHXString(char*) A blah
+GetLength A 4
+IsEmpty A 0
+(char*) A blah
+
+CHXString(char*,int) A "this is a test" 6
+GetLength A 6
+(char*) A "this i"
+
+CHXString(uchar*) A foo
+GetLength A 3
+(char*) A foo
+
+CHXString(char*) A foobar
+GetAt A 0 f
+SetAt A 1 0
+SetAt A 2 0
+(char*) A f00bar
+[] A 0 f
+[] A 1 0
+# Causes assertions in CHXString:
+# GetAt A 8 "\0"
+# SetAt A 3 "\0"
+
+CHXString(char*) B blah
+(char*) B blah
+GetLength B 4
+=CHXString B A
+(char*) B f00bar
+GetLength B 6
+
+GetLength A 6
+=char A "\0"
+GetLength A 0
+(char*) A ""
+
+GetLength A 0
+=char A z
+GetLength A 1
+(char*) A z
+
+GetLength B 6
+=char* B xyzzy
+GetLength B 5
+(char*) B xyzzy
+
+=uchar* A uuuu
+(char*) A uuuu
+
++=CHXString A B
+(char*) A uuuuxyzzy
+
++=char B X
+(char*) B xyzzyX
+
++=char B "\0"
+(char*) B xyzzyX
+
++=char* B zzz
+(char*) B xyzzyXzzz
+
+CHXString+CHXString A A uuuuxyzzyuuuuxyzzy
+CHXString+char A 7 uuuuxyzzy7
+char+CHXString = A =uuuuxyzzy
+CHXString+char* A 666 uuuuxyzzy666
+char*+CHXString ==> A ==>uuuuxyzzy
+
+CHXString(char*) A 6chars
+Center A 12
+(char*) A "   6chars"
+
+Center A 13
+(char*) A "   6chars"
+
+Center A 14
+(char*) A "    6chars"
+
+Center A 1
+(char*) A 6chars
+
+Mid A 0 6chars
+Mid A 2 hars
+Mid A 2 2 ha
+Mid A 2 99 hars
+Mid A 2 0 ""
+Mid A 6 ""
+#assertion: Mid A -1 ""
+
+Left A 10 6chars
+Left A 1 6
+Left A 3 6ch
+Left A 0 ""
+#assertion: Left A -1 ""
+
+Right A 10 6chars
+Right A 1 s
+Right A 3 ars
+Right A 0 ""
+#assertion: Right A -1 ""
+
+Compare A 6chars 0
+Compare A 7chars -
+Compare A 5chars +
+Compare A 6Chars +
+CompareNoCase A 6Chars 0
+Compare A 6CHARS +
+CompareNoCase A 6CHARS 0
+
+CHXString(char*) B "a,b,c|d,e,f|g,h,i"
+CountFields B , 7
+CountFields B | 3
+NthField    B | 0 "a,b,c"
+NthField    B | 1 "a,b,c"
+NthField    B | -1 ""
+NthField    B | -999 ""
+NthField    B | 2 "d,e,f"
+NthField    B | 99 ""
+GetNthField B | 1 "a,b,c"
+GetNthField B | 2 "d,e,f"
+GetNthField B | 99 ""
+NthField    B "," 2 "b"
+NthField    B "," 1 "a"
+NthField    B "," 3 "c|d"
+NthField    B "," 99 ""
+GetNthField B "," 1 "a"
+GetNthField B "," 2 "b"
+GetNthField B "," 3 "c|d"
+GetNthField B "," 5 "f|g"
+GetNthField B "," 99 ""
+
+SpanIncluding B ",abc" "a,b,c"
+SpanExcluding B ","    a
+
+MakeUpper B
+(char*) B "A,B,C|D,E,F|G,H,I"
+
+MakeLower B
+(char*) B "a,b,c|d,e,f|g,h,i"
+
+TrimRight B
+(char*) B "a,b,c|d,e,f|g,h,i"
++=char* B " X  "
+(char*) B "a,b,c|d,e,f|g,h,i X  "
+TrimRight B
+(char*) B "a,b,c|d,e,f|g,h,i X"
+
+CHXString(char*) A "     a  b   "
+TrimLeft  A
+(char*)   A "a  b   "
+TrimRight A
+(char*)   A "a  b"
+TrimLeft  A
+(char*)   A "a  b"
+
+AppendULONG A 10101
+(char*)   A "a  b10101"
+
+# NOTE: This will add different character sequence depending on platform,
+#       so reset string to known value after this. (the C++ code verifies
+#       that the proper platform-specific sequence is at the end)
+AppendEndOfLine A
+
+# Test GetBuffer(), ReleaseBuffer(), GetBufferSetLength(), and SetMinBufSize()
+#  functionallity
+
+# Test the case where we call GetBuffer() w/ the string size
+CHXString(char*) A "testing"
+GetAllocLength  A 7
+GetBuffer       A 7 "testing"
+GetAllocLength  A 7
+ReleaseBuffer   A
+GetAllocLength  A 7
+
+#  Test the case where we call GetBuffer() w/ less than the string size
+CHXString(char*) A "testing"
+GetAllocLength  A 7
+GetBuffer       A 4 "testing"
+GetAllocLength  A 7
+ReleaseBuffer   A
+GetAllocLength  A 7
+
+#  Test the case where we call GetBuffer() w/ greater than the string size
+CHXString(char*) A "testing"
+GetAllocLength  A 7
+GetBuffer       A 20 "testing"
+GetAllocLength  A 7
+ReleaseBuffer   A
+GetAllocLength  A 7
+
+#  Test the case where we shorten the string
+CHXString(char*) A "testing"
+GetAllocLength  A 7
+GetBuffer       A 7 "testing"
+GetAllocLength  A 7
+BufferEndString  A 4
+GetAllocLength  A 7
+ReleaseBuffer   A
+GetAllocLength  A 4
+(char*) A "test"
+
+#  Test the case where we lengthen the string
+CHXString(char*) A "testing"
+GetAllocLength  A 7
+GetBuffer       A 20 "testing"
+GetAllocLength  A 7
+BufferFill       A 7 " something" 1
+BufferEndString  A 17
+GetAllocLength  A 7
+ReleaseBuffer   A
+GetAllocLength  A 17
+(char*) A "testing something"
+
+# Test making the string empty
+CHXString(char*) A "testing"
+GetAllocLength  A 7
+GetBuffer       A 20 "testing"
+GetAllocLength  A 7
+BufferEndString A 0
+GetAllocLength  A 7
+ReleaseBuffer   A
+GetAllocLength  A 0
+
+# Test calling Release() with the string size
+CHXString(char*) A "testing"
+GetAllocLength  A 7
+GetBuffer       A 7 "testing"
+ReleaseBuffer   A 7
+GetAllocLength  A 7
+(char*)         A "testing"
+
+# Test calling Release() with a smaller size
+CHXString(char*) A "testing"
+GetAllocLength  A 7
+GetBuffer       A 7 "testing"
+ReleaseBuffer   A 4
+GetAllocLength  A 4
+(char*)         A "test"
+
+
+# Test to make sure GetBuffer() does not
+# operate on a shared copy
+CHXString(char*)   A "test123"
+CHXString(CHXString) B A
+(char*)            A "test123"
+(char*)            B "test123"
+GetBuffer          A 10 "test123"
+BufferSet          A 7 "456"
+BufferEndString    A 10
+(char*)            A "test123456"
+(char*)            B "test123"
+
+# Test to make sure GetBufferSetLength() null terminates the buffer
+Empty A
+GetBufferSetLength A 5 ""
+GetAllocLength     A 5
+BufferSet          A "01234"
+ReleaseBuffer      A
+GetAllocLength     A 5
+(char*)            A "01234"
+
+# Test to make sure GetBufferSetLength() null terminates the buffer
+Empty A
+GetBufferSetLength A 5 ""
+GetAllocLength     A 5
+BufferSet          A 0 "012"
+BufferSet          A 3 "56"
+ReleaseBuffer      A
+GetAllocLength     A 5
+(char*)            A "01256"
+
+
+# Test calling GetBufferSetLength() with a larger string size
+CHXString()        A
+GetAllocLength     A 0
+GetBufferSetLength A 10 ""
+GetAllocLength     A 10
+ReleaseBuffer      A
+GetAllocLength     A 0
+(char*)            A ""
+
+# Test calling GetBufferSetLength() with a larger string size
+CHXString(char*)   A "test"
+GetAllocLength     A 4
+GetBufferSetLength A 10 "test"
+GetAllocLength     A 10
+ReleaseBuffer      A
+GetAllocLength     A 4
+(char*)            A "test"
+
+# Test calling GetBufferSetLength() with a string size
+CHXString(char*)   A "testing"
+GetAllocLength     A 7
+GetBufferSetLength A 7 "testing"
+GetAllocLength     A 7
+ReleaseBuffer      A
+GetAllocLength     A 7
+(char*)            A "testing"
+
+# Test calling GetBufferSetLength() with a smaller size
+CHXString(char*)   A "testing"
+GetAllocLength     A 7
+GetBufferSetLength A 4 "test"
+GetAllocLength     A 4
+ReleaseBuffer      A
+GetAllocLength     A 4
+(char*)            A "test"
+
+# Test calling GetBufferSetLength() with 0
+CHXString(char*)   A "testing"
+GetAllocLength     A 7
+GetBufferSetLength A 0 ""
+GetAllocLength     A 0
+ReleaseBuffer      A
+GetAllocLength     A 0
+(char*)            A ""
+
+# Test to make sure GetBufferSetLength() does not
+# operate on a shared copy
+CHXString(char*)   A "test123"
+CHXString(CHXString) B A
+(char*)            A "test123"
+(char*)            B "test123"
+GetBufferSetLength A 10 "test123"
+BufferSet          A 7 "456"
+(char*)            A "test123456"
+(char*)            B "test123"
+
+# Test calling SetMinBufSize() with string size
+CHXString(char*)   A "testing"
+GetAllocLength     A 7
+SetMinBufSize      A 7 7
+GetAllocLength     A 7
+(char*)            A "testing"
+
+# Test calling SetMinBufSize() with smaller size
+CHXString(char*)   A "testing"
+GetAllocLength     A 7
+SetMinBufSize      A 4 7
+GetAllocLength     A 7
+(char*)            A "testing"
+
+# Test calling SetMinBufSize() with larger size
+CHXString(char*)   A "testing"
+GetAllocLength     A 7
+SetMinBufSize      A 20 20
+GetAllocLength     A 7
+(char*)            A "testing"
+
+Empty A
+SetMinBufSize    A 10 10
+GetAllocLength   A 0
+SetMinBufSize    A 5  5
+GetAllocLength   A 0
+SetMinBufSize    A 0  0
+GetAllocLength   A 0
+GetLength A 0
+
+=char*           A a
+GetAllocLength   A 1
++=char*          A "x   "
+(char*)          A "ax   "
+GetAllocLength   A 5
+TrimRight        A
+GetAllocLength   A 2
+
+GetBuffer        A 30
+BufferFill       A 0 " " 29
+BufferEndString  A 29
+ReleaseBuffer    A
+(char*)          A "                             "
+
+TrimRight        A
+(char*)          A ""
+
+GetBuffer        A 30
+BufferSet        A "abc"
+BufferFill       A 3 eieio 5
+BufferEndString  A 28
+ReleaseBuffer    A
+GetLength        A 28
+
+GetBuffer        A 20
+ReleaseBuffer    A 20
+GetLength        A 20
+(char*)          A abceieioeieioeieioei
+
+GetBuffer        A 27
+BufferSet        A "abcdefghijklmnopqrstuvwxyz"
+ReleaseBuffer    A 6
+GetLength        A 6
+(char*)          A abcdef
+
+GetBuffer        A 20
+BufferEndString  A 0
+ReleaseBuffer    A
+(char*)          A ""
+GetAllocLength   A 0
+
+GetBuffer        A 20
+BufferSet        A abcdef
+ReleaseBuffer    A 0
+(char*)          A ""
+GetAllocLength   A 0
+
+GetBuffer        A 20
+BufferSet        A abcdef
+ReleaseBuffer    A 1
+(char*)          A "a"
+GetAllocLength   A 1
+
+FormatInt        A "%05d,%05d" 1 2
+(char*)          A "00001,00002"
+
+FormatInt        A "%02d" 0
+(char*)          A "00"
+
+FormatInt        A "%02x" 10
+(char*)          A "0a"
+
+FormatInt        A "%02d,%d" 0 0
+(char*)          A "00,0"
+
+FormatInt        A "%02d,%05d" 0 -200
+(char*)          A "00,-0200"
+
+FormatLong       B "%ld,%10lx,%1ld" 1 10 100
+(char*)          B "1,         a,100"
+
+FormatUInt       A "%5.1u" 123 -2000000000
+(char*)          A "  123"
+
+FormatUInt       A "%5.1u,%u" 123 2000000000
+(char*)          A "  123,2000000000"
+
+FormatULong      A "%06lu" 123
+(char*)          A 000123
+
+# NOTE: %d expected value assumes ASCII 'a'...
+FormatChar       A "%d,%c" a a
+(char*)          A "97,a"
+
+# NOTE: I'm not sure how much leeway the '%g' format has, so the expected
+#       output may actually be different...
+FormatDouble     B "%g" 1.234567890123456789
+(char*)          B "1.2346" "1.23457" "1.234568" "1.2345679" "1.23456789012346"
+
+FormatDouble     B "%5.2f" 1.23456789
+(char*)          B " 1.23"
+
+FormatDouble     B "%5.2e" 123456789
+(char*)          B "1.23e+08" "1.23e+008" "1.23E+08"
+
+FormatDouble     B "%5.2E" 123456789
+(char*)          B "1.23E+08" "1.23E+008" 
+
+FormatDouble     B "%.5E" 123456789e+10
+(char*)          B "1.23457E+18" "1.23457E+018"
+
+FormatPtr        B "%p" 0x08010203
+(char*)          B "8010203" "08010203" "0x8010203" "0x08010203"
+
+FormatPtr        B "%p" 0x0
+(char*)          B "(nil)" "00000000" "0x00000000" "0x0"
+
+FormatULong A "%lu %lu" 150000 350000
+FormatULong A  "#($Bandwidth >= %lu) && ($Bandwidth < %lu)" 150000 350000
+
+FormatMixed
+
+CHXString(char*) A "c:\\foo\\bar\\foobar"
+FindAndReplace	A "\\" "/" 1 1
+(char*) A "c:/foo/bar/foobar"
+

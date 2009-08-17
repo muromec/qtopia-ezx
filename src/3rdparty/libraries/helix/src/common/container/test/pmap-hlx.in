@@ -1,0 +1,35 @@
+# SetSeed <unsigned int srand() seed>
+# CreateElement <index>
+# CreateElements <index> <num to create>
+# ClearElements
+# GetCount <expected count>
+# IsEmpty <0 = not empty, 1 = empty>
+# Lookup <index> <0 = lookup failed, 1 = lookup success>
+# SetAt <index>
+# RemoveKey <index> <0 = remove failed, 1 = remove success>
+# RemoveAll
+
+# Note: Rhs[] represents using the [] operator on the right hand side
+#       of an expression. For example:  value = map[key];
+# Rhs[] <index> <0 = item not in map, 1 = item in map>
+
+# Note: Lhs[] represents using the [] operator on the left hand side
+#       of an expression. For example: map[key] = value
+# Lhs[] <index>
+
+# Note: IsNull should only be used on keys that are in the map.
+#       It is intended to test the case where Rhs[] inserts a value
+#       into the map when it is not already present
+# IsNull <index> <0 = map value is not null, 1 = map value is null>
+# RunMapSpecificTests
+# InitHashTable <type index> <num buckets>
+# ProfileInsertions <type index>
+
+SetSeed 12345
+CreateElements 0 1000000
+MemCheckpoint
+TimeCheckpoint
+InitHashTable 1 16417
+ProfileInsertions 1
+TimeCheckpoint
+MemCheckpoint

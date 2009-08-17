@@ -1,0 +1,292 @@
+# IsEmpty <0 = not empty, 1 = empty>
+# GetSize <expected size>
+# GetUpperBound <expected upper bound>
+# SetSize <param1> <param2>
+# FreeExtra
+# RemoveAll
+# GetAt <index> <expected value>
+# SetAt <index> <value>
+# ElementAt <index> <expected value>
+# SetAtGrow <index> <value>
+# Add <value>
+# ArrayOp <index> <expected value>
+# InsertAt <index> <value> <count>
+# RemoveAt <index> <count>
+# InsertArrayAt <index> <array to insert as a quoted comma seperated list>
+# IsNull <index> < 0 = not null, 1 = is null>
+
+# Test initial conditions
+IsEmpty 1
+GetSize 0
+GetUpperBound -1
+
+# Add an element
+Add 42
+IsEmpty 0
+GetSize 1
+GetUpperBound 0
+Add 23
+Add 53
+Add 64
+GetSize 4
+GetUpperBound 3
+
+# Test access functions
+GetAt     0 42
+ElementAt 0 42
+ArrayOp   0 42
+GetAt     1 23
+ElementAt 1 23
+ArrayOp   1 23
+GetAt     3 64
+ElementAt 3 64
+ArrayOp   3 64
+# Test SetAt func
+SetAt     0 34
+GetAt     0 34
+ElementAt 0 34
+ArrayOp   0 34
+SetAt     3 123
+GetAt     3 123
+ElementAt 3 123
+ArrayOp   3 123
+
+
+# Test SetSize()
+SetSize 13 2
+GetSize 13
+GetUpperBound 12
+# Test if SetSize clears the pointers
+RemoveAll
+SetAtGrow 10 1
+SetSize 5 2
+SetSize 11 2
+IsNull 10 1
+
+# Test RemoveAll()
+Add 11
+Add 21
+RemoveAll
+GetSize 0
+GetUpperBound -1
+
+# Test FreeExtra
+RemoveAll
+Add 11
+Add 22
+GetAt 0 11
+GetAt 1 22
+GetSize 2
+GetUpperBound 1
+FreeExtra
+GetAt 0 11
+GetAt 1 22
+GetSize 2
+GetUpperBound 1
+
+# Test SetAtGrow
+RemoveAll
+Add 10
+Add 21
+SetAtGrow 4 40
+GetSize 5
+GetAt 0 10
+GetAt 1 21
+IsNull 2 1
+IsNull 3 1
+GetAt 4 40
+
+# Test Add after a SetAtGrow
+RemoveAll
+SetAtGrow 4 42
+GetSize 5
+Add 52
+GetSize 6
+IsNull 0 1
+IsNull 1 1
+IsNull 2 1
+IsNull 3 1
+GetAt  4 42
+GetAt  5 52
+
+# Test InsertAt
+RemoveAll
+Add 1
+Add 2
+Add 3
+Add 4
+GetAt 0 1
+GetAt 1 2
+GetAt 2 3
+GetAt 3 4
+InsertAt 1 5 1
+GetSize 5
+GetAt 0 1
+GetAt 1 5
+GetAt 2 2
+GetAt 3 3
+GetAt 4 4
+# Test multiple insert
+InsertAt 3 6 3
+GetSize 8
+GetAt 0 1
+GetAt 1 5
+GetAt 2 2
+GetAt 3 6
+GetAt 4 6
+GetAt 5 6
+GetAt 6 3
+GetAt 7 4
+# Test insert at the front
+InsertAt 0 7 1
+GetSize 9
+GetAt 0 7
+GetAt 1 1
+GetAt 2 5
+GetAt 3 2
+GetAt 4 6
+GetAt 5 6
+GetAt 6 6
+GetAt 7 3
+GetAt 8 4
+# Test insert at the end
+InsertAt 9 8 1
+GetSize 10
+GetAt 0 7
+GetAt 1 1
+GetAt 2 5
+GetAt 3 2
+GetAt 4 6
+GetAt 5 6
+GetAt 6 6
+GetAt 7 3
+GetAt 8 4
+GetAt 9 8
+# Test insert that creates a gap
+InsertAt 12 9 1
+GetSize 13
+GetAt 0 7
+GetAt 1 1
+GetAt 2 5
+GetAt 3 2
+GetAt 4 6
+GetAt 5 6
+GetAt 6 6
+GetAt 7 3
+GetAt 8 4
+GetAt 9 8
+IsNull 10 1
+IsNull 11 1
+GetAt 12 9
+
+# Test RemoveAt
+RemoveAll
+Add 1
+Add 2
+Add 3
+Add 4
+Add 5
+Add 6
+# Test removal from the middle
+RemoveAt 3 1
+GetSize 5
+GetAt 0 1
+GetAt 1 2
+GetAt 2 3
+GetAt 3 5
+GetAt 4 6
+# Test multiple remove
+RemoveAt 2 2
+GetSize 3
+GetAt 0 1
+GetAt 1 2
+GetAt 2 6
+# Test removal from front
+RemoveAt 0 1
+GetSize 2
+GetAt 0 2
+GetAt 1 6
+Add 7
+Add 8
+GetSize 4
+GetAt 0 2
+GetAt 1 6
+GetAt 2 7
+GetAt 3 8
+# Test removal from end
+RemoveAt 3 1
+GetSize 3
+GetAt 0 2
+GetAt 1 6
+GetAt 2 7
+
+# Test InsertAt(int, CHXPtrArray*) functionallity
+RemoveAll
+Add 1
+Add 2
+Add 3
+GetSize 3
+# Insert an empty array
+InsertArrayAt 1 ""
+GetSize 3
+# Insert into the middle
+InsertArrayAt 1 "4, 5, 6, 7"
+GetSize 7
+GetAt 0 1
+GetAt 1 4
+GetAt 2 5
+GetAt 3 6
+GetAt 4 7
+GetAt 5 2
+GetAt 6 3
+# Insert at the front
+InsertArrayAt 0 "8, 9, 10"
+GetSize 10
+GetAt 0 8
+GetAt 1 9
+GetAt 2 10 
+GetAt 3 1
+GetAt 4 4
+GetAt 5 5
+GetAt 6 6
+GetAt 7 7
+GetAt 8 2
+GetAt 9 3
+# Insert at the end
+InsertArrayAt 10 "11, 12, 13"
+GetSize 13
+GetAt 0 8
+GetAt 1 9
+GetAt 2 10 
+GetAt 3 1
+GetAt 4 4
+GetAt 5 5
+GetAt 6 6
+GetAt 7 7
+GetAt 8 2
+GetAt 9 3
+GetAt 10 11
+GetAt 11 12
+GetAt 12 13
+# Insert off the end
+InsertArrayAt 16 "14, 15, 16"
+GetSize 19
+GetAt 0 8
+GetAt 1 9
+GetAt 2 10 
+GetAt 3 1
+GetAt 4 4
+GetAt 5 5
+GetAt 6 6
+GetAt 7 7
+GetAt 8 2
+GetAt 9 3
+GetAt 10 11
+GetAt 11 12
+GetAt 12 13
+IsNull 13 1
+IsNull 14 1
+IsNull 15 1
+GetAt 16 14
+GetAt 17 15
+GetAt 18 16

@@ -28,6 +28,7 @@
 #include <qtopianetwork.h>
 #include <qtranslatablesettings.h>
 #include <qsoftmenubar.h>
+#include <QtopiaItemDelegate>
 
 AddNetworkUI::AddNetworkUI(QWidget* parent, Qt::WFlags fl)
     : QDialog( parent, fl )
@@ -54,6 +55,8 @@ void AddNetworkUI::init()
 
     list = new QListWidget(this);
     list->setAlternatingRowColors( true );
+    list->setItemDelegate(new QtopiaItemDelegate(list));
+    list->setFrameStyle(QFrame::NoFrame);
     vb->addWidget(list);
 
     QStringList configList = QtopiaNetwork::availableNetworkConfigs(

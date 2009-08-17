@@ -1,0 +1,28 @@
+The /source/rnxmllib/expat repository was last synced with Mozilla's
+On December 15th 1999 at 5:00 PM.
+
+RealNetworks has made the following changes:
+
+Change Log:
+12/15/1999
+
+We created a "loose" mode the parser can run in.  When the parser is set
+to use this "loose" mode, it will allow ampersands (&) in attribute.
+
+This involved creating two new API functions to set up the parser, and
+modifing the parameter list of the many of the scanning functions.
+
+These changes are all ifdefed.  Compiling expat with RNXML_STRICT_FLAG
+activates these new changes.
+
+Modifications were made by, Josh Hug
+
+3/27/2000
+
+We backed out the loose mode changes, so the code is closer to the expat
+source.
+
+I also checked in diffs that we are going of our error handling changes
+that can be put on our web stite to fullfill our legal requirements. 
+
+Josh Hug

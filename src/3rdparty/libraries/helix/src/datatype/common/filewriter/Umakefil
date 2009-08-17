@@ -1,0 +1,27 @@
+UmakefileVersion(2,1)
+
+project.AddModuleIncludes(
+	'common/include',
+	'common/container/pub',
+	'common/dbgtool/pub',
+	'common/runtime/pub',
+	'common/system/pub',
+	'common/util/pub',
+	'common/fileio/pub',
+	'client/core',
+	'client/include',
+	'client/audiosvc/pub',
+	'client/common/container/pub',
+	'datatype/rm/include',
+	'datatype/ngt/fileformat/pub'
+	)
+
+project.AddSources(
+	'archivr2.cpp',
+	'archctx.cpp',
+	'flcreatr.cpp',
+	'cstrmsrt.cpp'
+	)
+
+LibraryTarget('wrtrlib')
+

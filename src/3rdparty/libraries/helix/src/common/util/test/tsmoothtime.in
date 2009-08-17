@@ -1,0 +1,245 @@
+# CHXTimeSyncSmoother()
+# OnTimeSyncTick <test_timesync> <test_tickcount>
+# GetTimeNowTick <test_tickcount> <expected_timesync>
+# WasLastSampleGood <expected_result>
+# SetVelocity <percentage_of_normal_speed>  For example: SetVelocity 200 is 2x; SetVelocity -50 is reverse half-speed
+
+# Test with the following sequence of PERFECT timesyncs
+# Each one should be a good sample
+CHXTimeSyncSmoother()
+OnTimeSyncTick   0 1000000
+WasLastSampleGood TRUE
+GetTimeNowTick 1000015 15
+OnTimeSyncTick  30 1000030
+WasLastSampleGood TRUE
+GetTimeNowTick 1000045 45
+OnTimeSyncTick  60 1000060
+WasLastSampleGood TRUE
+GetTimeNowTick 1000075 75
+OnTimeSyncTick  90 1000090
+WasLastSampleGood TRUE
+GetTimeNowTick 1000105 105
+OnTimeSyncTick 120 1000120
+WasLastSampleGood TRUE
+GetTimeNowTick 1000135 135
+OnTimeSyncTick 150 1000150
+WasLastSampleGood TRUE
+GetTimeNowTick 1000165 165
+OnTimeSyncTick 180 1000180
+WasLastSampleGood TRUE
+GetTimeNowTick 1000195 195
+OnTimeSyncTick 210 1000210
+WasLastSampleGood TRUE
+GetTimeNowTick 1000225 225
+OnTimeSyncTick 240 1000240
+WasLastSampleGood TRUE
+GetTimeNowTick 1000255 255
+OnTimeSyncTick 270 1000270
+WasLastSampleGood TRUE
+GetTimeNowTick 1000285 285
+OnTimeSyncTick 300 1000300
+WasLastSampleGood TRUE
+GetTimeNowTick 1000315 315
+OnTimeSyncTick 330 1000330
+WasLastSampleGood TRUE
+GetTimeNowTick 1000345 345
+OnTimeSyncTick 360 1000360
+WasLastSampleGood TRUE
+GetTimeNowTick 1000375 375
+OnTimeSyncTick 390 1000390
+WasLastSampleGood TRUE
+GetTimeNowTick 1000405 405
+OnTimeSyncTick 420 1000420
+WasLastSampleGood TRUE
+GetTimeNowTick 1000435 435
+OnTimeSyncTick 450 1000450
+WasLastSampleGood TRUE
+GetTimeNowTick 1000465 465
+OnTimeSyncTick 480 1000480
+WasLastSampleGood TRUE
+GetTimeNowTick 1000495 495
+OnTimeSyncTick 510 1000510
+WasLastSampleGood TRUE
+GetTimeNowTick 1000525 525
+OnTimeSyncTick 540 1000540
+WasLastSampleGood TRUE
+GetTimeNowTick 1000555 555
+OnTimeSyncTick 570 1000570
+WasLastSampleGood TRUE
+GetTimeNowTick 1000585 585
+OnTimeSyncTick 600 1000600
+WasLastSampleGood TRUE
+GetTimeNowTick 1000615 615
+
+
+# Test with the following sequence of PERFECT timesyncs
+# which encounter 32-bit rollover in the tick count
+# Each one should be a good sample
+CHXTimeSyncSmoother()
+OnTimeSyncTick    0 4294967000
+WasLastSampleGood TRUE
+OnTimeSyncTick  100 4294967100
+WasLastSampleGood TRUE
+OnTimeSyncTick  200 4294967200
+WasLastSampleGood TRUE
+# Rollover occurs at next time sync
+OnTimeSyncTick  300          4
+WasLastSampleGood TRUE
+OnTimeSyncTick  400        104
+WasLastSampleGood TRUE
+OnTimeSyncTick  500        204
+WasLastSampleGood TRUE
+OnTimeSyncTick  600        304
+WasLastSampleGood TRUE
+OnTimeSyncTick  700        404
+WasLastSampleGood TRUE
+OnTimeSyncTick  800        504
+WasLastSampleGood TRUE
+OnTimeSyncTick  900        604
+WasLastSampleGood TRUE
+OnTimeSyncTick 1000        704
+WasLastSampleGood TRUE
+OnTimeSyncTick 1100        804
+WasLastSampleGood TRUE
+OnTimeSyncTick 1200        904
+WasLastSampleGood TRUE
+GetTimeNowTick 154  450
+GetTimeNowTick 729 1025
+
+# Test setting the velocity to 2x
+CHXTimeSyncSmoother()
+OnTimeSyncTick    0 1000000
+OnTimeSyncTick   50 1000050
+OnTimeSyncTick  100 1000100
+OnTimeSyncTick  150 1000150
+OnTimeSyncTick  200 1000200
+OnTimeSyncTick  250 1000250
+OnTimeSyncTick  300 1000300
+OnTimeSyncTick  350 1000350
+OnTimeSyncTick  400 1000400
+OnTimeSyncTick  450 1000450
+OnTimeSyncTick  500 1000500
+OnTimeSyncTick  550 1000550
+OnTimeSyncTick  600 1000600
+OnTimeSyncTick  650 1000650
+OnTimeSyncTick  700 1000700
+OnTimeSyncTick  750 1000750
+OnTimeSyncTick  800 1000800
+OnTimeSyncTick  850 1000850
+OnTimeSyncTick  900 1000900
+OnTimeSyncTick  950 1000950
+OnTimeSyncTick 1000 1001000
+SetVelocity 200
+OnTimeSyncTick 1050 1001025
+OnTimeSyncTick 1100 1001050
+OnTimeSyncTick 1150 1001075
+OnTimeSyncTick 1200 1001100
+OnTimeSyncTick 1250 1001125
+OnTimeSyncTick 1300 1001150
+OnTimeSyncTick 1350 1001175
+OnTimeSyncTick 1400 1001200
+OnTimeSyncTick 1450 1001225
+OnTimeSyncTick 1500 1001250
+OnTimeSyncTick 1550 1001275
+OnTimeSyncTick 1600 1001300
+OnTimeSyncTick 1650 1001325
+OnTimeSyncTick 1700 1001350
+OnTimeSyncTick 1750 1001375
+OnTimeSyncTick 1800 1001400
+GetTimeNowTick 1001020 1040
+GetTimeNowTick 1001305 1610
+GetTimeNowTick 1001360 1720
+
+# Test setting the velocity such that we get 
+# 32-bit rollover in the SCALED ticks
+CHXTimeSyncSmoother()
+SetVelocity 200
+OnTimeSyncTick    0 2147483600
+OnTimeSyncTick   50 2147483625
+# Rollover in the scaled ticks occurs
+# at the next timesync
+OnTimeSyncTick  100 2147483650
+OnTimeSyncTick  150 2147483675
+OnTimeSyncTick  200 2147483700
+OnTimeSyncTick  250 2147483725
+OnTimeSyncTick  300 2147483750
+OnTimeSyncTick  350 2147483775
+OnTimeSyncTick  400 2147483800
+GetTimeNowTick 2147483710 220
+GetTimeNowTick 2147483765 330
+
+# Test setting the velocity with a huge velocity (100x)
+# and use ticks that have 32-bit rollover
+CHXTimeSyncSmoother()
+SetVelocity 10000
+OnTimeSyncTick      0 4294967000
+WasLastSampleGood TRUE
+OnTimeSyncTick  10000 4294967100
+WasLastSampleGood TRUE
+OnTimeSyncTick  20000 4294967200
+WasLastSampleGood TRUE
+# Rollover occurs at next time sync
+OnTimeSyncTick  30000          4
+WasLastSampleGood TRUE
+OnTimeSyncTick  40000        104
+WasLastSampleGood TRUE
+OnTimeSyncTick  50000        204
+WasLastSampleGood TRUE
+OnTimeSyncTick  60000        304
+WasLastSampleGood TRUE
+OnTimeSyncTick  70000        404
+WasLastSampleGood TRUE
+OnTimeSyncTick  80000        504
+WasLastSampleGood TRUE
+OnTimeSyncTick  90000        604
+WasLastSampleGood TRUE
+OnTimeSyncTick 100000        704
+WasLastSampleGood TRUE
+OnTimeSyncTick 110000        804
+WasLastSampleGood TRUE
+OnTimeSyncTick 120000        904
+WasLastSampleGood TRUE
+GetTimeNowTick 154  45000
+GetTimeNowTick 729 102500
+
+# Test reverse playback at 1x
+CHXTimeSyncSmoother()
+SetVelocity -100
+OnTimeSyncTick 60000 1000000
+WasLastSampleGood TRUE
+OnTimeSyncTick 59950 1000050
+WasLastSampleGood TRUE
+OnTimeSyncTick 59900 1000100
+WasLastSampleGood TRUE
+OnTimeSyncTick 59850 1000150
+WasLastSampleGood TRUE
+OnTimeSyncTick 59800 1000200
+WasLastSampleGood TRUE
+OnTimeSyncTick 59750 1000250
+WasLastSampleGood TRUE
+OnTimeSyncTick 59700 1000300
+WasLastSampleGood TRUE
+OnTimeSyncTick 59650 1000350
+WasLastSampleGood TRUE
+GetTimeNowTick 1000375 59625
+OnTimeSyncTick 59600 1000400
+WasLastSampleGood TRUE
+OnTimeSyncTick 59550 1000450
+WasLastSampleGood TRUE
+OnTimeSyncTick 59500 1000500
+WasLastSampleGood TRUE
+GetTimeNowTick 1000505 59495
+OnTimeSyncTick 59450 1000550
+WasLastSampleGood TRUE
+OnTimeSyncTick 59400 1000600
+WasLastSampleGood TRUE
+OnTimeSyncTick 59350 1000650
+WasLastSampleGood TRUE
+GetTimeNowTick 1000670 59330
+OnTimeSyncTick 59300 1000700
+WasLastSampleGood TRUE
+OnTimeSyncTick 59250 1000750
+WasLastSampleGood TRUE
+GetTimeNowTick 1000790 59210
+
+

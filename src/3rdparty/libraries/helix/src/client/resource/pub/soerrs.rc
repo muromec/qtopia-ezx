@@ -1,0 +1,124 @@
+/* ***** BEGIN LICENSE BLOCK *****
+ * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
+ *
+ * The contents of this file, and the files included with this file,
+ * are subject to the current version of the RealNetworks Public
+ * Source License (the "RPSL") available at
+ * http://www.helixcommunity.org/content/rpsl unless you have licensed
+ * the file under the current version of the RealNetworks Community
+ * Source License (the "RCSL") available at
+ * http://www.helixcommunity.org/content/rcsl, in which case the RCSL
+ * will apply. You may also obtain the license terms directly from
+ * RealNetworks.  You may not use this file except in compliance with
+ * the RPSL or, if you have a valid RCSL with RealNetworks applicable
+ * to this file, the RCSL.  Please see the applicable RPSL or RCSL for
+ * the rights, obligations and limitations governing use of the
+ * contents of the file.
+ *
+ * Alternatively, the contents of this file may be used under the
+ * terms of the GNU General Public License Version 2 or later (the
+ * "GPL") in which case the provisions of the GPL are applicable
+ * instead of those above. If you wish to allow use of your version of
+ * this file only under the terms of the GPL, and not to allow others
+ * to use your version of this file under the terms of either the RPSL
+ * or RCSL, indicate your decision by deleting the provisions above
+ * and replace them with the notice and other provisions required by
+ * the GPL. If you do not delete the provisions above, a recipient may
+ * use your version of this file under the terms of any one of the
+ * RPSL, the RCSL or the GPL.
+ *
+ * This file is part of the Helix DNA Technology. RealNetworks is the
+ * developer of the Original Code and owns the copyrights in the
+ * portions it created.
+ *
+ * This file, and the files included with this file, is distributed
+ * and made available on an 'AS IS' basis, WITHOUT WARRANTY OF ANY
+ * KIND, EITHER EXPRESS OR IMPLIED, AND REALNETWORKS HEREBY DISCLAIMS
+ * ALL SUCH WARRANTIES, INCLUDING WITHOUT LIMITATION, ANY WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, QUIET
+ * ENJOYMENT OR NON-INFRINGEMENT.
+ *
+ * Technology Compatibility Kit Test Suite(s) Location:
+ *    http://www.helixcommunity.org/content/tck
+ *
+ * Contributor(s):
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+/*
+        NOTE:   When modifying the list of Socketerrors (adding/subtracting messages)
+                you also have to update the following files:
+
+                client/resources/pub/soerrs.h
+                        -Add/Remove unique IDS_
+                client/core/hxresmgr.cpp
+                        -Add/Remove HXR_ to IDX_ mapping in ErrorStringTable[]
+                common/include/hxresult.h
+                        -Add/Remove unique HXR_SE
+*/
+STRINGTABLE DISCARDABLE
+BEGIN
+	 IDS_SOCK_INTR				"Interrupted Function Call"
+	 IDS_SOCK_BADF				"The file handle supplied is not valid"
+	 IDS_SOCK_ACCES				"Permission Denied"
+	 IDS_SOCK_FAULT				"Bad Address"
+	 IDS_SOCK_INVAL				"Invalid Argument"
+	 IDS_SOCK_MFILE				"Too Many Open Files"
+	 IDS_SOCK_WOULDBLOCK			"Resource Temporarily Unavailable "
+	 IDS_SOCK_INPROGRESS			"Operation Now in Progress "
+	 IDS_SOCK_ALREADY			"Operation Already in Progress "
+	 IDS_SOCK_NOTSOCK			"Socket Operation on Non-Socket "
+	 IDS_SOCK_DESTADDRREQ			"Destination Address Required "
+	 IDS_SOCK_MSGSIZE			"Message Too Long "
+	 IDS_SOCK_PROTOTYPE			"Protocol Wrong Type for Socket "
+	 IDS_SOCK_NOPROTOOPT			"Bad Protocol Option "
+	 IDS_SOCK_PROTONOSUPPORT		"Protocol Not Supported "
+	 IDS_SOCK_SOCKTNOSUPPORT		"Socket Type Not Supported "
+	 IDS_SOCK_OPNOTSUPP			"Operation Not Supported "
+	 IDS_SOCK_PFNOSUPPORT			"Protocol Family Not Supported "
+	 IDS_SOCK_AFNOSUPPORT			"Address Family Not Supported by Protocol Family "
+	 IDS_SOCK_ADDRINUSE			"Address Already in Use "
+	 IDS_SOCK_ADDRNOTAVAIL			"Cannot Assign Requested Address "
+	 IDS_SOCK_NETDOWN			"Network is Down "
+	 IDS_SOCK_NETUNREACH			"Network is Unreachable"
+	 IDS_SOCK_NETRESET			"Network Dropped Connection on Reset"
+	 IDS_SOCK_CONNABORTED			"Software Caused Connection Abort"
+	 IDS_SOCK_CONNRESET			"Connection Reset by Peer"
+	 IDS_SOCK_NOBUFS			"No Buffer Space Available"
+	 IDS_SOCK_ISCONN			"Socket is Already Connected"
+	 IDS_SOCK_NOTCONN			"Socket is Not Connected"
+	 IDS_SOCK_SHUTDOWN			"Cannot Send After Socket Shutdown:An attempt to send or receive data failed because the socket has already been shut down"
+	 IDS_SOCK_TOOMANYREFS			"Too many references to some kernel object"
+	 IDS_SOCK_TIMEDOUT			"A connection attempt failed because the connected party did not properly respond after a period of time"
+	 IDS_SOCK_CONNREFUSED			"No connection could be made because the target machine actively refused it"
+	 IDS_SOCK_LOOP				"Cannot translate name"
+	 IDS_SOCK_NAMETOOLONG			"Name component or name was too long"
+	 IDS_SOCK_HOSTDOWN			"A socket operation failed because the destination host was down"
+	 IDS_SOCK_HOSTUNREACH			"A socket operation was attempted to an unreachable host"
+
+         IDS_SOCK_NOTEMPTY			"The directory is not empty"
+	 IDS_SOCK_PROCLIM			"The Winsock implementation has exceeded the number of applications that can use it simultaneously"
+	 IDS_SOCK_USERS				"There are too many users"
+	 IDS_SOCK_DQUOT				"Disk quota exceeded"
+	 IDS_SOCK_STALE				"File handle reference is no longer available"
+	 IDS_SOCK_REMOTE			"Too many levels of remote in path"
+	 IDS_SOCK_SYSNOTREADY			"The underlying system to provide network services is unavailable"
+	 IDS_SOCK_VERNOTSUPPORTED		"The Winsock implementation does not support the requested Winsock version"
+	 IDS_SOCK_NOTINITIALISED		"The calling application has not successfully called WSAStartup to initiate a Winsock session"
+	 IDS_SOCK_DISCON			"The remote party has initiated a graceful shutdown sequence"
+	 IDS_SOCK_NOMORE			"There is no more data available"
+	 IDS_SOCK_CANCELLED			"The call has been canceled"
+	 IDS_SOCK_INVALIDPROCTABLE		"The procedure call table is invalid"
+	 IDS_SOCK_INVALIDPROVIDER		"Invalid service provider version number"
+	 IDS_SOCK_PROVIDERFAILEDINIT		"Unable to initialize a service provider"
+	 IDS_SOCK_SYSCALLFAILURE		"System call failure"
+	 IDS_SOCK_SERVICE_NOT_FOUND		"Service not found"
+	 IDS_SOCK_TYPE_NOT_FOUND		"The specified class was not found"
+	 IDS_SOCK_E_NO_MORE			"There is no more data available"
+	 IDS_SOCK_E_CANCELLED			"The call has been canceled"
+	 IDS_SOCK_REFUSED			"A database query failed because it was actively refused"
+	 IDS_SOCK_HOST_NOT_FOUND		"No such host is known"
+	 IDS_SOCK_TRY_AGAIN			"Local server did not receive a response from an authoritative server"
+	 IDS_SOCK_NO_RECOVERY			"This is a nonrecoverable error"
+	 IDS_SOCK_NO_DATA			"Valid name, no data record of requested type"
+END

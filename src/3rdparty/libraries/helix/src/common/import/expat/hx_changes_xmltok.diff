@@ -1,0 +1,574 @@
+diff -u ./xmltok/xmltok.h ../../../mozilla/mozilla/expat/xmltok/xmltok.h
+--- ./xmltok/xmltok.h	Mon Mar 27 15:56:14 2000
++++ ../../../mozilla/mozilla/expat/xmltok/xmltok.h	Wed Jul 07 21:20:09 1999
+@@ -43,34 +43,12 @@
+ #define XML_TOK_TRAILING_RSQB -5 /* ] or ]] at the end of the scan; might be start of
+                                     illegal ]]> sequence */
+ /* The following tokens may be returned by both XmlPrologTok and XmlContentTok */
+-
+-/* Instead of just returning XML_TOK_INVALID, we are going to add a few more
+-   specific error messages. */
+-#define XML_TOK_ERR_INVALID_NAME -100
+-#define XML_TOK_ERR_INVALID_CHAR_IN_DOC -101
+-#define XML_TOK_ERR_TWO_DASHES_NOT_ALLOWED_IN_COMMENT -102
+-#define XML_TOK_ERR_INVALID_DECL -103
+-#define XML_TOK_ERR_INVALID_PI -104
+-#define XML_TOK_ERR_INVALID_PI_TARGET -105
+-#define XML_TOK_ERR_INVALID_CDATA -106
+-#define XML_TOK_ERR_NO_CLOSING_GT -107
+-#define XML_TOK_ERR_INVALID_HEX_CHAR_REF -108
+-#define XML_TOK_ERR_INVALID_CHAR_REF -109
+-#define XML_TOK_ERR_INVALID_REF -110
+-#define XML_TOK_ERR_MISSING_EQUALS -111
+-#define XML_TOK_ERR_MISSING_QUOT_APOS -112
+-#define XML_TOK_ERR_MISSING_REQ_SPACE -113
+-#define XML_TOK_ERR_LT_NOT_ALLOWED -114
+-#define XML_TOK_ERR_EXPECTED_GT -115
+-#define XML_TOK_ERR_INVALID_GT_AFFT_2_RSQB_IN_CONTENT -116
+-#define XML_TOK_ERR_INVALID_COMMENT -117
+-
+ #define XML_TOK_NONE -4    /* The string to be scanned is empty */
+ #define XML_TOK_TRAILING_CR -3 /* A CR at the end of the scan;
+                                   might be part of CRLF sequence */ 
+ #define XML_TOK_PARTIAL_CHAR -2 /* only part of a multibyte sequence */
+ #define XML_TOK_PARTIAL -1 /* only part of a token */
+-/*#define XML_TOK_INVALID 0*/
++#define XML_TOK_INVALID 0
+ 
+ /* The following tokens are returned by XmlContentTok; some are also
+   returned by XmlAttributeValueTok, XmlEntityTok, XmlCdataSectionTok */
+@@ -221,11 +199,8 @@
+ Return XML_TOK_PARTIAL when the string does not contain a complete token;
+ nextTokPtr will not be set.
+ 
+-The scanners will return an actual error instead of just XML_TOK_INVALID. 
+-when the string does not start a valid token; nextTokPtr will be set to
+-point to the character which made the token invalid. see xmltok.h and
+-the XML_TOK_ERR... values.
+-
++Return XML_TOK_INVALID when the string does not start a valid token; nextTokPtr
++will be set to point to the character which made the token invalid.
+ 
+ Otherwise the string starts with a valid token; nextTokPtr will be set to point
+ to the character following the end of that token.
+diff -u ./xmltok/xmltok_impl.c ../../../mozilla/mozilla/expat/xmltok/xmltok_impl.c
+--- ./xmltok/xmltok_impl.c	Mon Mar 27 16:00:15 2000
++++ ../../../mozilla/mozilla/expat/xmltok/xmltok_impl.c	Thu Jul 01 20:30:40 1999
+@@ -38,7 +38,7 @@
+ 	return XML_TOK_PARTIAL_CHAR; \
+       if (IS_INVALID_CHAR(enc, ptr, n)) { \
+         *(nextTokPtr) = (ptr); \
+-        return XML_TOK_ERR_INVALID_CHAR_IN_DOC; \
++        return XML_TOK_INVALID; \
+       } \
+       ptr += n; \
+       break;
+@@ -51,7 +51,7 @@
+   case BT_MALFORM: \
+   case BT_TRAIL: \
+     *(nextTokPtr) = (ptr); \
+-    return XML_TOK_ERR_INVALID_CHAR_IN_DOC;
++    return XML_TOK_INVALID;
+ 
+ #define CHECK_NAME_CASE(n, enc, ptr, end, nextTokPtr) \
+    case BT_LEAD ## n: \
+@@ -59,7 +59,7 @@
+        return XML_TOK_PARTIAL_CHAR; \
+      if (!IS_NAME_CHAR(enc, ptr, n)) { \
+        *nextTokPtr = ptr; \
+-       return XML_TOK_ERR_INVALID_NAME; \
++       return XML_TOK_INVALID; \
+      } \
+      ptr += n; \
+      break;
+@@ -68,7 +68,7 @@
+   case BT_NONASCII: \
+     if (!IS_NAME_CHAR_MINBPC(enc, ptr)) { \
+       *nextTokPtr = ptr; \
+-      return XML_TOK_ERR_INVALID_NAME; \
++      return XML_TOK_INVALID; \
+     } \
+   case BT_NMSTRT: \
+   case BT_HEX: \
+@@ -87,7 +87,7 @@
+        return XML_TOK_PARTIAL_CHAR; \
+      if (!IS_NMSTRT_CHAR(enc, ptr, n)) { \
+        *nextTokPtr = ptr; \
+-       return XML_TOK_ERR_INVALID_NAME; \
++       return XML_TOK_INVALID; \
+      } \
+      ptr += n; \
+      break;
+@@ -96,7 +96,7 @@
+   case BT_NONASCII: \
+     if (!IS_NMSTRT_CHAR_MINBPC(enc, ptr)) { \
+       *nextTokPtr = ptr; \
+-       return XML_TOK_ERR_INVALID_NAME; \
++      return XML_TOK_INVALID; \
+     } \
+   case BT_NMSTRT: \
+   case BT_HEX: \
+@@ -119,7 +119,7 @@
+   if (ptr != end) {
+     if (!CHAR_MATCHES(enc, ptr, '-')) {
+       *nextTokPtr = ptr;
+-      return XML_TOK_ERR_INVALID_COMMENT;
++      return XML_TOK_INVALID;
+     }
+     ptr += MINBPC(enc);
+     while (ptr != end) {
+@@ -133,7 +133,7 @@
+ 	    return XML_TOK_PARTIAL;
+ 	  if (!CHAR_MATCHES(enc, ptr, '>')) {
+ 	    *nextTokPtr = ptr;
+-	    return XML_TOK_ERR_TWO_DASHES_NOT_ALLOWED_IN_COMMENT;
++	    return XML_TOK_INVALID;
+ 	  }
+ 	  *nextTokPtr = ptr + MINBPC(enc);
+ 	  return XML_TOK_COMMENT;
+@@ -168,7 +168,7 @@
+     break;
+   default:
+     *nextTokPtr = ptr;
+-    return XML_TOK_ERR_INVALID_DECL;
++    return XML_TOK_INVALID;
+   }
+   while (ptr != end) {
+     switch (BYTE_TYPE(enc, ptr)) {
+@@ -179,7 +179,7 @@
+       switch (BYTE_TYPE(enc, ptr + MINBPC(enc))) {
+       case BT_S: case BT_CR: case BT_LF: case BT_PERCNT:
+ 	*nextTokPtr = ptr;
+-	return XML_TOK_ERR_INVALID_DECL;
++	return XML_TOK_INVALID;
+       }
+       /* fall through */
+     case BT_S: case BT_CR: case BT_LF:
+@@ -191,7 +191,7 @@
+       break;
+     default:
+       *nextTokPtr = ptr;
+-      return XML_TOK_ERR_INVALID_DECL;
++      return XML_TOK_INVALID;
+     }
+   }
+   return XML_TOK_PARTIAL;
+@@ -253,7 +253,7 @@
+   CHECK_NMSTRT_CASES(enc, ptr, end, nextTokPtr)
+   default:
+     *nextTokPtr = ptr;
+-    return XML_TOK_ERR_INVALID_PI;
++    return XML_TOK_INVALID;
+   }
+   while (ptr != end) {
+     switch (BYTE_TYPE(enc, ptr)) {
+@@ -261,7 +261,7 @@
+     case BT_S: case BT_CR: case BT_LF:
+       if (!PREFIX(checkPiTarget)(enc, target, ptr, &tok)) {
+ 	*nextTokPtr = ptr;
+-	return XML_TOK_ERR_INVALID_PI_TARGET;
++	return XML_TOK_INVALID;
+       }
+       ptr += MINBPC(enc);
+       while (ptr != end) {
+@@ -285,7 +285,7 @@
+     case BT_QUEST:
+       if (!PREFIX(checkPiTarget)(enc, target, ptr, &tok)) {
+ 	*nextTokPtr = ptr;
+-	return XML_TOK_ERR_INVALID_PI_TARGET;
++	return XML_TOK_INVALID;
+       }
+       ptr += MINBPC(enc);
+       if (ptr == end)
+@@ -297,7 +297,7 @@
+       /* fall through */
+     default:
+       *nextTokPtr = ptr;
+-      return XML_TOK_ERR_INVALID_PI;
++      return XML_TOK_INVALID;
+     }
+   }
+   return XML_TOK_PARTIAL;
+@@ -315,7 +315,7 @@
+   for (i = 0; i < 6; i++, ptr += MINBPC(enc)) {
+     if (!CHAR_MATCHES(enc, ptr, "CDATA["[i])) {
+       *nextTokPtr = ptr;
+-      return XML_TOK_ERR_INVALID_CDATA;
++      return XML_TOK_INVALID;
+     }
+   }
+   *nextTokPtr = ptr;
+@@ -410,7 +410,7 @@
+   CHECK_NMSTRT_CASES(enc, ptr, end, nextTokPtr)
+   default:
+     *nextTokPtr = ptr;
+-    return XML_TOK_ERR_INVALID_NAME;
++    return XML_TOK_INVALID;
+   }
+   while (ptr != end) {
+     switch (BYTE_TYPE(enc, ptr)) {
+@@ -425,7 +425,7 @@
+           return XML_TOK_END_TAG;
+ 	default:
+ 	  *nextTokPtr = ptr;
+-	  return XML_TOK_ERR_NO_CLOSING_GT;
++	  return XML_TOK_INVALID;
+ 	}
+       }
+       return XML_TOK_PARTIAL;
+@@ -440,7 +440,7 @@
+       return XML_TOK_END_TAG;
+     default:
+       *nextTokPtr = ptr;
+-      return XML_TOK_ERR_NO_CLOSING_GT;
++      return XML_TOK_INVALID;
+     }
+   }
+   return XML_TOK_PARTIAL;
+@@ -459,7 +459,7 @@
+       break;
+     default:
+       *nextTokPtr = ptr;
+-      return XML_TOK_ERR_INVALID_HEX_CHAR_REF;
++      return XML_TOK_INVALID;
+     }
+     for (ptr += MINBPC(enc); ptr != end; ptr += MINBPC(enc)) {
+       switch (BYTE_TYPE(enc, ptr)) {
+@@ -471,7 +471,7 @@
+ 	return XML_TOK_CHAR_REF;
+       default:
+ 	*nextTokPtr = ptr;
+-	return XML_TOK_ERR_INVALID_HEX_CHAR_REF;
++	return XML_TOK_INVALID;
+       }
+     }
+   }
+@@ -492,7 +492,7 @@
+       break;
+     default:
+       *nextTokPtr = ptr;
+-      return XML_TOK_ERR_INVALID_CHAR_REF;
++      return XML_TOK_INVALID;
+     }
+     for (ptr += MINBPC(enc); ptr != end; ptr += MINBPC(enc)) {
+       switch (BYTE_TYPE(enc, ptr)) {
+@@ -503,7 +503,7 @@
+ 	return XML_TOK_CHAR_REF;
+       default:
+ 	*nextTokPtr = ptr;
+-	return XML_TOK_ERR_INVALID_CHAR_REF;
++	return XML_TOK_INVALID;
+       }
+     }
+   }
+@@ -524,7 +524,7 @@
+     return PREFIX(scanCharRef)(enc, ptr + MINBPC(enc), end, nextTokPtr);
+   default:
+     *nextTokPtr = ptr;
+-    return XML_TOK_ERR_INVALID_REF;
++    return XML_TOK_INVALID;
+   }
+   while (ptr != end) {
+     switch (BYTE_TYPE(enc, ptr)) {
+@@ -534,7 +534,7 @@
+       return XML_TOK_ENTITY_REF;
+     default:
+       *nextTokPtr = ptr;
+-      return XML_TOK_ERR_INVALID_REF;
++      return XML_TOK_INVALID;
+     }
+   }
+   return XML_TOK_PARTIAL;
+@@ -556,7 +556,7 @@
+     case BT_COLON:
+       if (hadColon) {
+ 	*nextTokPtr = ptr;
+-	return XML_TOK_ERR_INVALID_NAME;
++	return XML_TOK_INVALID;
+       }
+       hadColon = 1;
+       ptr += MINBPC(enc);
+@@ -566,7 +566,7 @@
+       CHECK_NMSTRT_CASES(enc, ptr, end, nextTokPtr)
+       default:
+ 	*nextTokPtr = ptr;
+-	return XML_TOK_ERR_INVALID_NAME;
++	return XML_TOK_INVALID;
+       }
+       break;
+ #endif
+@@ -587,7 +587,7 @@
+ 	  break;
+ 	default:
+ 	  *nextTokPtr = ptr;
+-	  return XML_TOK_ERR_MISSING_EQUALS;
++	  return XML_TOK_INVALID;
+ 	}
+       }
+     /* fall through */
+@@ -612,7 +612,7 @@
+ 	    break;
+ 	  default:
+ 	    *nextTokPtr = ptr;
+-	    return XML_TOK_ERR_MISSING_QUOT_APOS;
++	    return XML_TOK_INVALID;
+ 	  }
+ 	}
+ 	ptr += MINBPC(enc);
+@@ -630,9 +630,7 @@
+ 	    {
+ 	      int tok = PREFIX(scanRef)(enc, ptr + MINBPC(enc), end, &ptr);
+ 	      if (tok <= 0) {
+-	        if (tok == XML_TOK_ERR_INVALID_HEX_CHAR_REF || 
+-	            tok == XML_TOK_ERR_INVALID_CHAR_REF ||
+-		    tok == XML_TOK_ERR_INVALID_REF)
++		if (tok == XML_TOK_INVALID)
+ 		  *nextTokPtr = ptr;
+ 		return tok;
+ 	      }
+@@ -640,7 +638,7 @@
+ 	    }
+ 	  case BT_LT:
+ 	    *nextTokPtr = ptr;
+-	    return XML_TOK_ERR_LT_NOT_ALLOWED;
++	    return XML_TOK_INVALID;
+ 	  default:
+ 	    ptr += MINBPC(enc);
+ 	    break;
+@@ -660,7 +658,7 @@
+ 	  goto gt;
+ 	default:
+ 	  *nextTokPtr = ptr;
+-	  return XML_TOK_ERR_MISSING_REQ_SPACE;
++	  return XML_TOK_INVALID;
+ 	}
+ 	/* ptr points to closing quote */
+ 	for (;;) {
+@@ -682,13 +680,13 @@
+ 	      return XML_TOK_PARTIAL;
+ 	    if (!CHAR_MATCHES(enc, ptr, '>')) {
+ 	      *nextTokPtr = ptr;
+-	      return XML_TOK_ERR_EXPECTED_GT;
++	      return XML_TOK_INVALID;
+ 	    }
+ 	    *nextTokPtr = ptr + MINBPC(enc);
+ 	    return XML_TOK_EMPTY_ELEMENT_WITH_ATTS;
+ 	  default:
+ 	    *nextTokPtr = ptr;
+-	    return XML_TOK_ERR_INVALID_NAME;
++	    return XML_TOK_INVALID;
+ 	  }
+ 	  break;
+ 	}
+@@ -696,10 +694,7 @@
+       }
+     default:
+       *nextTokPtr = ptr;
+-      /* As soon as we hit a space we would go to the space 
+-	 state... so therefore this erro should be because we
+-	 have ran into an invalid name token */
+-      return XML_TOK_ERR_INVALID_NAME;
++      return XML_TOK_INVALID;
+     }
+   }
+   return XML_TOK_PARTIAL;
+@@ -728,14 +723,14 @@
+       return PREFIX(scanCdataSection)(enc, ptr + MINBPC(enc), end, nextTokPtr);
+     }
+     *nextTokPtr = ptr;
+-    return XML_TOK_ERR_INVALID_NAME;
++    return XML_TOK_INVALID;
+   case BT_QUEST:
+     return PREFIX(scanPi)(enc, ptr + MINBPC(enc), end, nextTokPtr);
+   case BT_SOL:
+     return PREFIX(scanEndTag)(enc, ptr + MINBPC(enc), end, nextTokPtr);
+   default:
+     *nextTokPtr = ptr;
+-    return XML_TOK_ERR_INVALID_NAME;
++    return XML_TOK_INVALID;
+   }
+ #ifdef XML_NS
+   hadColon = 0;
+@@ -748,7 +743,7 @@
+     case BT_COLON:
+       if (hadColon) {
+ 	*nextTokPtr = ptr;
+-	return XML_TOK_ERR_INVALID_NAME;
++	return XML_TOK_INVALID;
+       }
+       hadColon = 1;
+       ptr += MINBPC(enc);
+@@ -758,7 +753,7 @@
+       CHECK_NMSTRT_CASES(enc, ptr, end, nextTokPtr)
+       default:
+         *nextTokPtr = ptr;
+-        return XML_TOK_ERR_INVALID_NAME;
++        return XML_TOK_INVALID;
+       }
+       break;
+ #endif
+@@ -777,7 +772,7 @@
+ 	    continue;
+ 	  default:
+ 	    *nextTokPtr = ptr;
+-	    return XML_TOK_ERR_INVALID_NAME;
++	    return XML_TOK_INVALID;
+ 	  }
+ 	  return PREFIX(scanAtts)(enc, ptr, end, nextTokPtr);
+ 	}
+@@ -794,13 +789,13 @@
+ 	return XML_TOK_PARTIAL;
+       if (!CHAR_MATCHES(enc, ptr, '>')) {
+ 	*nextTokPtr = ptr;
+-	return XML_TOK_ERR_EXPECTED_GT;
++	return XML_TOK_INVALID;
+       }
+       *nextTokPtr = ptr + MINBPC(enc);
+       return XML_TOK_EMPTY_ELEMENT_NO_ATTS;
+     default:
+       *nextTokPtr = ptr;
+-      return XML_TOK_ERR_INVALID_NAME;
++      return XML_TOK_INVALID;
+     }
+   }
+   return XML_TOK_PARTIAL;
+@@ -851,7 +846,7 @@
+       break;
+     }
+     *nextTokPtr = ptr;
+-    return XML_TOK_ERR_INVALID_GT_AFFT_2_RSQB_IN_CONTENT;
++    return XML_TOK_INVALID;
+   INVALID_CASES(ptr, nextTokPtr)
+   default:
+     ptr += MINBPC(enc);
+@@ -881,7 +876,7 @@
+ 	     break;
+ 	   }
+ 	   *nextTokPtr = ptr + 2*MINBPC(enc);
+-	   return XML_TOK_ERR_INVALID_GT_AFFT_2_RSQB_IN_CONTENT;
++	   return XML_TOK_INVALID;
+ 	 }
+       }
+       /* fall through */
+@@ -918,7 +913,7 @@
+     return XML_TOK_PERCENT;
+   default:
+     *nextTokPtr = ptr;
+-    return XML_TOK_ERR_INVALID_NAME;
++    return XML_TOK_INVALID;
+   }
+   while (ptr != end) {
+     switch (BYTE_TYPE(enc, ptr)) {
+@@ -928,7 +923,7 @@
+       return XML_TOK_PARAM_ENTITY_REF;
+     default:
+       *nextTokPtr = ptr;
+-      return XML_TOK_ERR_INVALID_NAME;
++      return XML_TOK_INVALID;
+     }
+   }
+   return XML_TOK_PARTIAL;
+@@ -944,7 +939,7 @@
+   CHECK_NMSTRT_CASES(enc, ptr, end, nextTokPtr)
+   default:
+     *nextTokPtr = ptr;
+-    return XML_TOK_ERR_INVALID_NAME;
++    return XML_TOK_INVALID;
+   }
+   while (ptr != end) {
+     switch (BYTE_TYPE(enc, ptr)) {
+@@ -955,7 +950,7 @@
+       return XML_TOK_POUND_NAME;
+     default:
+       *nextTokPtr = ptr;
+-      return XML_TOK_ERR_INVALID_NAME;
++      return XML_TOK_INVALID;
+     }
+   }
+   return -XML_TOK_POUND_NAME;
+@@ -983,7 +978,7 @@
+       case BT_GT: case BT_PERCNT: case BT_LSQB:
+ 	return XML_TOK_LITERAL;
+       default:
+-	return XML_TOK_ERR_INVALID_CHAR_IN_DOC;
++	return XML_TOK_INVALID;
+       }
+     default:
+       ptr += MINBPC(enc);
+@@ -1034,7 +1029,7 @@
+ 	return XML_TOK_INSTANCE_START;
+       }
+       *nextTokPtr = ptr;
+-      return XML_TOK_ERR_INVALID_CHAR_IN_DOC;
++      return XML_TOK_INVALID;
+     }
+   case BT_CR:
+     if (ptr + MINBPC(enc) == end)
+@@ -1106,7 +1101,7 @@
+       return XML_TOK_CLOSE_PAREN;
+     }
+     *nextTokPtr = ptr;
+-    return XML_TOK_ERR_INVALID_CHAR_IN_DOC;
++    return XML_TOK_INVALID;
+   case BT_VERBAR:
+     *nextTokPtr = ptr + MINBPC(enc);
+     return XML_TOK_OR;
+@@ -1130,7 +1125,7 @@
+       break; \
+     } \
+     *nextTokPtr = ptr; \
+-    return XML_TOK_ERR_INVALID_CHAR_IN_DOC;
++    return XML_TOK_INVALID;
+     LEAD_CASE(2) LEAD_CASE(3) LEAD_CASE(4)
+ #undef LEAD_CASE
+   case BT_NMSTRT:
+@@ -1161,7 +1156,7 @@
+     /* fall through */
+   default:
+     *nextTokPtr = ptr;
+-    return XML_TOK_ERR_INVALID_CHAR_IN_DOC;
++    return XML_TOK_INVALID;
+   }
+   while (ptr != end) {
+     switch (BYTE_TYPE(enc, ptr)) {
+@@ -1195,27 +1190,27 @@
+     case BT_PLUS:
+       if (tok == XML_TOK_NMTOKEN)  {
+ 	*nextTokPtr = ptr;
+-	return XML_TOK_ERR_INVALID_CHAR_IN_DOC;
++	return XML_TOK_INVALID;
+       }
+       *nextTokPtr = ptr + MINBPC(enc);
+       return XML_TOK_NAME_PLUS;
+     case BT_AST:
+       if (tok == XML_TOK_NMTOKEN)  {
+ 	*nextTokPtr = ptr;
+-	return XML_TOK_ERR_INVALID_CHAR_IN_DOC;
++	return XML_TOK_INVALID;
+       }
+       *nextTokPtr = ptr + MINBPC(enc);
+       return XML_TOK_NAME_ASTERISK;
+     case BT_QUEST:
+       if (tok == XML_TOK_NMTOKEN)  {
+ 	*nextTokPtr = ptr;
+-	return XML_TOK_ERR_INVALID_CHAR_IN_DOC;
++	return XML_TOK_INVALID;
+       }
+       *nextTokPtr = ptr + MINBPC(enc);
+       return XML_TOK_NAME_QUESTION;
+     default:
+       *nextTokPtr = ptr;
+-      return XML_TOK_ERR_INVALID_CHAR_IN_DOC;
++      return XML_TOK_INVALID;
+     }
+   }
+   return -tok;
+@@ -1243,7 +1238,7 @@
+     case BT_LT:
+       /* this is for inside entity references */
+       *nextTokPtr = ptr;
+-      return XML_TOK_ERR_LT_NOT_ALLOWED;
++      return XML_TOK_INVALID;
+     case BT_LF:
+       if (ptr == start) {
+ 	*nextTokPtr = ptr + MINBPC(enc);

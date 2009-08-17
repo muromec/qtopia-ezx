@@ -1,0 +1,132 @@
+
+CreateIHXValues2 A
+
+# Verify that QueryInterface works
+CheckQueryInterface A
+
+# Test setting a property with a NULL pointer
+SetPropertyObject A 0x80040009 test B
+
+# Test getting a property from an empty IHXValues2
+GetPropertyObject A 0x80004005 test B
+
+# Set a property with a valid pointer
+CreateIHXValues2 B
+SetPropertyULONG32 B 0x00000000 uint1 10
+SetPropertyULONG32 B 0x00000000 uint2 234
+SetPropertyBuffer B 0x00000000 buf1 "this is a test"
+SetPropertyCString B 0x00000000 str1 "yet another test"
+SetPropertyObject A 0x00000000 test B
+
+CreateIHXValues2 B
+GetPropertyULONG32 B 0x80004005 uint1 10
+GetPropertyULONG32 B 0x80004005 uint2 234
+
+# Get the object property and verify
+# that it has the values we put in it
+GetPropertyObject A 0x00000000 test B
+GetPropertyULONG32 B 0x00000000 uint1 10
+GetPropertyULONG32 B 0x00000000 uint2 234
+GetPropertyBuffer B 0x00000000 buf1 "this is a test"
+GetPropertyCString B 0x00000000 str1 "yet another test"
+
+Remove B 0x00000000 uint1
+GetPropertyULONG32 B 0x80004005 uint1 0
+
+RemoveULONG32 B 0x00000000 uint2
+GetPropertyULONG32 B 0x80004005 uint2 0
+
+RemoveBuffer B 0x00000000 buf1
+GetPropertyBuffer B 0x80004005 buf1 0
+
+RemoveCString B 0x00000000 str1
+GetPropertyCString B 0x80004005 str1 0
+
+RemoveObject A 0x00000000 test
+GetPropertyObject A 0x80004005 test B
+
+# Test to see if Remove() actually removes all the properties
+# with the same key
+CreateIHXValues2 A
+SetPropertyULONG32 A 0x00000000 foo 10
+SetPropertyBuffer A 0x00000000 foo "this is a test"
+SetPropertyCString A 0x00000000 foo "yet another test"
+CreateIHXValues2 B
+SetPropertyULONG32 A 0x00000000 foo2 42
+SetPropertyBuffer A 0x00000000 foo2 "testing"
+SetPropertyCString A 0x00000000 foo2 "1234"
+SetPropertyObject A 0x00000000 foo B
+
+# remove all the foo properties
+Remove A 0x00000000 foo
+
+# verify that they are gone
+GetPropertyULONG32 A 0x80004005 foo 0
+GetPropertyBuffer A 0x80004005 foo 0
+GetPropertyCString A 0x80004005 foo 0
+GetPropertyObject A 0x80004005 foo B
+
+# Test ULONG32 iteration
+CreateIHXValues2 A
+SetPropertyULONG32 A 0x00000000 uint1 42
+SetPropertyULONG32 A 0x00000000 uint2 64
+SetPropertyULONG32 A 0x00000000 uint3 7
+
+# Iterate over A and verify that the ULONG32s
+# are present
+GetFirstPropertyULONG32 A 0x00000000 uint1 42
+GetNextPropertyULONG32 A 0x00000000 uint2 64
+GetNextPropertyULONG32 A 0x00000000 uint3 7
+GetNextPropertyULONG32 A 0x80004005 "" 0
+
+# Test buffer iteration
+CreateIHXValues2 A
+SetPropertyBuffer A 0x00000000 buf1 "buffer 1"
+SetPropertyBuffer A 0x00000000 buf2 "buffer 2"
+SetPropertyBuffer A 0x00000000 buf3 "buffer 3"
+
+# Iterate over A and verify that the buffers
+# are present
+GetFirstPropertyBuffer A 0x00000000 buf1 "buffer 1"
+GetNextPropertyBuffer A 0x00000000 buf2 "buffer 2"
+GetNextPropertyBuffer A 0x00000000 buf3 "buffer 3"
+GetNextPropertyBuffer A 0x80004005 "" ""
+
+# Test string iteration
+CreateIHXValues2 A
+SetPropertyCString A 0x00000000 str1 "string 1"
+SetPropertyCString A 0x00000000 str2 "string 2"
+SetPropertyCString A 0x00000000 str3 "string 3"
+
+# Iterate over A and verify that the strings
+# are present
+GetFirstPropertyCString A 0x00000000 str1 "string 1"
+GetNextPropertyCString A 0x00000000 str2 "string 2"
+GetNextPropertyCString A 0x00000000 str3 "string 3"
+GetNextPropertyCString A 0x80004005 "" ""
+
+# Test object iteration
+# create A and insert IHXValues2 objects into it
+CreateIHXValues2 A
+
+CreateIHXValues2 B
+SetPropertyULONG32 B 0x00000000 obj1-uint 42
+SetPropertyObject A 0x00000000 obj1 B
+
+CreateIHXValues2 B
+SetPropertyULONG32 B 0x00000000 obj2-uint 64
+SetPropertyObject A 0x00000000 obj2 B
+
+CreateIHXValues2 B
+SetPropertyULONG32 B 0x00000000 obj3-uint 7
+SetPropertyObject A 0x00000000 obj3 B
+
+# Iterate over A and verify that the objects
+# are present
+GetFirstPropertyObject A 0x00000000 obj1 B
+GetPropertyULONG32 B 0x00000000 obj1-uint 42
+GetNextPropertyObject A 0x00000000 obj2 B
+GetPropertyULONG32 B 0x00000000 obj2-uint 64
+GetNextPropertyObject A 0x00000000 obj3 B
+GetPropertyULONG32 B 0x00000000 obj3-uint 7
+GetNextPropertyObject A 0x80004005 "" B

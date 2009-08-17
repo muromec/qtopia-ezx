@@ -1,0 +1,155 @@
+<!--  ***** BEGIN LICENSE BLOCK *****  
+  
+ Source last modified: $Id: plugin.html,v 1.4 2006/04/24 23:34:01 jfinnecy Exp $ 
+  
+ Copyright Notices: 
+  
+ Portions Copyright (c) 1995-2006 RealNetworks, Inc. All Rights Reserved. 
+  
+ Patent Notices: This file may contain technology protected by one or  
+ more of the patents listed at www.helixcommunity.org 
+  
+ 1.   The contents of this file, and the files included with this file, 
+ are protected by copyright controlled by RealNetworks and its  
+ licensors, and made available by RealNetworks subject to the current  
+ version of the RealNetworks Public Source License (the "RPSL")  
+ available at  * http://www.helixcommunity.org/content/rpsl unless  
+ you have licensed the file under the current version of the  
+ RealNetworks Community Source License (the "RCSL") available at 
+ http://www.helixcommunity.org/content/rcsl, in which case the RCSL 
+ will apply.  You may also obtain the license terms directly from 
+ RealNetworks.  You may not use this file except in compliance with 
+ the RPSL or, if you have a valid RCSL with RealNetworks applicable 
+ to this file, the RCSL.  Please see the applicable RPSL or RCSL for 
+ the rights, obligations and limitations governing use of the 
+ contents of the file. 
+  
+ 2.  Alternatively, the contents of this file may be used under the 
+ terms of the GNU General Public License Version 2 (the 
+ "GPL") in which case the provisions of the GPL are applicable 
+ instead of those above.  Please note that RealNetworks and its  
+ licensors disclaim any implied patent license under the GPL.   
+ If you wish to allow use of your version of this file only under  
+ the terms of the GPL, and not to allow others 
+ to use your version of this file under the terms of either the RPSL 
+ or RCSL, indicate your decision by deleting Paragraph 1 above 
+ and replace them with the notice and other provisions required by 
+ the GPL. If you do not delete Paragraph 1 above, a recipient may 
+ use your version of this file under the terms of any one of the 
+ RPSL, the RCSL or the GPL. 
+  
+ This file is part of the Helix DNA Technology.  RealNetworks is the 
+ developer of the Original Code and owns the copyrights in the 
+ portions it created.   Copying, including reproducing, storing,  
+ adapting or translating, any or all of this material other than  
+ pursuant to the license terms referred to above requires the prior  
+ written consent of RealNetworks and its licensors 
+  
+ This file, and the files included with this file, is distributed 
+ and made available by RealNetworks on an 'AS IS' basis, WITHOUT  
+ WARRANTY OF ANY KIND, EITHER EXPRESS OR IMPLIED, AND REALNETWORKS  
+ AND ITS LICENSORS HEREBY DISCLAIM  ALL SUCH WARRANTIES, INCLUDING  
+ WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS  
+ FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT. 
+  
+ Technology Compatibility Kit Test Suite(s) Location:  
+    http://www.helixcommunity.org/content/tck 
+  
+  Contributor(s):
+  
+  ***** END LICENSE BLOCK *****
+-->
+<html>
+<head><title>Build System Plug-ins</title></head>
+<body bgcolor="#ffffff">
+
+<h1>Build System Plug-ins</h1>
+<hr>
+
+<p>The build system uses plug-ins to perform actions on modules.  Which plug-in
+is used is based on the module type as defined in the BIF file, or by
+locally overriding it in the module.</p>
+
+<p>All plug-ins need to be derived from the class 'Collate', located in the 
+build system directory in the file 'collate.py'.  This class provides the
+common interface used to invoke the plug-in:</p>
+<pre>
+class Collate:
+    def set_output_func(self, output_func)
+    def set_error_func(self, error_func)
+    def output(self, text)
+    def error(self, text)
+    def run(self)
+</pre>
+        
+<p>Python does not allow non-virtual methods in classes, so keep in mind the
+only method you are meant to override is 'run'.  The output and error
+methods are used for printing standard output and standard error, and the 
+'set_..' methods are used only by the build system's plug-in loader to 
+re-direct the output from the plug-in.  In addition to these methods, the
+Collate class is also initialized with the 'module' member class, which 
+is a class containing all the information from the parsed module section
+in the BIF file, and the 'settings' member, which is a hash table of all
+the settings the build system was invoked with.</p>
+
+<p>The build system retrieves plug-ins via it's plug-in loader, 'plugin.py', in
+the build system directory.  Built-in plug-ins, like the 'Compile' class, 
+are handled specially.  Other plug-ins are loaded by trying to load a function
+called 'get_collate_class' from the file 'Buildfil' in module directory.
+This is how the collation of a module is overridden locally.  The Python
+function 'get_collate_class' should return the Collate-derived class the
+build system should use for building in that subdirectory.</p>
+
+<p>Here is an example of a simple build system plug-in that does nothing
+except print out the module name and the system's platform name:</p>
+
+<!-- FIXME: Example plugin should not use os.name!!! -->
+
+<pre>
+## EXAMPLE PLUG-IN
+import os, sys, string, collate
+
+## derived class from the build system's Install class, the action
+## class used by the build system to create installers
+
+class ExamplePlugin(collate.Collate):
+    def run(self):
+        self.output('I am %s at %s' % (self.module.name, self.my_platform()))
+
+    def my_platform(self):
+        return 'UNKNOWN'
+
+class UNIXExamplePlugin(ExamplePlugin):
+    def my_platform(self):
+        return 'UNIX'
+
+class WindowsExamplePlugin(ExamplePlugin):
+    def my_platform(self):
+        return 'WINDOWS'
+
+class MacExamplePlugin(ExamplePlugin):
+    def my_platform(self):
+        return 'MACINTOSH'
+
+## external class retriever used to load the installer class
+## by the build system's plug-in loader
+def get_collate_class():
+    if os.name == 'posix':
+        return UNIXExamplePlugin
+    elif os.name == 'nt' or os.name == 'dos':
+        return WindowsExamplePlugin
+    elif os.name == 'mac':
+        return MacExamplePlugin
+
+    return ExamplePlugin
+</pre>
+
+
+<h3>Nice Classes to Derive From</h3>
+<p>Two built-in subclasses of Collate are the 'Compile' class, and the
+'Installer' class.  The Compile class is the class used to compile most
+CVS modules, it is built into the build system and implemented in the 
+'compile.py' file.  The 'Installer' class is the base class for installers.</p>
+
+</body>
+</html>
