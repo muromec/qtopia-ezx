@@ -233,7 +233,8 @@ void SessionManagerPrivate::sessionStateChange(QtopiaMedia::State state)
     case QtopiaMedia::Paused:
     case QtopiaMedia::Stopped:
     case QtopiaMedia::Error:
-        --activePlayingSessions;
+        if (activePlayingSessions)
+          --activePlayingSessions;
         break;
 
     case QtopiaMedia::Buffering:
