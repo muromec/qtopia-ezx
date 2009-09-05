@@ -19,6 +19,8 @@
 
 #include "mediapowercontrol.h"
 
+#include "QTimer"
+#include <qtopialog.h>
 
 namespace mediaserver
 {
@@ -40,13 +42,24 @@ MediaPowerControl::~MediaPowerControl()
 
 void MediaPowerControl::activeSessionCount(int activeSessions)
 {
-    if (activeSessions == 0)
-        QtopiaApplication::setPowerConstraint(m_powerConstraint = QtopiaApplication::Enable);
-    else
-    {
-        if (activeSessions > 0 && m_powerConstraint != QtopiaApplication::DisableSuspend)
-            QtopiaApplication::setPowerConstraint(m_powerConstraint = QtopiaApplication::DisableSuspend);
+    m_activePlayingSessions = activeSessions;
+
+    if(m_activePlayingSessions == 0) {
+      QTimer::singleShot(2000, this, SLOT(recheck()));
+    } else if (m_powerConstraint != QtopiaApplication::DisableSuspend) {
+      m_powerConstraint = QtopiaApplication::DisableSuspend;
+      QtopiaApplication::setPowerConstraint(m_powerConstraint);
     }
+
 }
 
+void MediaPowerControl::recheck()
+{
+
+  if (m_activePlayingSessions != 0)
+    return;
+
+  m_powerConstraint = QtopiaApplication::Enable;
+  QtopiaApplication::setPowerConstraint(m_powerConstraint);
+}
 } // ns mediaserver
