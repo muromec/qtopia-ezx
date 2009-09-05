@@ -1908,6 +1908,7 @@ void PlayerWidget::activateVideo()
 
 void PlayerWidget::deactivateVideo()
 {
+  if(m_videowidget)
     removeVideo();
 }
 
