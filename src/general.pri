@@ -83,7 +83,6 @@ PROJECTS*=\
         applications/sysinfo \
         applications/textedit \
         applications/todo \
-        applications/gqsync \
         games/qasteroids \
         games/fifteen \
         games/snake \
