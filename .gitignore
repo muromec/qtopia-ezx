@@ -1,2 +1,10 @@
 Makefile
 config.status
+qtopiacore/qt/src/tools/uic/qclass_lib_map.h
+qtopiacore/qt/src/corelib/global/qconfig-qpe.h
+qtopiacore/qt/include/
+src/build/mkconf/build_mkconfargs
+src/build/mkconf/configure
+src/build/mkconf/force_build_mkconfargs
+src/build/mkconf/mkconfargs
+src/build/mkconf/userargs

@@ -36,6 +36,7 @@ public:
 
 private slots:
     void activeSessionCount(int);
+    void recheck();
 
 private:
     int m_activePlayingSessions;
