@@ -1007,20 +1007,18 @@ QString Qtopia::applicationFileName(const QString& appname, const QString& filen
     /opt/Qtopia.user/packages/a5b25e67a57f14de56
   \endcode
 
-  If SXE is disabled, this function returns the empty string
+  If SXE is disabled, this function returns the package install path.
+  Though SXE protection is not used, applications still would like to know 
+  where to find their resources.
 */
 QString Qtopia::sandboxDir()
 {
-#ifndef QT_NO_SXE
     QString appPath = QCoreApplication::applicationFilePath();
     if ( appPath.startsWith( Qtopia::packagePath() ) )
         return appPath.left( Qtopia::packagePath().length() + 32 )
                 + QLatin1String("/"); //32 is the md5sum length
     else
         return QString();
-#else
-    return QString();
-#endif
 }
 
 
