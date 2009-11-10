@@ -567,7 +567,7 @@ CFG_QT3SUPPORT=yes
 CFG_ENDIAN=auto
 CFG_DOUBLEFORMAT=auto
 CFG_ARMFPA=auto
-CFG_IWMMXT=$PLATFORM_QWS
+CFG_IWMMXT=no
 CFG_CLOCK_MONOTONIC=auto
 CFG_MREMAP=auto
 CFG_GETADDRINFO=auto
@@ -3735,7 +3735,7 @@ fi
 
 # check iWMMXt support
 if [ "$CFG_IWMMXT" = "yes" ]; then
-    if ! "$unixtests/compile.test" "$XQMAKESPEC" "$QMAKE_CONFIG" $OPT_VERBOSE "$relpath" "$outpath" config.tests/unix/iwmmxt "iwmmxt" $L_FLAGS $I_FLAGS $l_FLAGS "-march=iwmmxt  -mtune=iwmmxt"; then
+    if ! "$unixtests/compile.test" "$XQMAKESPEC" "$QMAKE_CONFIG" $OPT_VERBOSE "$relpath" "$outpath" config.tests/unix/iwmmxt "iwmmxt" $L_FLAGS $I_FLAGS $l_FLAGS "-mcpu=iwmmxt"; then
         echo "The iWMMXt functionality test failed!"
 	echo " Please make sure your compiler supports iWMMXt intrinsics!"
 	exit 1
