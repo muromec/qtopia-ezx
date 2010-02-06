@@ -24,7 +24,6 @@
 
 #include <qtopiaglobal.h>
 
-extern int *qtopia_dsp;
 
 class QAudioOutputPrivate;
 
@@ -60,5 +59,6 @@ private slots:
 private:
     QAudioOutputPrivate *d;
 };
+extern QAudioOutput* __output;
 
 #endif // QAUDIOOUTPUT_H

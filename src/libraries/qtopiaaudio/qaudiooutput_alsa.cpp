@@ -31,6 +31,7 @@
 #include <errno.h>
 #include <stdio.h>
 
+QAudioOutput* __output = NULL;
 
 class QAudioOutputPrivate
 {
@@ -326,17 +327,20 @@ public:
 QAudioOutput::QAudioOutput( const QByteArray &device, QObject *parent )
     : QIODevice( parent )
 {
+    __output = this;
     d = new QAudioOutputPrivate(device);
 }
 
 QAudioOutput::QAudioOutput( QObject *parent )
     : QIODevice( parent )
 {
+    __output = this;
     d = new QAudioOutputPrivate("default");
 }
 
 QAudioOutput::~QAudioOutput()
 {
+    __output = NULL;
     delete d;
 }
 
